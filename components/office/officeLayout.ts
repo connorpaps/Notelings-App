@@ -103,7 +103,13 @@ export function cellToWorld(col: number, row: number): [number, number] {
   return [(col - OFFICE_COLS / 2) * CELL_SIZE, (row - OFFICE_ROWS / 2) * CELL_SIZE]
 }
 
-/** Every cell occupied by floor-level furniture — consumed by Milestone 2 A*. */
+/**
+ * Every cell occupied by floor-level furniture — consumed by Milestone 2 A*.
+ * NOTE: this blocks only each placement's anchor cell, not the full footprint
+ * of multi-cell models (2x1 tables, cabinets) and NOT the wall segments
+ * (`WALLS`) — M2 must expand this set (wall cells + per-model extents from the
+ * OBJ bounding boxes) before pathfinding over it.
+ */
 export const BLOCKED_CELLS: Set<string> = new Set(
   PLACEMENTS.filter((p) => (p.mount ?? 'floor') === 'floor').map(
     (p) => `${p.cell[0]},${p.cell[1]}`,
