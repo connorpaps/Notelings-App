@@ -26,7 +26,7 @@ function LoadingFallback() {
 export default function VoxelOffice() {
   const furniture = useMemo(
     () =>
-      PLACEMENTS.filter((p) => (p.elevationY ?? 0) === 0).map((p) => (
+      PLACEMENTS.filter((p) => (p.mount ?? 'floor') !== 'wall').map((p) => (
         <OfficeModel key={p.id} placement={p} />
       )),
     [],
@@ -35,8 +35,10 @@ export default function VoxelOffice() {
   return (
     <group>
       <Floor />
-      <Walls />
-      <Suspense fallback={<LoadingFallback />}>{furniture}</Suspense>
+      <Suspense fallback={<LoadingFallback />}>
+        <Walls />
+        {furniture}
+      </Suspense>
     </group>
   )
 }

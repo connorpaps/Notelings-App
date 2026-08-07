@@ -39,10 +39,15 @@ describe('officeLayout', () => {
     })
   })
 
-  it('marks every occupied cell as blocked for pathfinding', () => {
-    PLACEMENTS.forEach((p) =>
-      expect(BLOCKED_CELLS.has(`${p.cell[0]},${p.cell[1]}`)).toBe(true),
+  it('marks every floor-level cell as blocked for pathfinding', () => {
+    const floorCells = PLACEMENTS.filter((p) => (p.mount ?? 'floor') === 'floor').map(
+      (p) => `${p.cell[0]},${p.cell[1]}`,
     )
+    expect(floorCells.length).toBeGreaterThan(0)
+    floorCells.forEach((c) => expect(BLOCKED_CELLS.has(c)).toBe(true))
+    // BLOCKED_CELLS contains exactly the floor cells — desktop/wall items may
+    // share their host's cell but never add new blocked cells.
+    expect(BLOCKED_CELLS.size).toBe(new Set(floorCells).size)
   })
 
   it('maps cells to world coords around the grid center', () => {
