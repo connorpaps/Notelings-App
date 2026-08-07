@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment files (never commit secrets)
+.env
+.env.local
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Auto-memory local watcher log (raw per-save events; the commit log is tracked)
+docs/activity-watch.log
+
+# Local machine marker (hostname of the last machine the repo was used on)
+docs/.last-machine
