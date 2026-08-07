@@ -1,0 +1,27 @@
+'use client'
+import { Grid } from '@react-three/drei'
+
+export default function Floor() {
+  return (
+    <group>
+      {/* Solid ground so shadows have something to land on */}
+      <mesh rotation-x={-Math.PI / 2} position-y={-0.01} receiveShadow>
+        <planeGeometry args={[40, 40]} />
+        <meshStandardMaterial color="#17181c" />
+      </mesh>
+      {/* Stylized grid overlay (isometric-friendly) */}
+      <Grid
+        position={[0, 0, 0]}
+        args={[40, 40]}
+        cellSize={1.2}
+        cellThickness={0.6}
+        cellColor="#2a2c33"
+        sectionSize={6}
+        sectionThickness={1.1}
+        sectionColor="#3b3e47"
+        fadeDistance={60}
+        infiniteGrid
+      />
+    </group>
+  )
+}
