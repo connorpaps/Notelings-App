@@ -190,7 +190,10 @@ export function buildEffectiveBlockedCells(
     const cos = Math.cos(rotationY)
     const sin = Math.sin(rotationY)
 
-    // Rotated box corners around Y, then axis-aligned world AABB.
+    // Rotated box corners around Y, then axis-aligned world AABB. The AABB
+    // deliberately INFLATES diagonally-placed footprints (a rotated box's
+    // AABB is larger than the box itself) — conservative over-blocking: the
+    // robot refuses borderline gaps instead of clipping furniture.
     let minX = Infinity
     let maxX = -Infinity
     let minZ = Infinity

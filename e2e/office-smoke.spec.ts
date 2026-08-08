@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { LOCKED_DEFAULT_ITEMS } from '../components/office/officeBuilderDefault'
-import { buildEffectiveBlockedCells, findPath, type GridCell } from '../components/office/pathfinding'
-import { cellToWorld } from '../components/office/officeLayout'
+import { findPath, gridCellToWorld, type GridCell } from '../components/office/pathfinding'
+import { AGENT_GRID_TRANSFORM, buildAgentBlockedCells } from '../components/office/agentGrid'
 
 const EXPECTED_IDS = LOCKED_DEFAULT_ITEMS.map((item) => item.id)
 const MODEL_IDS = LOCKED_DEFAULT_ITEMS.filter((item) => item.kind === 'model').map((item) => item.id)
@@ -280,24 +280,42 @@ async function worldToScreen(page: Page, x: number, y: number, z: number): Promi
   }, [x, y, z])
 }
 
-/** A reachable free cell a few cells away from the robot start (deterministic). */
+/** True when consecutive path steps change direction (the robot must turn). */
+function pathHasTurn(path: GridCell[]): boolean {
+  if (path.length < 3) return false
+  const step = (a: GridCell, b: GridCell): [number, number] => [b[0] - a[0], b[1] - a[1]]
+  const first = step(path[0], path[1])
+  for (let i = 2; i < path.length; i += 1) {
+    const next = step(path[i - 1], path[i])
+    if (next[0] !== first[0] || next[1] !== first[1]) return true
+  }
+  return false
+}
+
+/** A reachable free cell a few cells away from the robot start (deterministic).
+ *  Ring search by Manhattan distance; prefers paths that contain a turn so the
+ *  walk visibly exercises the heading rotation, not a straight slide. */
 function pickTargetCell(start: GridCell, blocked: ReadonlySet<string>): GridCell {
-  for (const d of [4, 3, 5, 2, 6]) {
-    for (const candidate of [
-      [start[0] + d, start[1]],
-      [start[0] - d, start[1]],
-      [start[0], start[1] + d],
-      [start[0], start[1] - d],
-    ] as GridCell[]) {
-      if (!blocked.has(`${candidate[0]},${candidate[1]}`) && findPath(start, candidate, { blocked })) {
-        return candidate
+  for (let d = 3; d <= 12; d += 1) {
+    const turning: GridCell[] = []
+    const straight: GridCell[] = []
+    for (let dc = -d; dc <= d; dc += 1) {
+      for (let dr = -d; dr <= d; dr += 1) {
+        if (Math.abs(dc) + Math.abs(dr) !== d) continue
+        const candidate: GridCell = [start[0] + dc, start[1] + dr]
+        if (blocked.has(`${candidate[0]},${candidate[1]}`)) continue
+        const path = findPath(start, candidate, { blocked })
+        if (!path) continue
+        ;(pathHasTurn(path) ? turning : straight).push(candidate)
       }
     }
+    if (turning.length > 0) return turning[0]
+    if (straight.length > 0) return straight[0]
   }
   throw new Error('no reachable free target near agent start')
 }
 
-test('agent robot renders at start and click-to-move walks an A* path', async ({ page }) => {
+test('agent robot renders flush with a live LCD face and click-to-move walks an A* path', async ({ page }) => {
   const errors: string[] = []
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())
@@ -307,10 +325,19 @@ test('agent robot renders at start and click-to-move walks an A* path', async ({
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
 
-  // Robot exists with its capsule body + LCD face and reports idle at its start cell.
+  // Robot exists with a capsule body + LCD face, sits FLUSH on the floor (the
+  // capsule's geometry bottom touches y=0 exactly), and the idle face canvas
+  // actually drew glyph pixels on a light screen (not blank/gray).
   await page.waitForFunction(
     () => {
-      type Obj = { name?: string; children?: Obj[]; isMesh?: boolean }
+      type Obj = {
+        name?: string
+        children?: Obj[]
+        isMesh?: boolean
+        position?: { x: number; y: number; z: number }
+        geometry?: { type?: string; computeBoundingBox?: () => void; boundingBox?: { min?: { y?: number } } }
+        material?: { map?: { image?: HTMLCanvasElement | undefined } }
+      }
       const scene = (window as unknown as { __NOTELINGS_SCENE__?: Obj }).__NOTELINGS_SCENE__
       if (!scene) return false
       const find = (root: Obj, name: string): Obj | undefined => {
@@ -321,13 +348,45 @@ test('agent robot renders at start and click-to-move walks an A* path', async ({
         }
         return undefined
       }
-      const meshCount = (root: Obj): number =>
-        (root.isMesh ? 1 : 0) + (root.children ?? []).reduce((n, c) => n + meshCount(c), 0)
       const robot = find(scene, 'agent-robot')
+      if (!robot) return false
+      const capsule = (robot.children ?? []).find((c) => c.isMesh && c.geometry?.type === 'CapsuleGeometry')
+      const face = (robot.children ?? []).find((c) => c.isMesh && c.geometry?.type === 'PlaneGeometry')
       const agent = (window as unknown as {
         __NOTELINGS_AGENT__?: { state?: string; startCell?: number[] }
       }).__NOTELINGS_AGENT__
-      return Boolean(robot && meshCount(robot) >= 2 && agent?.state === 'idle' && Array.isArray(agent?.startCell))
+      if (!capsule || !face || agent?.state !== 'idle' || !Array.isArray(agent?.startCell)) return false
+
+      // Flush-y: robot group sits on the floor AND the capsule's bounding-box
+      // bottom maps to world y=0 — not hovering, not sunk. (Geometry parameters
+      // are version-dependent, so derive from the real computed bounding box.)
+      const geo = capsule.geometry
+      if (!geo) return false
+      geo.computeBoundingBox?.()
+      const bottomLocal = geo.boundingBox?.min?.y ?? 1
+      // The capsule mesh carries only a y-offset (no rotation), so local→world
+      // y is position.y + bounding-box min.
+      const bottomWorld = (capsule.position?.y ?? 0) + bottomLocal
+      if (Math.abs(robot.position?.y ?? 1) > 1e-6 || Math.abs(bottomWorld) > 1e-6) return false
+
+      // The face material must carry a real 256px canvas texture.
+      const canvas = face.material?.map?.image
+      if (!canvas || canvas.width !== 256) return false
+
+      // Rendered-pixel proof: glyphs are drawn INSIDE the screen area (outside
+      // the dark bezel border): count dark pixels in the inner region.
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return false
+      const pad = Math.round(256 * 0.07)
+      const { data } = ctx.getImageData(pad, pad, 256 - pad * 2, 256 - pad * 2)
+      let dark = 0
+      let light = 0
+      for (let i = 0; i < data.length; i += 4) {
+        const luma = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
+        if (luma < 110) dark += 1
+        else if (luma > 200) light += 1
+      }
+      return dark > 60 && light > dark
     },
     { timeout: 30_000, polling: 500 },
   )
@@ -339,32 +398,80 @@ test('agent robot renders at start and click-to-move walks an A* path', async ({
   )
   if (!startCell) throw new Error('agent start cell not exposed')
 
-  const blocked = buildEffectiveBlockedCells(LOCKED_DEFAULT_ITEMS)
+  // The blocked set must come from the SAME transform-aware computation the
+  // scene uses, so the click target is truly free in the aligned grid.
+  const blocked = buildAgentBlockedCells()
   const target = pickTargetCell(startCell, blocked)
-  const [tx, tz] = cellToWorld(target[0], target[1])
+  const [tx, tz] = gridCellToWorld(target, AGENT_GRID_TRANSFORM)
   const TOLERANCE = 0.15
+
+  // Snapshot the idle face canvas so we can prove the expression swaps to
+  // WALKING (O O) while moving, then back to IDLE (^ ^) on arrival.
+  const faceSignature = async () =>
+    page.evaluate(() => {
+      type Obj = {
+        name?: string
+        children?: Obj[]
+        isMesh?: boolean
+        geometry?: { type?: string }
+        material?: { map?: { image?: HTMLCanvasElement | undefined } }
+      }
+      const scene = (window as unknown as { __NOTELINGS_SCENE__?: Obj }).__NOTELINGS_SCENE__
+      const find = (root: Obj | undefined, name: string): Obj | undefined => {
+        if (root?.name === name) return root
+        for (const child of root?.children ?? []) {
+          const match = find(child, name)
+          if (match) return match
+        }
+        return undefined
+      }
+      const face = find(scene, 'agent-robot')?.children?.find(
+        (c) => c.isMesh && c.geometry?.type === 'PlaneGeometry',
+      )
+      const canvas = face?.material?.map?.image
+      return canvas ? canvas.toDataURL() : ''
+    })
+  const idleSignature = await faceSignature()
+  if (!idleSignature) throw new Error('idle face texture missing')
 
   // Click the target cell's projected screen position (up to 3 jitter retries
   // in case the ray is occluded by a no-handler object that swallows the hit).
   const { x, y } = await worldToScreen(page, tx, 0, tz)
+  let walkingSignature = ''
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await page.mouse.click(x + attempt * 10, y + attempt * 10)
     await page.waitForTimeout(400)
     const state = await page.evaluate(
       () => (window as unknown as { __NOTELINGS_AGENT__?: { state?: string } }).__NOTELINGS_AGENT__?.state,
     )
-    if (state === 'walking') break
+    if (state === 'walking') {
+      walkingSignature = await faceSignature()
+      break
+    }
   }
+  if (!walkingSignature) throw new Error('robot never entered walking state')
 
-  // Robot arrives at the target cell center and returns to idle.
+  // The LCD swapped to the WALKING expression while in motion.
+  expect(walkingSignature).not.toBe(idleSignature)
+
+  // Watch the whole walk at high frequency: the robot must TURN to face its
+  // waypoints at least once (heading leaves 0 — pathHasTurn guarantees a turn
+  // exists) and end up at the target cell before returning to idle.
+  await page.evaluate(() => {
+    ;(window as unknown as { __NOTELINGS_TURN_SEEN__?: boolean }).__NOTELINGS_TURN_SEEN__ = false
+  })
   await page.waitForFunction(
     ({ tx, tz, tolerance }) => {
-      type Obj = { name?: string; children?: Obj[]; position?: { x: number; z: number } }
+      type Obj = {
+        name?: string
+        children?: Obj[]
+        rotation?: { y?: number }
+        position?: { x: number; z: number }
+      }
       const scene = (window as unknown as { __NOTELINGS_SCENE__?: Obj }).__NOTELINGS_SCENE__
-      if (!scene) return false
-      const find = (root: Obj, name: string): Obj | undefined => {
-        if (root.name === name) return root
-        for (const child of root.children ?? []) {
+      const find = (root: Obj | undefined, name: string): Obj | undefined => {
+        if (root?.name === name) return root
+        for (const child of root?.children ?? []) {
           const match = find(child, name)
           if (match) return match
         }
@@ -372,12 +479,21 @@ test('agent robot renders at start and click-to-move walks an A* path', async ({
       }
       const robot = find(scene, 'agent-robot')
       const agent = (window as unknown as { __NOTELINGS_AGENT__?: { state?: string } }).__NOTELINGS_AGENT__
+      const win = window as unknown as { __NOTELINGS_TURN_SEEN__?: boolean }
+      // Accumulate: record the moment the robot ever turns away from heading 0.
+      if (robot?.rotation && Math.abs(robot.rotation.y ?? 0) > 0.05) {
+        win.__NOTELINGS_TURN_SEEN__ = true
+      }
       if (!robot?.position || agent?.state !== 'idle') return false
-      return Math.abs(robot.position.x - tx) < tolerance && Math.abs(robot.position.z - tz) < tolerance
+      const atTarget =
+        Math.abs(robot.position.x - tx) < tolerance && Math.abs(robot.position.z - tz) < tolerance
+      return atTarget && Boolean(win.__NOTELINGS_TURN_SEEN__)
     },
     { tx, tz, tolerance: TOLERANCE },
-    { timeout: 30_000, polling: 300 },
+    { timeout: 30_000, polling: 50 },
   )
+  const arrivedSignature = await faceSignature()
+  expect(arrivedSignature).toBe(idleSignature)
 
   expect(errors).toEqual([])
   await page.screenshot({ path: 'test-results/office-agent-walk.png', fullPage: true })

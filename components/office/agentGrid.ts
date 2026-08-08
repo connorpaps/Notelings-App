@@ -41,6 +41,12 @@ export function buildAgentBlockedCells(): Set<string> {
   return buildEffectiveBlockedCells(getAgentBlockableItems(), {
     transform: AGENT_GRID_TRANSFORM,
     footprints: OFFICE_ASSET_FOOTPRINTS,
+    // Deliberately NO legacy base: BLOCKED_CELLS describes the OLD centered
+    // layout's furniture (desks/couches/cabinets at different world positions),
+    // so merging it under the transform-anchored grid would inject phantom
+    // blocked cells mid-floor. The locked scene's own walls + furniture are
+    // the source of truth for the released office.
+    base: new Set(),
   })
 }
 
