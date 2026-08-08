@@ -9,6 +9,7 @@ import {
   OFFICE_COLS,
   OFFICE_ROWS,
   cellToWorld,
+  worldToCell,
 } from './officeLayout'
 
 const ROOT = join(process.cwd(), 'public')
@@ -85,5 +86,17 @@ describe('officeLayout', () => {
     expect(cz).toBeCloseTo(0)
     expect(x).toBeLessThan(0)
     expect(z).toBeLessThan(0)
+  })
+
+  it('round-trips world coords through cellToWorld/worldToCell', () => {
+    const samples: Array<[number, number, number, number]> = [
+      [0, 0, 0, 0],
+      [OFFICE_COLS - 1, OFFICE_ROWS - 1, OFFICE_COLS - 1, OFFICE_ROWS - 1],
+      [9, 7, 9, 7],
+    ]
+    for (const [col, row, expectedCol, expectedRow] of samples) {
+      const [x, z] = cellToWorld(col, row)
+      expect(worldToCell(x, z)).toEqual([expectedCol, expectedRow])
+    }
   })
 })

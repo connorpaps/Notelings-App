@@ -100,6 +100,15 @@ export function cellToWorld(col: number, row: number): [number, number] {
   return [(col - OFFICE_COLS / 2) * CELL_SIZE, (row - OFFICE_ROWS / 2) * CELL_SIZE]
 }
 
+/** Convert world [x, z] to the nearest grid cell [col, row] (inverse of cellToWorld). */
+export function worldToCell(x: number, z: number): [number, number] {
+  // + 0 normalizes the -0 that Math.round can produce from tiny negative
+  // float errors (e.g. -10.8 / 1.2 + 9), so tests compare +0 cleanly.
+  const col = Math.round(x / CELL_SIZE + OFFICE_COLS / 2) + 0
+  const row = Math.round(z / CELL_SIZE + OFFICE_ROWS / 2) + 0
+  return [col, row]
+}
+
 export const BLOCKED_CELLS: Set<string> = new Set(
   PLACEMENTS.filter((p) => (p.mount ?? 'floor') === 'floor').map(
     (p) => `${p.cell[0]},${p.cell[1]}`,
