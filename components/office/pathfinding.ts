@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import {
   BLOCKED_CELLS,
   CELL_SIZE,
@@ -14,12 +15,21 @@ export type BlockedSet = ReadonlySet<string>
  * composition (offset + scaled floor), so the agent grid anchors to the locked
  * floor item's transform: `origin` is the world position of the center cell
  * (OFFICE_COLS/2, OFFICE_ROWS/2) and `scale` is the world size of one cell on
- * x/z (CELL_SIZE × floor scale). This makes A* cells align with the visible
- * floor grid lines.
+ * x/z (CELL_SIZE × floor scale). `cols`/`rows` can increase the navigation
+ * resolution without changing the decorative floor grid or its world extent.
  */
 export type GridTransform = {
   origin: [number, number]
   scale: [number, number]
+  cols?: number
+  rows?: number
+}
+
+function gridDimensions(transform: GridTransform): { cols: number; rows: number } {
+  return {
+    cols: transform.cols ?? OFFICE_COLS,
+    rows: transform.rows ?? OFFICE_ROWS,
+  }
 }
 
 /** Identity transform centered at world (0,0) with 1:1 CELL_SIZE cells. */
@@ -29,16 +39,18 @@ export const DEFAULT_GRID_TRANSFORM: GridTransform = {
 }
 
 export function gridCellToWorld(cell: GridCell, transform: GridTransform): [number, number] {
+  const { cols, rows } = gridDimensions(transform)
   return [
-    transform.origin[0] + (cell[0] - OFFICE_COLS / 2) * transform.scale[0],
-    transform.origin[1] + (cell[1] - OFFICE_ROWS / 2) * transform.scale[1],
+    transform.origin[0] + (cell[0] - cols / 2) * transform.scale[0],
+    transform.origin[1] + (cell[1] - rows / 2) * transform.scale[1],
   ]
 }
 
 export function worldToGridCell(x: number, z: number, transform: GridTransform): GridCell {
+  const { cols, rows } = gridDimensions(transform)
   // + 0 normalizes the -0 that Math.round can produce from tiny float errors.
-  const col = Math.round((x - transform.origin[0]) / transform.scale[0] + OFFICE_COLS / 2) + 0
-  const row = Math.round((z - transform.origin[1]) / transform.scale[1] + OFFICE_ROWS / 2) + 0
+  const col = Math.round((x - transform.origin[0]) / transform.scale[0] + cols / 2) + 0
+  const row = Math.round((z - transform.origin[1]) / transform.scale[1] + rows / 2) + 0
   return [col, row]
 }
 
@@ -60,8 +72,8 @@ function manhattan(a: GridCell, b: GridCell): number {
 /**
  * A* over the office grid. Orthogonal (4-directional) movement with a Manhattan
  * heuristic. Returns the ordered path [start, ..., goal] inclusive, or null when
- * unreachable or invalid. The grid is < 300 cells, so a simple open-list
- * minimum scan is smaller and clearer than a binary heap (ponytail).
+ * unreachable or invalid. The navigation grid is still small enough for a
+ * simple open-list minimum scan, which is clearer than a binary heap (ponytail).
  */
 export function findPath(
   start: GridCell,
@@ -156,9 +168,9 @@ export function buildEffectiveBlockedCells(
     footprints?: Record<string, Footprint>
   } = {},
 ): Set<string> {
-  const cols = opts.cols ?? OFFICE_COLS
-  const rows = opts.rows ?? OFFICE_ROWS
   const transform = opts.transform ?? DEFAULT_GRID_TRANSFORM
+  const cols = opts.cols ?? transform.cols ?? OFFICE_COLS
+  const rows = opts.rows ?? transform.rows ?? OFFICE_ROWS
   const blocked = new Set(opts.base ?? BLOCKED_CELLS)
 
   const clampCell = (cell: GridCell): GridCell => [
@@ -173,13 +185,17 @@ export function buildEffectiveBlockedCells(
 
     let footprint: Footprint
     if (isWall && item.wall) {
-      const len = item.wall.lenCells * CELL_SIZE
+      // Wall definitions use the decorative office cell unit. Convert that
+      // legacy length to world units before rasterizing onto the finer grid.
+      const baseCellScaleX = transform.scale[0] * (cols / OFFICE_COLS)
+      const baseCellScaleZ = transform.scale[1] * (rows / OFFICE_ROWS)
+      const len = item.wall.lenCells * (item.wall.axis === 'x' ? baseCellScaleX : baseCellScaleZ)
       const thick = item.wall.thickness ?? WALL_THICKNESS
       footprint = item.wall.axis === 'x' ? { width: len, depth: thick } : { width: thick, depth: len }
     } else if (item.obj && opts.footprints?.[item.obj]) {
       footprint = opts.footprints[item.obj]
     } else {
-      footprint = item.footprint ?? { width: CELL_SIZE, depth: CELL_SIZE }
+      footprint = item.footprint ?? { width: transform.scale[0], depth: transform.scale[1] }
     }
 
     const [cx, cy, cz] = item.transform.position
@@ -207,8 +223,18 @@ export function buildEffectiveBlockedCells(
       maxZ = Math.max(maxZ, wz)
     }
 
-    const minCell = clampCell(worldToGridCell(minX, minZ, transform))
-    const maxCell = clampCell(worldToGridCell(maxX, maxZ, transform))
+    // Mark cells whose finite area overlaps the footprint AABB. Using cell
+    // boundaries instead of only rounded centers keeps narrow furniture from
+    // disappearing between the finer navigation cells.
+    const EPSILON = 1e-9
+    // A footprint blocks a cell when its world AABB overlaps the cell area.
+    // Exact boundary contact alone does not block the neighboring cell.
+    const minCol = Math.ceil((minX - transform.origin[0]) / transform.scale[0] + cols / 2 - 0.5 + EPSILON)
+    const maxCol = Math.floor((maxX - transform.origin[0]) / transform.scale[0] + cols / 2 + 0.5 - EPSILON)
+    const minRow = Math.ceil((minZ - transform.origin[1]) / transform.scale[1] + rows / 2 - 0.5 + EPSILON)
+    const maxRow = Math.floor((maxZ - transform.origin[1]) / transform.scale[1] + rows / 2 + 0.5 - EPSILON)
+    const minCell: GridCell = clampCell([minCol, minRow])
+    const maxCell: GridCell = clampCell([maxCol, maxRow])
     for (let col = minCell[0]; col <= maxCell[0]; col += 1) {
       for (let row = minCell[1]; row <= maxCell[1]; row += 1) {
         blocked.add(`${col},${row}`)
@@ -216,6 +242,54 @@ export function buildEffectiveBlockedCells(
     }
   }
   return blocked
+}
+
+/**
+ * Build a Catmull–Rom curve through the A* cell centers. The sampled curve is
+ * rejected when it enters a blocked cell, so visual corner smoothing never
+ * trades obstacle safety for appearance. A null result tells the caller to
+ * retain the exact orthogonal path as a safe fallback.
+ *
+ * `clearanceWorld` treats each blocked cell as an occupied world-space square
+ * and rejects curve samples that enter the robot's clearance radius. Sampling
+ * is based on arc length at no more than one quarter of the smallest cell
+ * dimension, so a short spline excursion cannot hide between samples.
+ */
+export function createSafePathCurve(
+  path: ReadonlyArray<GridCell>,
+  transform: GridTransform,
+  blocked: BlockedSet,
+  opts: { clearanceWorld?: number } = {},
+): THREE.CatmullRomCurve3 | null {
+  if (path.length < 2) return null
+  const points = path.map(([col, row]) => {
+    const [x, z] = gridCellToWorld([col, row], transform)
+    return new THREE.Vector3(x, 0, z)
+  })
+  const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5)
+  const curveLength = curve.getLength()
+  const minCellSize = Math.min(Math.abs(transform.scale[0]), Math.abs(transform.scale[1]))
+  const samples = Math.max(32, Math.ceil(curveLength / Math.max(minCellSize * 0.25, 0.01)))
+  const cols = transform.cols ?? OFFICE_COLS
+  const rows = transform.rows ?? OFFICE_ROWS
+  const clearance = Math.max(0, opts.clearanceWorld ?? 0)
+  const blockedRects = [...blocked].map((key) => {
+    const [col, row] = key.split(',').map(Number)
+    const [x, z] = gridCellToWorld([col, row], transform)
+    return { x, z }
+  })
+
+  for (let index = 0; index <= samples; index += 1) {
+    const point = curve.getPointAt(index / samples)
+    const cell = worldToGridCell(point.x, point.z, transform)
+    if (!inBounds(cell, cols, rows)) return null
+    for (const rect of blockedRects) {
+      const dx = Math.max(Math.abs(point.x - rect.x) - Math.abs(transform.scale[0]) / 2, 0)
+      const dz = Math.max(Math.abs(point.z - rect.z) - Math.abs(transform.scale[1]) / 2, 0)
+      if (Math.hypot(dx, dz) <= clearance) return null
+    }
+  }
+  return curve
 }
 
 /**

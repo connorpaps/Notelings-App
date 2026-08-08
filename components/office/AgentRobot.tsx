@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import {
+  createSafePathCurve,
   findPath,
   gridCellToWorld,
   worldToGridCell,
@@ -20,11 +21,17 @@ const BODY_LENGTH = 0.72
 // capsuleGeometry is centered on its origin; lifting it by half its total
 // height keeps the capsule's BOTTOM perfectly flush with the floor (y=0).
 const BODY_Y = BODY_RADIUS + BODY_LENGTH / 2
+// Slightly overlap the floor so the rounded capsule reads as grounded instead
+// of leaving a visible gap between its tangent point and the floor shadow.
+const BODY_FLOOR_OVERLAP = 0.02
 const BODY_COLOR = '#2fa8e0'
 const FACE_WIDTH = 0.6
 const FACE_HEIGHT = 0.4
 const FACE_Y = 1.0
-const FACE_PROTRUDE = 0.03
+// Keep the entire LCD plane outside the capsule's curved front to prevent
+// depth-buffer flicker and edge clipping while the robot turns.
+const FACE_PROTRUDE = 0.17
+const FACE_Z = BODY_RADIUS + FACE_PROTRUDE
 const WALK_SPEED_WORLD = 2.6 // world units per second (CELL_SIZE ≈ 1.2)
 const TURN_SPEED = 8 // radians per second
 const WAYPOINT_EPSILON = 0.02
@@ -44,6 +51,9 @@ const AgentRobot = forwardRef<AgentRobotHandle, AgentRobotProps>(function AgentR
 ) {
   const groupRef = useRef<THREE.Group>(null)
   const pathRef = useRef<GridCell[]>([])
+  const curveRef = useRef<THREE.CatmullRomCurve3 | null>(null)
+  const curveDistanceRef = useRef(0)
+  const curveLengthRef = useRef(0)
   const [state, setState] = useState<AgentState>('idle')
   const startWorld = useMemo(() => gridCellToWorld(start, grid), [grid, start])
 
@@ -57,6 +67,7 @@ const AgentRobot = forwardRef<AgentRobotHandle, AgentRobotProps>(function AgentR
   // unmounts mid-walk (HMR/StrictMode).
   useEffect(() => () => {
     pathRef.current = []
+    curveRef.current = null
     setFrameloop('demand')
   }, [setFrameloop])
 
@@ -67,9 +78,16 @@ const AgentRobot = forwardRef<AgentRobotHandle, AgentRobotProps>(function AgentR
         const group = groupRef.current
         if (!group) return false
         const current = worldToGridCell(group.position.x, group.position.z, grid)
-        const path = findPath(current, goal, { blocked })
+        const path = findPath(current, goal, {
+          blocked,
+          cols: grid.cols,
+          rows: grid.rows,
+        })
         if (!path || path.length <= 1) return false
         pathRef.current = path.slice(1) // robot already stands on the start cell
+        curveRef.current = createSafePathCurve(path, grid, blocked, { clearanceWorld: BODY_RADIUS })
+        curveDistanceRef.current = 0
+        curveLengthRef.current = curveRef.current?.getLength() ?? 0
         setState('walking')
         onStateChange?.('walking')
         onPathChange?.(path)
@@ -85,33 +103,62 @@ const AgentRobot = forwardRef<AgentRobotHandle, AgentRobotProps>(function AgentR
     const group = groupRef.current
     if (!group || pathRef.current.length === 0) return
 
-    const [tx, tz] = gridCellToWorld(pathRef.current[0], grid)
-    const dx = tx - group.position.x
-    const dz = tz - group.position.z
-    const distance = Math.hypot(dx, dz)
-
-    // Smoothly turn to face the next waypoint (shortest path around ±π).
-    const targetHeading = Math.atan2(dx, dz)
-    let turn = targetHeading - group.rotation.y
-    while (turn > Math.PI) turn -= Math.PI * 2
-    while (turn < -Math.PI) turn += Math.PI * 2
-    group.rotation.y += turn * Math.min(1, TURN_SPEED * Math.min(delta, 0.05))
-
     const step = WALK_SPEED_WORLD * Math.min(delta, 0.05)
-    if (distance <= Math.max(step, WAYPOINT_EPSILON)) {
-      group.position.x = tx
-      group.position.z = tz
-      pathRef.current.shift()
-      if (pathRef.current.length === 0) {
-        setState('idle')
-        onStateChange?.('idle')
-        onPathChange?.(null)
-        setFrameloop('demand')
-        invalidate()
+    const curve = curveRef.current
+    if (curve) {
+      // Advance by arc length so speed stays constant through the curve rather
+      // than slowing down at Catmull-Rom control points.
+      curveDistanceRef.current = Math.min(curveLengthRef.current, curveDistanceRef.current + step)
+      const distanceRatio = curveLengthRef.current > 0 ? curveDistanceRef.current / curveLengthRef.current : 1
+      const point = curve.getPointAt(distanceRatio)
+      const tangent = curve.getTangentAt(Math.min(1, distanceRatio + 0.001))
+      group.position.x = point.x
+      group.position.z = point.z
+
+      // Smoothly turn toward the spline tangent using the shortest path around
+      // ±π. The LCD remains on the body's front, so this is visible in-scene.
+      const targetHeading = Math.atan2(tangent.x, tangent.z)
+      let turn = targetHeading - group.rotation.y
+      while (turn > Math.PI) turn -= Math.PI * 2
+      while (turn < -Math.PI) turn += Math.PI * 2
+      group.rotation.y += turn * Math.min(1, TURN_SPEED * Math.min(delta, 0.05))
+
+      if (curveDistanceRef.current >= curveLengthRef.current) {
+        const [tx, tz] = gridCellToWorld(pathRef.current[pathRef.current.length - 1], grid)
+        group.position.x = tx
+        group.position.z = tz
+        pathRef.current = []
+        curveRef.current = null
       }
     } else {
-      group.position.x += (dx / distance) * step
-      group.position.z += (dz / distance) * step
+      const [tx, tz] = gridCellToWorld(pathRef.current[0], grid)
+      const dx = tx - group.position.x
+      const dz = tz - group.position.z
+      const distance = Math.hypot(dx, dz)
+
+      // Safe fallback for paths whose curve samples touch an obstacle.
+      const targetHeading = Math.atan2(dx, dz)
+      let turn = targetHeading - group.rotation.y
+      while (turn > Math.PI) turn -= Math.PI * 2
+      while (turn < -Math.PI) turn += Math.PI * 2
+      group.rotation.y += turn * Math.min(1, TURN_SPEED * Math.min(delta, 0.05))
+
+      if (distance <= Math.max(step, WAYPOINT_EPSILON)) {
+        group.position.x = tx
+        group.position.z = tz
+        pathRef.current.shift()
+      } else {
+        group.position.x += (dx / distance) * step
+        group.position.z += (dz / distance) * step
+      }
+    }
+
+    if (pathRef.current.length === 0) {
+      setState('idle')
+      onStateChange?.('idle')
+      onPathChange?.(null)
+      setFrameloop('demand')
+      invalidate()
     }
   })
 
@@ -126,13 +173,13 @@ const AgentRobot = forwardRef<AgentRobotHandle, AgentRobotProps>(function AgentR
         notelingsAgentStart: start,
       }}
     >
-      <mesh position-y={BODY_Y} castShadow receiveShadow>
+      <mesh position-y={BODY_Y - BODY_FLOOR_OVERLAP} castShadow receiveShadow>
         <capsuleGeometry args={[BODY_RADIUS, BODY_LENGTH, 12, 24]} />
         <meshStandardMaterial color={BODY_COLOR} roughness={0.35} metalness={0.1} />
       </mesh>
       {/* LCD face mounted on the body FRONT (+Z): it points where the robot
           walks, so turning to face each waypoint is clearly visible. */}
-      <mesh position={[0, FACE_Y, BODY_RADIUS + FACE_PROTRUDE]}>
+      <mesh position={[0, FACE_Y, FACE_Z]}>
         <planeGeometry args={[FACE_WIDTH, FACE_HEIGHT]} />
         <meshBasicMaterial map={faceTexture} />
       </mesh>

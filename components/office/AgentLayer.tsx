@@ -7,11 +7,16 @@ import { FLOOR_DEPTH, FLOOR_WIDTH } from './Floor'
 import { LOCKED_DEFAULT_ITEMS } from './officeBuilderDefault'
 import { ENABLE_GRID_DEBUG, ENABLE_PATH_PREVIEW } from './officeMode'
 import AgentRobot, { type AgentRobotHandle } from './AgentRobot'
-import { AGENT_GRID_TRANSFORM, AGENT_START_CELL, buildAgentBlockedCells } from './agentGrid'
+import {
+  AGENT_GRID_RESOLUTION,
+  AGENT_GRID_TRANSFORM,
+  AGENT_START_CELL,
+  buildAgentBlockedCells,
+} from './agentGrid'
 import { gridCellToWorld, worldToGridCell, type GridCell } from './pathfinding'
 import type { AgentState } from './agentState'
 
-// One shared geometry for all 152 debug cells (same size — the agent grid
+// One shared geometry for all debug cells (same size — the finer agent grid
 // transform is constant across the floor).
 const DEBUG_BOX_GEOMETRY = new THREE.BoxGeometry(
   AGENT_GRID_TRANSFORM.scale[0] * 0.92,
@@ -32,6 +37,9 @@ export default function AgentLayer() {
     currentCell: AGENT_START_CELL,
     pathLength: 0,
     blockedCount: 0,
+    gridCols: AGENT_GRID_TRANSFORM.cols ?? 0,
+    gridRows: AGENT_GRID_TRANSFORM.rows ?? 0,
+    gridResolution: AGENT_GRID_RESOLUTION,
   })
   useEffect(() => {
     runtimeRef.current.blockedCount = effectiveBlocked.size

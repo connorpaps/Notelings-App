@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { CELL_SIZE, OFFICE_COLS, OFFICE_ROWS } from './officeLayout'
 import { LOCKED_DEFAULT_ITEMS } from './officeBuilderDefault'
 import { findFreeCell, findPath, gridCellToWorld, worldToGridCell } from './pathfinding'
-import { AGENT_GRID_TRANSFORM, AGENT_START_CELL, buildAgentBlockedCells } from './agentGrid'
+import {
+  AGENT_GRID_COLS,
+  AGENT_GRID_RESOLUTION,
+  AGENT_GRID_ROWS,
+  AGENT_GRID_TRANSFORM,
+  AGENT_START_CELL,
+  buildAgentBlockedCells,
+  CUBICLE_ACCESS_POCKETS,
+} from './agentGrid'
 
 describe('agent grid', () => {
   it('anchors the grid to the locked floor item transform', () => {
@@ -10,8 +18,13 @@ describe('agent grid', () => {
     expect(floor).toBeDefined()
     expect(AGENT_GRID_TRANSFORM.origin[0]).toBeCloseTo(floor!.transform.position[0])
     expect(AGENT_GRID_TRANSFORM.origin[1]).toBeCloseTo(floor!.transform.position[2])
-    expect(AGENT_GRID_TRANSFORM.scale[0]).toBeCloseTo(floor!.transform.scale[0] * CELL_SIZE)
-    expect(AGENT_GRID_TRANSFORM.scale[1]).toBeCloseTo(floor!.transform.scale[2] * CELL_SIZE)
+    expect(AGENT_GRID_RESOLUTION).toBe(2)
+    expect(AGENT_GRID_COLS).toBe(OFFICE_COLS * AGENT_GRID_RESOLUTION)
+    expect(AGENT_GRID_ROWS).toBe(OFFICE_ROWS * AGENT_GRID_RESOLUTION)
+    expect(AGENT_GRID_TRANSFORM.scale[0]).toBeCloseTo((floor!.transform.scale[0] * CELL_SIZE) / AGENT_GRID_RESOLUTION)
+    expect(AGENT_GRID_TRANSFORM.scale[1]).toBeCloseTo((floor!.transform.scale[2] * CELL_SIZE) / AGENT_GRID_RESOLUTION)
+    expect(AGENT_GRID_TRANSFORM.cols).toBe(AGENT_GRID_COLS)
+    expect(AGENT_GRID_TRANSFORM.rows).toBe(AGENT_GRID_ROWS)
   })
 
   it('blocks the real cubicle footprint cells, not just its center', () => {
@@ -22,8 +35,43 @@ describe('agent grid', () => {
     // Its footprint extends at least one full cell in every direction.
     expect(blocked.has(`${col + 1},${row}`)).toBe(true)
     expect(blocked.has(`${col - 1},${row}`)).toBe(true)
-    expect(blocked.has(`${col},${row + 1}`)).toBe(true)
     expect(blocked.has(`${col},${row - 1}`)).toBe(true)
+  })
+
+  it('opens a short two-cell entry lane into each locked cubicle', () => {
+    const blocked = buildAgentBlockedCells()
+    expect(CUBICLE_ACCESS_POCKETS).toHaveLength(2)
+    for (const pocket of CUBICLE_ACCESS_POCKETS) {
+      expect(pocket).toHaveLength(6)
+      for (const [col, row] of pocket) {
+        expect(blocked.has(`${col},${row}`)).toBe(false)
+      }
+    }
+
+    // The cubicle centers and far edges remain blocked, so the exception
+    // cannot turn either cubicle into an unrestricted walkable area.
+    expect(blocked.has('20,6')).toBe(false)
+    expect(blocked.has('21,6')).toBe(false)
+    expect(blocked.has('22,6')).toBe(false)
+    expect(blocked.has('23,6')).toBe(true)
+    expect(blocked.has('26,6')).toBe(true)
+    expect(blocked.has('24,5')).toBe(true)
+    expect(blocked.has('24,8')).toBe(true)
+    expect(blocked.has('24,11')).toBe(true)
+    expect(blocked.has('24,12')).toBe(true)
+    expect(CUBICLE_ACCESS_POCKETS.flat().some(([col, row]) => col === 24 && (row === 5 || row === 11))).toBe(false)
+
+    // Every pocket cell is reachable from the robot's dominant walkable region.
+    for (const pocket of CUBICLE_ACCESS_POCKETS) {
+      for (const cell of pocket) {
+        const candidatePath = findPath(AGENT_START_CELL, cell, {
+          blocked,
+          cols: AGENT_GRID_COLS,
+          rows: AGENT_GRID_ROWS,
+        })
+        expect(candidatePath).not.toBeNull()
+      }
+    }
   })
 
   it('keeps the computed start cell in the dominant walkable region', () => {
@@ -33,14 +81,18 @@ describe('agent grid', () => {
     // but the start must reach the large majority of the free floor.
     let free = 0
     let reachable = 0
-    for (let c = 0; c < OFFICE_COLS; c += 1) {
-      for (let r = 0; r < OFFICE_ROWS; r += 1) {
+    for (let c = 0; c < AGENT_GRID_COLS; c += 1) {
+      for (let r = 0; r < AGENT_GRID_ROWS; r += 1) {
         if (blocked.has(`${c},${r}`)) continue
         free += 1
-        if (findPath(AGENT_START_CELL, [c, r], { blocked })) reachable += 1
+        if (findPath(AGENT_START_CELL, [c, r], {
+          blocked,
+          cols: AGENT_GRID_COLS,
+          rows: AGENT_GRID_ROWS,
+        })) reachable += 1
       }
     }
-    expect(free).toBeGreaterThan(80) // the dense locked scene still leaves hallways walkable
+    expect(free).toBeGreaterThan(AGENT_GRID_COLS * AGENT_GRID_ROWS * 0.2) // the dense locked scene still leaves hallways walkable
     expect(reachable).toBeGreaterThan(free * 0.7) // start sits in the dominant region
   })
 

@@ -1,7 +1,13 @@
 import { test, expect, type Page } from '@playwright/test'
 import { LOCKED_DEFAULT_ITEMS } from '../components/office/officeBuilderDefault'
 import { findPath, gridCellToWorld, type GridCell } from '../components/office/pathfinding'
-import { AGENT_GRID_TRANSFORM, buildAgentBlockedCells } from '../components/office/agentGrid'
+import {
+  AGENT_GRID_COLS,
+  AGENT_GRID_RESOLUTION,
+  AGENT_GRID_ROWS,
+  AGENT_GRID_TRANSFORM,
+  buildAgentBlockedCells,
+} from '../components/office/agentGrid'
 
 const EXPECTED_IDS = LOCKED_DEFAULT_ITEMS.map((item) => item.id)
 const MODEL_IDS = LOCKED_DEFAULT_ITEMS.filter((item) => item.kind === 'model').map((item) => item.id)
@@ -304,7 +310,11 @@ function pickTargetCell(start: GridCell, blocked: ReadonlySet<string>): GridCell
         if (Math.abs(dc) + Math.abs(dr) !== d) continue
         const candidate: GridCell = [start[0] + dc, start[1] + dr]
         if (blocked.has(`${candidate[0]},${candidate[1]}`)) continue
-        const path = findPath(start, candidate, { blocked })
+        const path = findPath(start, candidate, {
+          blocked,
+          cols: AGENT_GRID_COLS,
+          rows: AGENT_GRID_ROWS,
+        })
         if (!path) continue
         ;(pathHasTurn(path) ? turning : straight).push(candidate)
       }
@@ -328,6 +338,22 @@ test('agent robot renders flush with a live LCD face and click-to-move walks an 
   // Robot exists with a capsule body + LCD face, sits FLUSH on the floor (the
   // capsule's geometry bottom touches y=0 exactly), and the idle face canvas
   // actually drew glyph pixels on a light screen (not blank/gray).
+  await page.waitForFunction(
+    ({ cols, rows, resolution }) => {
+      const agent = (window as unknown as {
+        __NOTELINGS_AGENT__?: { blockedCount?: number; gridCols?: number; gridRows?: number; gridResolution?: number }
+      }).__NOTELINGS_AGENT__
+      return Boolean(
+        agent &&
+          agent.gridCols === cols &&
+          agent.gridRows === rows &&
+          agent.gridResolution === resolution,
+      )
+    },
+    { cols: AGENT_GRID_COLS, rows: AGENT_GRID_ROWS, resolution: AGENT_GRID_RESOLUTION },
+    { timeout: 30_000, polling: 500 },
+  )
+
   await page.waitForFunction(
     () => {
       type Obj = {
@@ -357,9 +383,11 @@ test('agent robot renders flush with a live LCD face and click-to-move walks an 
       }).__NOTELINGS_AGENT__
       if (!capsule || !face || agent?.state !== 'idle' || !Array.isArray(agent?.startCell)) return false
 
-      // Flush-y: robot group sits on the floor AND the capsule's bounding-box
-      // bottom maps to world y=0 — not hovering, not sunk. (Geometry parameters
-      // are version-dependent, so derive from the real computed bounding box.)
+      // Grounding: the robot group stays on the floor and the capsule has the
+      // exact tiny intentional floor overlap used by AgentRobot, so its rounded
+      // bottom does not read as hovering above the ambient-occlusion shadow.
+      // Geometry parameters are version-dependent, so derive contact from the
+      // real computed bounding box.
       const geo = capsule.geometry
       if (!geo) return false
       geo.computeBoundingBox?.()
@@ -367,7 +395,12 @@ test('agent robot renders flush with a live LCD face and click-to-move walks an 
       // The capsule mesh carries only a y-offset (no rotation), so local→world
       // y is position.y + bounding-box min.
       const bottomWorld = (capsule.position?.y ?? 0) + bottomLocal
-      if (Math.abs(robot.position?.y ?? 1) > 1e-6 || Math.abs(bottomWorld) > 1e-6) return false
+      if (Math.abs(robot.position?.y ?? 1) > 1e-6 || Math.abs(bottomWorld + 0.02) > 1e-6) return false
+
+      // The face must sit at the exact outward offset used by AgentRobot, in
+      // front of the capsule's curved surface, so its LCD edges do not clip or
+      // flicker during turns.
+      if (Math.abs((face.position?.z ?? 0) - 0.55) > 1e-6) return false
 
       // The face material must carry a real 256px canvas texture.
       const canvas = face.material?.map?.image

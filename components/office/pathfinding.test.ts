@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CELL_SIZE, OFFICE_COLS, OFFICE_ROWS } from './officeLayout'
 import {
   buildEffectiveBlockedCells,
+  createSafePathCurve,
   DEFAULT_GRID_TRANSFORM,
   findFreeCell,
   findPath,
@@ -119,6 +120,28 @@ describe('buildEffectiveBlockedCells', () => {
     expect(blocked.has('2,2')).toBe(false) // far hallway stays free
   })
 
+  it('creates a collision-safe Catmull-Rom curve for a free path', () => {
+    const transform: GridTransform = { origin: [0, 0], scale: [1, 1], cols: 8, rows: 8 }
+    const curve = createSafePathCurve([[1, 1], [1, 2], [2, 2], [3, 2]], transform, none, { clearanceWorld: 0.2 })
+    expect(curve).not.toBeNull()
+    expect(curve!.getPointAt(0).x).toBeCloseTo(-3)
+    expect(curve!.getPointAt(1).z).toBeCloseTo(-2)
+  })
+
+  it('rejects a smoothed curve that samples a blocked cell', () => {
+    const transform: GridTransform = { origin: [0, 0], scale: [1, 1], cols: 8, rows: 8 }
+    const curve = createSafePathCurve([[1, 1], [1, 2], [2, 2], [3, 2]], transform, new Set(['2,2']), { clearanceWorld: 0.2 })
+    expect(curve).toBeNull()
+  })
+
+  it('rejects a curve that approaches a blocked neighboring cell within robot clearance', () => {
+    const transform: GridTransform = { origin: [0, 0], scale: [1, 1], cols: 8, rows: 8 }
+    const curve = createSafePathCurve([[1, 1], [1, 2], [2, 2], [3, 2]], transform, new Set(['2,3']), { clearanceWorld: 0.6 })
+    expect(curve).toBeNull()
+  })
+})
+
+describe('rotated footprints', () => {
   it('swaps the footprint when an item is rotated 90 degrees around Y', () => {
     const transform: GridTransform = { origin: [0, 0], scale: [CELL_SIZE, CELL_SIZE] }
     // 2.4 wide x 1.2 deep table rotated 90° → 1.2 wide x 2.4 deep, centered at cell [5, 5]
