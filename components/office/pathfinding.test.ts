@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { OFFICE_COLS, OFFICE_ROWS } from './officeLayout'
-import { buildEffectiveBlockedCells, findFreeCell, findPath, type GridCell } from './pathfinding'
+import { buildEffectiveBlockedCells, findFreeCell, findPath } from './pathfinding'
 
 const none: ReadonlySet<string> = new Set()
 
