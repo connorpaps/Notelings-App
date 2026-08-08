@@ -1,46 +1,141 @@
 'use client'
+
+import * as THREE from 'three'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
+import { Bloom, EffectComposer, SSAO, ToneMapping } from '@react-three/postprocessing'
 import VoxelOffice from './VoxelOffice'
 
-export default function OfficeCanvas() {
+const SHADOW_MAP_SIZE = 4096
+const TONE_MAPPING_EXPOSURE = 1.2
+const BLOOM_PROPS = {
+  luminanceThreshold: 1,
+  intensity: 0.2,
+} as const
+const SHADOW_CASCADE = 30
+const CAMERA_POSITION: [number, number, number] = [24, 22, 24]
+const CAMERA_TARGET: [number, number, number] = [0, 1.5, 0]
+const CAMERA_ZOOM = 38
+const CAMERA_NEAR = -100
+const CAMERA_FAR = 300
+
+const SSAO_PROPS = {
+  radius: 2.4,
+  intensity: 2,
+  samples: 32,
+  rings: 4,
+  bias: 0.3,
+  luminanceInfluence: 0.65,
+} as const
+
+// The composer owns the final tone-mapping pass. Keep its installed default
+// here because the explicit ACES override washed out the approved color palette.
+const SCENE_BACKGROUND = '#5B7B7A'
+
+export const OFFICE_RENDER_PROFILE = {
+  frameloop: 'demand' as const,
+  shadows: true as const,
+  shadowMapSize: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE] as [number, number],
+  postprocessing: true as const,
+  toneMappingMode: null,
+  toneMappingExposure: TONE_MAPPING_EXPOSURE,
+  bloom: { luminanceThreshold: BLOOM_PROPS.luminanceThreshold, intensity: BLOOM_PROPS.intensity },
+  ssao: { samples: SSAO_PROPS.samples, rings: SSAO_PROPS.rings, intensity: SSAO_PROPS.intensity },
+} as const
+
+type OfficeCanvasProps = {
+  onPointerMissed?: () => void
+}
+
+export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
   return (
     <Canvas
       orthographic
-      camera={{ position: [24, 22, 24], zoom: 38, near: -100, far: 300 }}
-      shadows
+      camera={{ position: CAMERA_POSITION, zoom: CAMERA_ZOOM, near: CAMERA_NEAR, far: CAMERA_FAR }}
+      shadows="soft"
       dpr={[1, 2]}
       frameloop="demand"
-      gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }} // preserveDrawingBuffer: screenshots/e2e capture
-      onCreated={({ camera, scene }) => {
-        camera.lookAt(0, 1.5, 0)
-        // Read-only scene handle: used by e2e tests (scene-graph audit) and
-        // Milestone 2+ debugging/pathfinding targets.
+      gl={{
+        antialias: true,
+        alpha: false,
+        preserveDrawingBuffer: true,
+        powerPreference: 'high-performance',
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: TONE_MAPPING_EXPOSURE,
+      }}
+      onCreated={({ camera, scene, gl }) => {
+        camera.lookAt(...CAMERA_TARGET)
         if (typeof window !== 'undefined') {
-          ;(window as unknown as { __NOTELINGS_SCENE__: typeof scene; __NOTELINGS_CAMERA__: typeof camera }).__NOTELINGS_SCENE__ = scene
+          ;(window as unknown as {
+            __NOTELINGS_SCENE__: typeof scene
+            __NOTELINGS_CAMERA__: typeof camera
+            __NOTELINGS_RENDERER__: typeof gl
+            __NOTELINGS_CAMERA_PROFILE__: {
+              position: [number, number, number]
+              target: [number, number, number]
+              zoom: number
+              near: number
+              far: number
+              controls: false
+              frameloop: 'demand'
+            }
+            __NOTELINGS_RENDER_PROFILE__: typeof OFFICE_RENDER_PROFILE
+          }).__NOTELINGS_SCENE__ = scene
           ;(window as unknown as { __NOTELINGS_CAMERA__: typeof camera }).__NOTELINGS_CAMERA__ = camera
+          ;(window as unknown as { __NOTELINGS_RENDERER__: typeof gl }).__NOTELINGS_RENDERER__ = gl
+          ;(window as unknown as {
+            __NOTELINGS_CAMERA_PROFILE__: {
+              position: [number, number, number]
+              target: [number, number, number]
+              zoom: number
+              near: number
+              far: number
+              controls: false
+              frameloop: 'demand'
+            }
+          }).__NOTELINGS_CAMERA_PROFILE__ = {
+            position: [...CAMERA_POSITION],
+            target: [...CAMERA_TARGET],
+            zoom: CAMERA_ZOOM,
+            near: CAMERA_NEAR,
+            far: CAMERA_FAR,
+            controls: false,
+            frameloop: 'demand',
+          }
+          ;(window as unknown as {
+            __NOTELINGS_RENDER_PROFILE__: typeof OFFICE_RENDER_PROFILE
+          }).__NOTELINGS_RENDER_PROFILE__ = OFFICE_RENDER_PROFILE
         }
       }}
       style={{ width: '100%', height: '100%' }}
+      onPointerMissed={onPointerMissed}
     >
-      {/* Isometric-friendly lighting */}
-      <ambientLight intensity={0.6} />
+      <color attach="background" args={[SCENE_BACKGROUND]} />
+      <ambientLight name="office-ambient" intensity={0.5} color="#e3eeee" />
       <directionalLight
-        position={[18, 26, 12]}
-        intensity={1.2}
+        name="office-key"
+        position={[10, 20, 10]}
+        intensity={3.0}
+        color="#fff8ed"
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-bias={-0.0002}
+        shadow-normalBias={0.02}
+        shadow-radius={4}
+        shadow-mapSize-width={SHADOW_MAP_SIZE}
+        shadow-mapSize-height={SHADOW_MAP_SIZE}
+        shadow-camera-left={-SHADOW_CASCADE}
+        shadow-camera-right={SHADOW_CASCADE}
+        shadow-camera-top={SHADOW_CASCADE}
+        shadow-camera-bottom={-SHADOW_CASCADE}
         shadow-camera-near={1}
-        shadow-camera-far={60}
+        shadow-camera-far={70}
       />
-      <hemisphereLight args={['#bfd4ff', '#1c1e24', 0.3]} />
+      <hemisphereLight name="office-fill" args={['#d8eeee', '#34504f', 0.32]} />
       <VoxelOffice />
-      <OrbitControls enablePan enableZoom minZoom={10} maxZoom={120} target={[0, 1.5, 0]} />
+      <EffectComposer enableNormalPass>
+        <SSAO {...SSAO_PROPS} />
+        <Bloom {...BLOOM_PROPS} />
+        <ToneMapping />
+      </EffectComposer>
     </Canvas>
   )
 }

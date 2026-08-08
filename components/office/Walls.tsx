@@ -3,28 +3,30 @@ import { useMemo } from 'react'
 import { WALLS, PLACEMENTS, cellToWorld, CELL_SIZE, WALL_THICKNESS } from './officeLayout'
 import OfficeModel from './OfficeModel'
 
-/** Solid wall segments (replicated from preview.png; primitive boxes) + wall decor. */
-export default function Walls() {
+/** Solid rear/side shell segments plus wall-mounted decor. */
+export default function Walls({ excludePlacementIds = new Set<string>() }: { excludePlacementIds?: ReadonlySet<string> }) {
   const segments = useMemo(
     () =>
       WALLS.map((w) => {
         const isX = w.axis === 'x'
-        // Center the box on the middle of the segment (not its start edge)
         const mid = w.cell[isX ? 0 : 1] + (w.lenCells - 1) / 2
-        const [mx, mz] = cellToWorld(isX ? mid : w.cell[0], isX ? w.cell[1] : mid)
+        const [mx, mz] = cellToWorld(
+          isX ? mid : w.cell[0] === 0 ? -0.5 : w.cell[0] + 0.5,
+          isX ? w.cell[1] : mid,
+        )
         const length = w.lenCells * CELL_SIZE
         const thickness = w.thickness ?? WALL_THICKNESS
         return (
           <mesh
-            key={`wall-${w.cell[0]}-${w.cell[1]}-${w.axis}`}
+            key={w.id}
+            name={w.id}
             position={[mx, w.height / 2, mz]}
             castShadow
             receiveShadow
+            userData={{ notelingsRole: 'wall', notelingsWallId: w.id }}
           >
-            <boxGeometry
-              args={[isX ? length : thickness, w.height, isX ? thickness : length]}
-            />
-            <meshStandardMaterial color="#e9eaec" />
+            <boxGeometry args={[isX ? length : thickness, w.height, isX ? thickness : length]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.88} />
           </mesh>
         )
       }),
@@ -33,14 +35,14 @@ export default function Walls() {
 
   const decor = useMemo(
     () =>
-      PLACEMENTS.filter((p) => p.mount === 'wall').map((p) => (
+      PLACEMENTS.filter((p) => p.mount === 'wall' && !excludePlacementIds.has(p.id)).map((p) => (
         <OfficeModel key={p.id} placement={p} />
       )),
-    [],
+    [excludePlacementIds],
   )
 
   return (
-    <group>
+    <group name="office-walls">
       {segments}
       {decor}
     </group>
