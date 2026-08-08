@@ -146,6 +146,7 @@ These are not post-processing effects, but they substantially influence the fina
 - Fixed camera zoom: `38`
 - Fixed camera near/far: `-100 / 300`
 - Demand rendering: the R3F loop sleeps while the scene is idle and renders again when R3F invalidates the canvas due to a scene/state/event change. This avoids continuous R3F animation work; it does not guarantee literal OS-level 0% GPU usage because browser compositor work is separate.
+- Agent animation (Milestone 2): the AgentRobot walks only while it has a path. `moveTo` switches the store frameloop to `"always"` via `useThree(s => s.setFrameloop)`; on arrival the robot switches back to `"demand"` and calls `invalidate()`. Idle frames therefore remain demand-driven.
 
 ## 6. Current Effect Chain
 
