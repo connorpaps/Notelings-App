@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Line } from '@react-three/drei'
-import { useThree, type ThreeEvent } from '@react-three/fiber'
+import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
 import { FLOOR_DEPTH, FLOOR_WIDTH } from './Floor'
 import { cellToWorld, worldToCell } from './officeLayout'
@@ -40,7 +40,8 @@ export default function AgentLayer() {
   }
   const onPathChange = (path: GridCell[] | null) => {
     runtimeRef.current.pathLength = path ? path.length : 0
-    runtimeRef.current.currentCell = path ? path[0] : AGENT_START_CELL
+    // currentCell = the walk destination (last path cell), kept across walks.
+    if (path) runtimeRef.current.currentCell = path[path.length - 1]
     setPreviewPath(path) // React state only updates on real path assignment
   }
 

@@ -42,8 +42,12 @@ const AgentRobot = forwardRef<AgentRobotHandle, AgentRobotProps>(function AgentR
   // Recreate the LCD texture only when the expression changes.
   const faceTexture = useMemo(() => createFaceTexture(state), [state])
 
-  // Restore demand rendering if the robot unmounts mid-walk (HMR/StrictMode).
-  useEffect(() => () => setFrameloop('demand'), [setFrameloop])
+  // Restore demand rendering and drop any in-flight path if the robot
+  // unmounts mid-walk (HMR/StrictMode).
+  useEffect(() => () => {
+    pathRef.current = []
+    setFrameloop('demand')
+  }, [setFrameloop])
 
   // Orient the LCD once on mount (fixed camera) so the first idle frame is right.
   useEffect(() => {
