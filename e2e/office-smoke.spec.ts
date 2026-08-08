@@ -1,5 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { LOCKED_DEFAULT_ITEMS } from '../components/office/officeBuilderDefault'
+import { buildEffectiveBlockedCells, findPath, type GridCell } from '../components/office/pathfinding'
+import { cellToWorld } from '../components/office/officeLayout'
 
 const EXPECTED_IDS = LOCKED_DEFAULT_ITEMS.map((item) => item.id)
 const MODEL_IDS = LOCKED_DEFAULT_ITEMS.filter((item) => item.kind === 'model').map((item) => item.id)
@@ -252,4 +254,131 @@ test('static office diorama renders with locked camera and persists no builder s
     { timeout: 60_000, polling: 500 },
   )
   expect(errors).toEqual([])
+})
+
+/** Orthographic world → viewport pixels using the live camera matrix + zoom. */
+async function worldToScreen(page: Page, x: number, y: number, z: number): Promise<{ x: number; y: number }> {
+  return page.evaluate(([wx, wy, wz]) => {
+    const cam = (
+      window as unknown as {
+        __NOTELINGS_CAMERA__?: { matrixWorldInverse?: { elements: number[] }; zoom?: number }
+      }
+    ).__NOTELINGS_CAMERA__
+    const canvas = document.querySelector('canvas')
+    if (!cam?.matrixWorldInverse || !canvas) throw new Error('camera/canvas missing')
+    const rect = canvas.getBoundingClientRect()
+    const m = cam.matrixWorldInverse.elements
+    const vx = m[0] * wx + m[4] * wy + m[8] * wz + m[12]
+    const vy = m[1] * wx + m[5] * wy + m[9] * wz + m[13]
+    const zoom = cam.zoom ?? 1
+    const ndcX = vx / (rect.width / (2 * zoom))
+    const ndcY = vy / (rect.height / (2 * zoom))
+    return {
+      x: rect.left + (ndcX * 0.5 + 0.5) * rect.width,
+      y: rect.top + (1 - (ndcY * 0.5 + 0.5)) * rect.height,
+    }
+  }, [x, y, z])
+}
+
+/** A reachable free cell a few cells away from the robot start (deterministic). */
+function pickTargetCell(start: GridCell, blocked: ReadonlySet<string>): GridCell {
+  for (const d of [4, 3, 5, 2, 6]) {
+    for (const candidate of [
+      [start[0] + d, start[1]],
+      [start[0] - d, start[1]],
+      [start[0], start[1] + d],
+      [start[0], start[1] - d],
+    ] as GridCell[]) {
+      if (!blocked.has(`${candidate[0]},${candidate[1]}`) && findPath(start, candidate, { blocked })) {
+        return candidate
+      }
+    }
+  }
+  throw new Error('no reachable free target near agent start')
+}
+
+test('agent robot renders at start and click-to-move walks an A* path', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text())
+  })
+  page.on('pageerror', (err) => errors.push(String(err)))
+
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
+
+  // Robot exists with its capsule body + LCD face and reports idle at its start cell.
+  await page.waitForFunction(
+    () => {
+      type Obj = { name?: string; children?: Obj[]; isMesh?: boolean }
+      const scene = (window as unknown as { __NOTELINGS_SCENE__?: Obj }).__NOTELINGS_SCENE__
+      if (!scene) return false
+      const find = (root: Obj, name: string): Obj | undefined => {
+        if (root.name === name) return root
+        for (const child of root.children ?? []) {
+          const match = find(child, name)
+          if (match) return match
+        }
+        return undefined
+      }
+      const meshCount = (root: Obj): number =>
+        (root.isMesh ? 1 : 0) + (root.children ?? []).reduce((n, c) => n + meshCount(c), 0)
+      const robot = find(scene, 'agent-robot')
+      const agent = (window as unknown as {
+        __NOTELINGS_AGENT__?: { state?: string; startCell?: number[] }
+      }).__NOTELINGS_AGENT__
+      return Boolean(robot && meshCount(robot) >= 2 && agent?.state === 'idle' && Array.isArray(agent?.startCell))
+    },
+    { timeout: 30_000, polling: 500 },
+  )
+
+  const startCell = await page.evaluate(
+    () =>
+      (window as unknown as { __NOTELINGS_AGENT__?: { startCell?: [number, number] } }).__NOTELINGS_AGENT__
+        ?.startCell,
+  )
+  if (!startCell) throw new Error('agent start cell not exposed')
+
+  const blocked = buildEffectiveBlockedCells(LOCKED_DEFAULT_ITEMS)
+  const target = pickTargetCell(startCell, blocked)
+  const [tx, tz] = cellToWorld(target[0], target[1])
+  const TOLERANCE = 0.15
+
+  // Click the target cell's projected screen position (up to 3 jitter retries
+  // in case the ray is occluded by a no-handler object that swallows the hit).
+  const { x, y } = await worldToScreen(page, tx, 0, tz)
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.mouse.click(x + attempt * 10, y + attempt * 10)
+    await page.waitForTimeout(400)
+    const state = await page.evaluate(
+      () => (window as unknown as { __NOTELINGS_AGENT__?: { state?: string } }).__NOTELINGS_AGENT__?.state,
+    )
+    if (state === 'walking') break
+  }
+
+  // Robot arrives at the target cell center and returns to idle.
+  await page.waitForFunction(
+    ({ tx, tz, tolerance }) => {
+      type Obj = { name?: string; children?: Obj[]; position?: { x: number; z: number } }
+      const scene = (window as unknown as { __NOTELINGS_SCENE__?: Obj }).__NOTELINGS_SCENE__
+      if (!scene) return false
+      const find = (root: Obj, name: string): Obj | undefined => {
+        if (root.name === name) return root
+        for (const child of root.children ?? []) {
+          const match = find(child, name)
+          if (match) return match
+        }
+        return undefined
+      }
+      const robot = find(scene, 'agent-robot')
+      const agent = (window as unknown as { __NOTELINGS_AGENT__?: { state?: string } }).__NOTELINGS_AGENT__
+      if (!robot?.position || agent?.state !== 'idle') return false
+      return Math.abs(robot.position.x - tx) < tolerance && Math.abs(robot.position.z - tz) < tolerance
+    },
+    { tx, tz, tolerance: TOLERANCE },
+    { timeout: 30_000, polling: 300 },
+  )
+
+  expect(errors).toEqual([])
+  await page.screenshot({ path: 'test-results/office-agent-walk.png', fullPage: true })
 })

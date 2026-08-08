@@ -24,7 +24,12 @@ export default function AgentLayer() {
   )
 
   // Mutable runtime contract for e2e/browser QA — no extra renders.
-  const runtimeRef = useRef({ state: 'idle' as AgentState, currentCell: AGENT_START_CELL, pathLength: 0 })
+  const runtimeRef = useRef({
+    state: 'idle' as AgentState,
+    startCell: AGENT_START_CELL,
+    currentCell: AGENT_START_CELL,
+    pathLength: 0,
+  })
   useEffect(() => {
     ;(window as unknown as { __NOTELINGS_AGENT__: typeof runtimeRef.current }).__NOTELINGS_AGENT__ =
       runtimeRef.current
