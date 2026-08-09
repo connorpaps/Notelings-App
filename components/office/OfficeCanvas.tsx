@@ -53,7 +53,10 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
       orthographic
       camera={{ position: CAMERA_POSITION, zoom: CAMERA_ZOOM, near: CAMERA_NEAR, far: CAMERA_FAR }}
       shadows="soft"
-      dpr={[1, 2]}
+      // Cap the backbuffer at CSS resolution: on Retina displays this halves
+      // the pixels processed by the transparent canvas and its composer passes
+      // while preserving the scene's geometry, lighting, and texture quality.
+      dpr={1}
       frameloop="always"
       gl={{
         antialias: true,

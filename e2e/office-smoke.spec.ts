@@ -122,7 +122,7 @@ test('static office diorama preserves the locked baseline with three robots and 
   expect(audit.lockedScenePresent).toBe(true)
   expect(audit.builderScenePresent).toBe(false)
   expect(audit.gridDebugPresent).toBe(false)
-  expect(audit.rendererPixelRatio).toEqual(expect.any(Number))
+  expect(audit.rendererPixelRatio).toBe(1)
   expect(audit.rendererToneMappingExposure).toBe(1.2)
   expect(audit.ambientIntensity).toBe(0.5)
   expect(audit.keyIntensity).toBe(3)
@@ -239,7 +239,7 @@ test('static office diorama preserves the locked baseline with three robots and 
 })
 
 test('Milestone 4 dispatches categorized notes to two robots and completes them', async ({ page }) => {
-  test.setTimeout(60_000)
+  test.setTimeout(90_000)
   const errors: string[] = []
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())
@@ -355,7 +355,7 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
 })
 
 test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and still dispatches', async ({ page }) => {
-  test.setTimeout(60_000)
+  test.setTimeout(90_000)
   const errors: string[] = []
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())

@@ -132,20 +132,20 @@ These are not post-processing effects, but they substantially influence the fina
 - Camera position: `[24, 22, 24]`
 - Camera zoom: `38`
 - Camera near/far: `-100 / 300`
-- Device pixel ratio: `dpr={[1, 2]}`
+- Device pixel ratio: `dpr={1}` — caps the WebGL backbuffer at CSS resolution to avoid doubling all transparent canvas/composer pixel work on Retina displays while preserving scene geometry and lighting.
 - Frameloop: `"always"` — autonomous Blue and Green agents wander and execute tasks continuously
 - WebGL antialiasing: enabled
-- Alpha channel: disabled
+- Alpha channel: enabled (`gl.alpha: true`) so the video background shows through around the office.
 - `preserveDrawingBuffer`: enabled
 - WebGL power preference: `"high-performance"`
-- Scene background: `#5B7B7A`
+- Scene background: none; the WebGL canvas is transparent and the Bloom video layer provides the page background.
 - Renderer tone-mapping exposure: `1.2`
 - Camera controls: **removed**; the office is a fixed static diorama
 - Fixed camera position: `[24, 22, 24]`
 - Fixed camera target: `[0, 1.5, 0]`
 - Fixed camera zoom: `38`
 - Fixed camera near/far: `-100 / 300`
-- Always rendering: Milestone 3 intentionally keeps the R3F loop running because two autonomous agents can wander, preempt wandering for queued work, and complete tasks independently. This is the only M1 rendering-contract change; camera, lighting, shadows, DPR, and post-processing remain unchanged.
+- Always rendering: Milestone 3 intentionally keeps the R3F loop running because two autonomous agents can wander, preempt wandering for queued work, and complete tasks independently. The renderer now caps DPR at `1` to reduce Retina pixel cost; camera, lighting, shadows, and post-processing remain unchanged.
 - Agent animation: `AgentRobot` owns per-frame Three.js position/path refs, while Zustand owns task intent and lifecycle. The shared Canvas is never toggled back to demand by an individual robot, so one agent cannot freeze another mid-route.
 - Headless SwiftShader can deliver sparse frames. The robot's movement delta is capped at `0.5s` (normal 60fps frames are unchanged) so QA hitches still make bounded progress without changing the collision-safe A* / spline validation.
 
