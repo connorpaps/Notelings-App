@@ -1,6 +1,6 @@
 # Office Post-Processing Configuration
 
-**Current baseline:** Locked Milestone 1 high-quality single-scene rendering with final brightness polish
+**Current baseline:** Locked Milestone 1 high-quality single-scene rendering with final brightness polish, now hosting the Milestone 3 autonomous two-agent runtime
 
 This document records the post-processing effects and related renderer settings currently applied to the Notelings 3D office.
 
@@ -133,7 +133,7 @@ These are not post-processing effects, but they substantially influence the fina
 - Camera zoom: `38`
 - Camera near/far: `-100 / 300`
 - Device pixel ratio: `dpr={[1, 2]}`
-- Frameloop: `"demand"`
+- Frameloop: `"always"` — autonomous Blue and Green agents wander and execute tasks continuously
 - WebGL antialiasing: enabled
 - Alpha channel: disabled
 - `preserveDrawingBuffer`: enabled
@@ -145,8 +145,9 @@ These are not post-processing effects, but they substantially influence the fina
 - Fixed camera target: `[0, 1.5, 0]`
 - Fixed camera zoom: `38`
 - Fixed camera near/far: `-100 / 300`
-- Demand rendering: the R3F loop sleeps while the scene is idle and renders again when R3F invalidates the canvas due to a scene/state/event change. This avoids continuous R3F animation work; it does not guarantee literal OS-level 0% GPU usage because browser compositor work is separate.
-- Agent animation (Milestone 2): the AgentRobot walks only while it has a path. `moveTo` switches the store frameloop to `"always"` via `useThree(s => s.setFrameloop)`; on arrival the robot switches back to `"demand"` and calls `invalidate()`. Idle frames therefore remain demand-driven.
+- Always rendering: Milestone 3 intentionally keeps the R3F loop running because two autonomous agents can wander, preempt wandering for queued work, and complete tasks independently. This is the only M1 rendering-contract change; camera, lighting, shadows, DPR, and post-processing remain unchanged.
+- Agent animation: `AgentRobot` owns per-frame Three.js position/path refs, while Zustand owns task intent and lifecycle. The shared Canvas is never toggled back to demand by an individual robot, so one agent cannot freeze another mid-route.
+- Headless SwiftShader can deliver sparse frames. The robot's movement delta is capped at `0.5s` (normal 60fps frames are unchanged) so QA hitches still make bounded progress without changing the collision-safe A* / spline validation.
 
 ## 6. Current Effect Chain
 

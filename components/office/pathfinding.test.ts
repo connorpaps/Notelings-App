@@ -4,6 +4,7 @@ import {
   buildEffectiveBlockedCells,
   createSafePathCurve,
   DEFAULT_GRID_TRANSFORM,
+  isPathSafe,
   findFreeCell,
   findPath,
   gridCellToWorld,
@@ -120,12 +121,30 @@ describe('buildEffectiveBlockedCells', () => {
     expect(blocked.has('2,2')).toBe(false) // far hallway stays free
   })
 
+  it('proves the orthogonal fallback stays clear of blocked rectangles', () => {
+    const transform: GridTransform = { origin: [0, 0], scale: [1, 1], cols: 8, rows: 8 }
+    expect(isPathSafe([[1, 1], [1, 2], [2, 2]], transform, new Set(['6,6']), { clearanceWorld: 0.38 })).toBe(true)
+    expect(isPathSafe([[1, 1], [1, 2], [2, 2]], transform, new Set(['1,2']), { clearanceWorld: 0.38 })).toBe(false)
+  })
+
   it('creates a collision-safe Catmull-Rom curve for a free path', () => {
     const transform: GridTransform = { origin: [0, 0], scale: [1, 1], cols: 8, rows: 8 }
     const curve = createSafePathCurve([[1, 1], [1, 2], [2, 2], [3, 2]], transform, none, { clearanceWorld: 0.2 })
     expect(curve).not.toBeNull()
     expect(curve!.getPointAt(0).x).toBeCloseTo(-3)
     expect(curve!.getPointAt(1).z).toBeCloseTo(-2)
+  })
+
+  it('starts a smoothed curve at the robot world position when it is between cell centers', () => {
+    const transform: GridTransform = { origin: [0, 0], scale: [1, 1], cols: 8, rows: 8 }
+    const curve = createSafePathCurve(
+      [[1, 1], [1, 2], [2, 2]],
+      transform,
+      none,
+      { clearanceWorld: 0.2, startWorld: [-2.8, -2.4] },
+    )
+    expect(curve).not.toBeNull()
+    expect(curve!.getPointAt(0).toArray()).toEqual([-2.8, 0, -2.4])
   })
 
   it('rejects a smoothed curve that samples a blocked cell', () => {

@@ -4,11 +4,14 @@ import { getBuilderAssets } from './officeBuilderAssets'
 import { OFFICE_ASSET_FOOTPRINTS } from './officeAssetFootprints'
 import {
   buildEffectiveBlockedCells,
+  findFreeCell,
+  inflateBlockedCells,
   findOpenStartCell,
   type BlockableItem,
   type GridCell,
   type GridTransform,
   worldToGridCell,
+  ROBOT_NAVIGATION_CLEARANCE,
 } from './pathfinding'
 
 /**
@@ -72,20 +75,28 @@ export const CUBICLE_ACCESS_POCKETS: ReadonlyArray<ReadonlyArray<GridCell>> = ((
       item.transform.position[2],
       AGENT_GRID_TRANSFORM,
     )
-    // The aisle is on the cubicles' left side in the locked composition. Open
-    // one threshold cell plus two cells into the footprint, leaving the
-    // cubicle center and far wall blocked.
-    const pocketRows = index === 0 ? [row + 1, row + 2] : [row - 2, row - 1]
-    const pocketCols = [col - 4, col - 3, col - 2]
-    return pocketRows.flatMap((pocketRow) =>
-      pocketCols.map((pocketCol) => [pocketCol, pocketRow] as GridCell),
-    )
+    // These are measured entrance cells from the locked export, not a generic
+    // offset from the model center. The two cubicles have different rotations
+    // and neighboring desks/walls, so a symmetric formula opened the wrong
+    // cells and overlapped the printer table. Keep the exception explicit and
+    // tied to the two known locked instances.
+    if (index === 0) {
+      return [
+        [col + 3, row - 3], [col + 3, row - 2], [col + 3, row - 1],
+        [col + 3, row], [col + 3, row + 1], [col + 4, row - 1],
+      ] as GridCell[]
+    }
+    return [
+      [col + 3, row + 3], [col + 4, row + 3], [col + 5, row + 3],
+      [col + 3, row + 4], [col + 4, row + 4], [col + 5, row + 4],
+    ] as GridCell[]
   })
 })()
 
 /** Effective blocked cells for the released scene (grid-anchored + footprints). */
 export function buildAgentBlockedCells(): Set<string> {
-  const blocked = buildEffectiveBlockedCells(getAgentBlockableItems(), {
+  const items = getAgentBlockableItems()
+  const options = {
     transform: AGENT_GRID_TRANSFORM,
     footprints: OFFICE_ASSET_FOOTPRINTS,
     // Deliberately NO legacy base: BLOCKED_CELLS describes the OLD centered
@@ -93,15 +104,25 @@ export function buildAgentBlockedCells(): Set<string> {
     // so merging it under the transform-anchored grid would inject phantom
     // blocked cells mid-floor. The locked scene's own walls + furniture are
     // the source of truth for the released office.
-    base: new Set(),
-  })
-
-  // Targeted access only: do not weaken generic footprint blocking for other
-  // cubicles or furniture.
-  for (const pocket of CUBICLE_ACCESS_POCKETS) {
-    for (const [col, row] of pocket) blocked.delete(`${col},${row}`)
+    base: new Set<string>(),
   }
-  return blocked
+  const isTargetCubicle = (item: BlockableItem) =>
+    item.obj?.endsWith('/Cubicles/Office_Cubicle_White_05.obj') ?? false
+  const nonCubicleBlocked = buildEffectiveBlockedCells(items.filter((item) => !isTargetCubicle(item)), options)
+  const cubicleBlocked = buildEffectiveBlockedCells(items.filter(isTargetCubicle), options)
+  const blocked = new Set(nonCubicleBlocked)
+  const pocketKeys = new Set(
+    CUBICLE_ACCESS_POCKETS.flat().map(([col, row]) => `${col},${row}`),
+  )
+
+  // Targeted access only: remove cubicle occupancy from a pocket, but never
+  // erase a wall/table/chair that independently occupies the same cell. The
+  // previous implementation deleted from the merged set and accidentally
+  // turned the printer table's cells into walkable floor.
+  for (const key of cubicleBlocked) {
+    if (!pocketKeys.has(key) || nonCubicleBlocked.has(key)) blocked.add(key)
+  }
+  return inflateBlockedCells(blocked, AGENT_GRID_TRANSFORM, ROBOT_NAVIGATION_CLEARANCE)
 }
 
 /**
@@ -109,8 +130,19 @@ export function buildAgentBlockedCells(): Set<string> {
  * connected walkable region, so the robot is never blocked or sealed into a
  * dead-end furniture pocket.
  */
+const AGENT_BLOCKED_CELLS = buildAgentBlockedCells()
+
 export const AGENT_START_CELL: GridCell =
-  findOpenStartCell([6, 12], buildAgentBlockedCells(), {
+  findOpenStartCell([6, 12], AGENT_BLOCKED_CELLS, {
     cols: AGENT_GRID_COLS,
     rows: AGENT_GRID_ROWS,
   }) ?? [18, 14]
+
+/** Stable second spawn cell, resolved from the same released-office obstacle map. */
+export const AGENT_START_CELLS: Record<'blue' | 'green', GridCell> = {
+  blue: AGENT_START_CELL,
+  green: findFreeCell([4, 12], AGENT_BLOCKED_CELLS, {
+    cols: AGENT_GRID_COLS,
+    rows: AGENT_GRID_ROWS,
+  }) ?? [4, 12],
+}

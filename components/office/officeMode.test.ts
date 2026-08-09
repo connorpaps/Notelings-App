@@ -10,9 +10,7 @@ describe('office mode', () => {
     expect(ENABLE_PATH_PREVIEW).toBe(false)
   })
 
-  it('keeps the grid debug visualizer active until the alignment is verified', () => {
-    // TEMPORARY: flip to false once the blocked-cell overlay has been visually
-    // confirmed against the 3D furniture and removed from the released app.
-    expect(ENABLE_GRID_DEBUG).toBe(true)
+  it('keeps the completed grid debug visualizer disabled', () => {
+    expect(ENABLE_GRID_DEBUG).toBe(false)
   })
 })

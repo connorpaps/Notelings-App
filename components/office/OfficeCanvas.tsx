@@ -32,7 +32,7 @@ const SSAO_PROPS = {
 const SCENE_BACKGROUND = '#5B7B7A'
 
 export const OFFICE_RENDER_PROFILE = {
-  frameloop: 'demand' as const,
+  frameloop: 'always' as const,
   shadows: true as const,
   shadowMapSize: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE] as [number, number],
   postprocessing: true as const,
@@ -53,7 +53,7 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
       camera={{ position: CAMERA_POSITION, zoom: CAMERA_ZOOM, near: CAMERA_NEAR, far: CAMERA_FAR }}
       shadows="soft"
       dpr={[1, 2]}
-      frameloop="demand"
+      frameloop="always"
       gl={{
         antialias: true,
         alpha: false,
@@ -76,7 +76,7 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
               near: number
               far: number
               controls: false
-              frameloop: 'demand'
+              frameloop: 'always'
             }
             __NOTELINGS_RENDER_PROFILE__: typeof OFFICE_RENDER_PROFILE
           }).__NOTELINGS_SCENE__ = scene
@@ -90,7 +90,7 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
               near: number
               far: number
               controls: false
-              frameloop: 'demand'
+              frameloop: 'always'
             }
           }).__NOTELINGS_CAMERA_PROFILE__ = {
             position: [...CAMERA_POSITION],
@@ -99,7 +99,7 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
             near: CAMERA_NEAR,
             far: CAMERA_FAR,
             controls: false,
-            frameloop: 'demand',
+            frameloop: 'always',
           }
           ;(window as unknown as {
             __NOTELINGS_RENDER_PROFILE__: typeof OFFICE_RENDER_PROFILE

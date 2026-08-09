@@ -10,9 +10,5 @@ export const ENABLE_OFFICE_BUILDER = false
  */
 export const ENABLE_PATH_PREVIEW = false
 
-/**
- * TEMPORARY verification aid: renders translucent red boxes over every blocked
- * A* grid cell so the grid's alignment with the 3D furniture can be verified
- * visually. Set false once the alignment is confirmed.
- */
-export const ENABLE_GRID_DEBUG = true
+/** M2 grid alignment was verified; keep the x-ray overlay out of the app. */
+export const ENABLE_GRID_DEBUG = false

@@ -10,6 +10,49 @@ import {
 export type GridCell = [number, number]
 export type BlockedSet = ReadonlySet<string>
 
+/** Physical center clearance used by the fine agent grid and safe movement. */
+export const ROBOT_NAVIGATION_CLEARANCE = 0.22
+
+/**
+ * Expand raw occupied cells by a world-space robot clearance. This is kept
+ * separate from footprint rasterization so callers can preserve intentional
+ * access pockets without accidentally deleting another item's occupancy, then
+ * apply the same physical clearance consistently to every obstacle.
+ */
+export function inflateBlockedCells(
+  blocked: BlockedSet,
+  transform: GridTransform,
+  clearanceWorld: number,
+): Set<string> {
+  const cols = transform.cols ?? OFFICE_COLS
+  const rows = transform.rows ?? OFFICE_ROWS
+  const clearance = Math.max(0, clearanceWorld)
+  if (clearance === 0) return new Set(blocked)
+
+  const blockedCenters = [...blocked].map((key) => {
+    const [col, row] = key.split(',').map(Number)
+    const [x, z] = gridCellToWorld([col, row], transform)
+    return { x, z }
+  })
+  const halfX = Math.abs(transform.scale[0]) / 2
+  const halfZ = Math.abs(transform.scale[1]) / 2
+  const expanded = new Set(blocked)
+
+  for (let col = 0; col < cols; col += 1) {
+    for (let row = 0; row < rows; row += 1) {
+      const [x, z] = gridCellToWorld([col, row], transform)
+      if (blockedCenters.some((rect) => {
+        const dx = Math.max(Math.abs(x - rect.x) - halfX, 0)
+        const dz = Math.max(Math.abs(z - rect.z) - halfZ, 0)
+        return Math.hypot(dx, dz) <= clearance
+      })) {
+        expanded.add(`${col},${row}`)
+      }
+    }
+  }
+  return expanded
+}
+
 /**
  * Maps grid cells to world coordinates. The locked office scene is a free-form
  * composition (offset + scaled floor), so the agent grid anchors to the locked
@@ -166,6 +209,7 @@ export function buildEffectiveBlockedCells(
     rows?: number
     transform?: GridTransform
     footprints?: Record<string, Footprint>
+    clearanceWorld?: number
   } = {},
 ): Set<string> {
   const transform = opts.transform ?? DEFAULT_GRID_TRANSFORM
@@ -185,11 +229,11 @@ export function buildEffectiveBlockedCells(
 
     let footprint: Footprint
     if (isWall && item.wall) {
-      // Wall definitions use the decorative office cell unit. Convert that
-      // legacy length to world units before rasterizing onto the finer grid.
-      const baseCellScaleX = transform.scale[0] * (cols / OFFICE_COLS)
-      const baseCellScaleZ = transform.scale[1] * (rows / OFFICE_ROWS)
-      const len = item.wall.lenCells * (item.wall.axis === 'x' ? baseCellScaleX : baseCellScaleZ)
+      // Wall definitions use the decorative office cell unit, and the locked
+      // scene renders them directly from `lenCells * CELL_SIZE` inside the
+      // wall item's own transform. Do not derive wall length from the floor's
+      // scaled agent grid: the floor transform is not applied to wall groups.
+      const len = item.wall.lenCells * CELL_SIZE
       const thick = item.wall.thickness ?? WALL_THICKNESS
       footprint = item.wall.axis === 'x' ? { width: len, depth: thick } : { width: thick, depth: len }
     } else if (item.obj && opts.footprints?.[item.obj]) {
@@ -201,8 +245,9 @@ export function buildEffectiveBlockedCells(
     const [cx, cy, cz] = item.transform.position
     const [sx, , sz] = item.transform.scale
     const rotationY = item.transform.rotation[1] ?? 0
-    const halfW = (footprint.width * Math.abs(sx)) / 2
-    const halfD = (footprint.depth * Math.abs(sz)) / 2
+    const clearance = Math.max(0, opts.clearanceWorld ?? 0)
+    const halfW = (footprint.width * Math.abs(sx)) / 2 + clearance
+    const halfD = (footprint.depth * Math.abs(sz)) / 2 + clearance
     const cos = Math.cos(rotationY)
     const sin = Math.sin(rotationY)
 
@@ -255,15 +300,50 @@ export function buildEffectiveBlockedCells(
  * is based on arc length at no more than one quarter of the smallest cell
  * dimension, so a short spline excursion cannot hide between samples.
  */
-export function createSafePathCurve(
+export function isPathSafe(
   path: ReadonlyArray<GridCell>,
   transform: GridTransform,
   blocked: BlockedSet,
   opts: { clearanceWorld?: number } = {},
+): boolean {
+  if (path.length < 2) return path.length === 1
+  const clearance = Math.max(0, opts.clearanceWorld ?? 0)
+  const blockedRects = [...blocked].map((key) => {
+    const [col, row] = key.split(',').map(Number)
+    const [x, z] = gridCellToWorld([col, row], transform)
+    return { x, z }
+  })
+  const stepSize = Math.max(Math.min(Math.abs(transform.scale[0]), Math.abs(transform.scale[1])) * 0.1, 0.01)
+
+  for (let index = 1; index < path.length; index += 1) {
+    const [startX, startZ] = gridCellToWorld(path[index - 1], transform)
+    const [endX, endZ] = gridCellToWorld(path[index], transform)
+    const distance = Math.hypot(endX - startX, endZ - startZ)
+    const samples = Math.max(1, Math.ceil(distance / stepSize))
+    for (let sample = 0; sample <= samples; sample += 1) {
+      const ratio = sample / samples
+      const x = startX + (endX - startX) * ratio
+      const z = startZ + (endZ - startZ) * ratio
+      for (const rect of blockedRects) {
+        const dx = Math.max(Math.abs(x - rect.x) - Math.abs(transform.scale[0]) / 2, 0)
+        const dz = Math.max(Math.abs(z - rect.z) - Math.abs(transform.scale[1]) / 2, 0)
+        if (Math.hypot(dx, dz) <= clearance) return false
+      }
+    }
+  }
+  return true
+}
+
+export function createSafePathCurve(
+  path: ReadonlyArray<GridCell>,
+  transform: GridTransform,
+  blocked: BlockedSet,
+  opts: { clearanceWorld?: number; startWorld?: [number, number] } = {},
 ): THREE.CatmullRomCurve3 | null {
   if (path.length < 2) return null
-  const points = path.map(([col, row]) => {
+  const points = path.map(([col, row], index) => {
     const [x, z] = gridCellToWorld([col, row], transform)
+    if (index === 0 && opts.startWorld) return new THREE.Vector3(opts.startWorld[0], 0, opts.startWorld[1])
     return new THREE.Vector3(x, 0, z)
   })
   const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal', 0.5)
