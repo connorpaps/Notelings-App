@@ -29,7 +29,8 @@ const SSAO_PROPS = {
 
 // The composer owns the final tone-mapping pass. Keep its installed default
 // here because the explicit ACES override washed out the approved color palette.
-const SCENE_BACKGROUND = '#5B7B7A'
+// M4.2 reskin: the opaque teal scene background was removed so the looping
+// video behind the transparent canvas shows through around the office.
 
 export const OFFICE_RENDER_PROFILE = {
   frameloop: 'always' as const,
@@ -56,7 +57,7 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
       frameloop="always"
       gl={{
         antialias: true,
-        alpha: false,
+        alpha: true,
         preserveDrawingBuffer: true,
         powerPreference: 'high-performance',
         toneMapping: THREE.ACESFilmicToneMapping,
@@ -109,7 +110,6 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
       style={{ width: '100%', height: '100%' }}
       onPointerMissed={onPointerMissed}
     >
-      <color attach="background" args={[SCENE_BACKGROUND]} />
       <ambientLight name="office-ambient" intensity={0.5} color="#e3eeee" />
       <directionalLight
         name="office-key"

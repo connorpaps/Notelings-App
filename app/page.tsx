@@ -3,19 +3,15 @@
 import dynamic from 'next/dynamic'
 import { ENABLE_OFFICE_BUILDER } from '@/components/office/officeMode'
 import NotelingsUI from '@/components/notelings/NotelingsUI'
+import BackgroundVideo from '@/components/notelings/BackgroundVideo'
 
 // WebGL scene must not be SSR'd (three needs browser APIs)
 const OfficeCanvas = dynamic(() => import('@/components/office/OfficeCanvas'), {
   ssr: false,
   loading: () => (
     <div
-      style={{
-        display: 'grid',
-        placeItems: 'center',
-        height: '100vh',
-        color: '#8a8f98',
-        fontFamily: 'system-ui',
-      }}
+      className="flex h-full w-full items-center justify-center bg-transparent text-white/50"
+      style={{ fontFamily: 'var(--font-sans)' }}
     >
       loading 3D office…
     </div>
@@ -26,10 +22,15 @@ const OfficeBuilderApp = ENABLE_OFFICE_BUILDER
   ? dynamic(() => import('@/components/office/OfficeBuilderApp'), { ssr: false })
   : null
 
+// Bloom world layering: video (z-0) → transparent WebGL office (z-10) → glass
+// UI overlay (z-20). The office stays the colored centerpiece above the video.
 export default function Home() {
   return (
-    <main style={{ position: 'fixed', inset: 0 }}>
-      {OfficeBuilderApp ? <OfficeBuilderApp /> : <OfficeCanvas />}
+    <main className="relative h-dvh w-full overflow-hidden bg-black">
+      <BackgroundVideo />
+      <div className="absolute inset-0 z-10 bg-transparent">
+        {OfficeBuilderApp ? <OfficeBuilderApp /> : <OfficeCanvas />}
+      </div>
       <NotelingsUI enabled={!ENABLE_OFFICE_BUILDER} />
     </main>
   )

@@ -188,6 +188,38 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.glowPart).toBe('glow')
     expect(parts.glowVisible).toBe(false)
   }
+
+  // M4.2 reskin contract: looping video behind a transparent WebGL canvas.
+  const videoState = await page.evaluate(() => {
+    const video = document.querySelector('video')
+    return {
+      src: video?.getAttribute('src') ?? null,
+      muted: video?.muted ?? false,
+      autoplay: video?.autoplay ?? false,
+      loop: video?.loop ?? false,
+    }
+  })
+  expect(videoState).toEqual({ src: '/videos/bloom-background.mp4', muted: true, autoplay: true, loop: true })
+
+  const cornerPixel = await page.evaluate(() => {
+    const renderer = (window as unknown as {
+      __NOTELINGS_RENDERER__?: {
+        getContext?: () => {
+          readPixels: (x: number, y: number, w: number, h: number, format: number, type: number, pixels: Uint8Array) => void
+          RGBA: number
+          UNSIGNED_BYTE: number
+        }
+      }
+    }).__NOTELINGS_RENDERER__
+    const gl = renderer?.getContext?.()
+    if (!gl) return null
+    const buf = new Uint8Array(4)
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf)
+    return Array.from(buf)
+  })
+  // The viewport corner is outside the office: alpha 0 means the video shows through.
+  expect(cornerPixel?.[3]).toBe(0)
+
   expect(errors).toEqual([])
 
   await page.screenshot({ path: 'test-results/office-m4-baseline.png', fullPage: true, animations: 'disabled' })

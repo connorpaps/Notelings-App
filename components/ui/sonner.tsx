@@ -30,15 +30,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
+          // M4.2 reskin: dark liquid-glass toasts matching the Bloom world.
+          "--normal-bg": "rgba(10, 10, 11, 0.72)",
+          "--normal-text": "rgba(255, 255, 255, 0.92)",
+          "--normal-border": "rgba(255, 255, 255, 0.14)",
+          "--border-radius": "1rem",
         } as React.CSSProperties
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast: "cn-toast !border backdrop-blur-2xl",
+          title: "!text-white",
+          description: "!text-white/60",
         },
       }}
       {...props}
