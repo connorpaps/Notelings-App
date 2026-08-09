@@ -29,8 +29,8 @@ const SSAO_PROPS = {
 
 // The composer owns the final tone-mapping pass. Keep its installed default
 // here because the explicit ACES override washed out the approved color palette.
-// M4.2 reskin: the opaque teal scene background was removed so the looping
-// video behind the transparent canvas shows through around the office.
+// The transparent canvas reveals the static white page background around the
+// office while preserving the approved scene and post-processing baseline.
 
 export const OFFICE_RENDER_PROFILE = {
   frameloop: 'always' as const,
@@ -53,10 +53,9 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
       orthographic
       camera={{ position: CAMERA_POSITION, zoom: CAMERA_ZOOM, near: CAMERA_NEAR, far: CAMERA_FAR }}
       shadows="soft"
-      // Cap the backbuffer at CSS resolution: on Retina displays this halves
-      // the pixels processed by the transparent canvas and its composer passes
-      // while preserving the scene's geometry, lighting, and texture quality.
-      dpr={1}
+      // Restore the prior high-quality range: standard displays stay at 1×,
+      // while Retina displays can render the office at its native 2× detail.
+      dpr={[1, 2]}
       frameloop="always"
       gl={{
         antialias: true,

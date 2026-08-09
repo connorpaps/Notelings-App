@@ -103,6 +103,7 @@ test('static office diorama preserves the locked baseline with three robots and 
       lockedScenePresent: Boolean(find(scene, 'locked-office-scene')),
       builderScenePresent: Boolean(find(scene, 'office-builder-scene')),
       gridDebugPresent: Boolean(find(scene, 'grid-debug')),
+      devicePixelRatio: window.devicePixelRatio,
       rendererPixelRatio: renderer?.getPixelRatio?.() ?? -1,
       rendererToneMappingExposure: renderer?.toneMappingExposure ?? -1,
       ambientIntensity: find(scene, 'office-ambient')?.intensity ?? -1,
@@ -122,7 +123,7 @@ test('static office diorama preserves the locked baseline with three robots and 
   expect(audit.lockedScenePresent).toBe(true)
   expect(audit.builderScenePresent).toBe(false)
   expect(audit.gridDebugPresent).toBe(false)
-  expect(audit.rendererPixelRatio).toBe(1)
+  expect(audit.rendererPixelRatio).toBeCloseTo(Math.min(audit.devicePixelRatio, 2), 5)
   expect(audit.rendererToneMappingExposure).toBe(1.2)
   expect(audit.ambientIntensity).toBe(0.5)
   expect(audit.keyIntensity).toBe(3)
@@ -191,28 +192,22 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.glowVisible).toBe(false)
   }
 
-  // M4.2 reskin contract: looping video behind a transparent WebGL canvas.
-  const videoState = await page.evaluate(() => {
-    const video = document.querySelector('video')
+  // Static world contract: a white background behind the transparent office.
+  const backgroundState = await page.evaluate(() => {
+    const background = document.querySelector('[data-background="static-white"]')
     return {
-      src: video?.getAttribute('src') ?? null,
-      muted: video?.muted ?? false,
-      autoplay: video?.autoplay ?? false,
-      loop: video?.loop ?? false,
+      present: Boolean(background),
+      color: background ? getComputedStyle(background).backgroundColor : null,
+      videoCount: document.querySelectorAll('video').length,
+      ambientGlowCount: document.querySelectorAll('.ambient-glow').length,
     }
   })
-  expect(videoState).toEqual({ src: '/videos/bloom-background.mp4', muted: true, autoplay: true, loop: true })
-
-  // M4.2 polish: the drifting ambient light pool over the video.
-  const ambientGlow = await page.evaluate(() => {
-    const el = document.querySelector('.ambient-glow')
-    if (!el) return null
-    return {
-      blendMode: getComputedStyle(el).mixBlendMode,
-      animation: getComputedStyle(el).animationName,
-    }
+  expect(backgroundState).toEqual({
+    present: true,
+    color: 'rgb(255, 255, 255)',
+    videoCount: 0,
+    ambientGlowCount: 0,
   })
-  expect(ambientGlow).toEqual({ blendMode: 'screen', animation: 'ambient-drift' })
 
   const cornerPixel = await page.evaluate(() => {
     const renderer = (window as unknown as {
@@ -230,7 +225,7 @@ test('static office diorama preserves the locked baseline with three robots and 
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf)
     return Array.from(buf)
   })
-  // The viewport corner is outside the office: alpha 0 means the video shows through.
+  // The viewport corner is outside the office: alpha 0 means the white page shows through.
   expect(cornerPixel?.[3]).toBe(0)
 
   expect(errors).toEqual([])
