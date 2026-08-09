@@ -135,4 +135,45 @@ describe('agent store', () => {
     expect(useAgentStore.getState().signalError('green')).toBe(true)
     expect(useAgentStore.getState().agents.green.status).toBe('error')
   })
+
+  it('records a toast-ready completion event for each finished task', () => {
+    useAgentStore.getState().enqueueTask(task('printer', 'print the contracts', 'Admin'))
+    useAgentStore.getState().dispatchAvailableTasks()
+    expect(useAgentStore.getState().arriveAtTask('blue')).toBe(true)
+    expect(useAgentStore.getState().completeTask('blue')).toBe(true)
+    const state = useAgentStore.getState()
+    expect(state.completions).toHaveLength(1)
+    expect(state.completions[0]).toMatchObject({
+      id: 'task-1',
+      agentId: 'blue',
+      destination: 'printer',
+      category: 'Admin',
+      content: 'print the contracts',
+    })
+    expect(state.completions[0].completedAt).toEqual(expect.any(Number))
+  })
+
+  it('does not record completion events for failed work', () => {
+    useAgentStore.getState().enqueueTask(task('whiteboard'))
+    useAgentStore.getState().dispatchAvailableTasks()
+    expect(useAgentStore.getState().failTask('blue')).toBe(true)
+    expect(useAgentStore.getState().recoverError('blue')).toBe(true)
+    expect(useAgentStore.getState().completions).toEqual([])
+  })
+
+  it('records multiple completions in dispatch order and resets with resetForTests', () => {
+    const store = useAgentStore.getState()
+    store.enqueueTask(task('whiteboard', 'one', 'Work'))
+    store.enqueueTask(task('printer', 'two', 'Admin'))
+    store.dispatchAvailableTasks()
+    expect(useAgentStore.getState().arriveAtTask('blue')).toBe(true)
+    expect(useAgentStore.getState().arriveAtTask('green')).toBe(true)
+    expect(useAgentStore.getState().completeTask('blue')).toBe(true)
+    expect(useAgentStore.getState().completeTask('green')).toBe(true)
+    const state = useAgentStore.getState()
+    expect(state.completions.map((completion) => completion.agentId)).toEqual(['blue', 'green'])
+    expect(state.completions.map((completion) => completion.category)).toEqual(['Work', 'Admin'])
+    state.resetForTests()
+    expect(useAgentStore.getState().completions).toEqual([])
+  })
 })

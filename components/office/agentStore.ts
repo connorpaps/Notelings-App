@@ -15,6 +15,20 @@ export type Task = {
   createdAt: number
 }
 
+/**
+ * Emitted exactly once when a robot finishes filing a note (the `processing` →
+ * `idle` transition in `completeTask`). The UI layer subscribes to these to
+ * surface the physical-delivery success toast; failure paths never emit one.
+ */
+export type TaskCompletion = {
+  id: string
+  agentId: AgentId
+  category: NoteCategory
+  destination: TaskDestination
+  content: string
+  completedAt: number
+}
+
 export type AgentCommandKind = 'task' | 'wander' | null
 
 export type AgentRecord = {
@@ -41,6 +55,8 @@ export type EnqueueTaskInput = {
 export type AgentStore = {
   taskQueue: Task[]
   agents: Record<AgentId, AgentRecord>
+  /** Append-only log of finished deliveries, in completion order. */
+  completions: TaskCompletion[]
   enqueueTask: (input: EnqueueTaskInput) => string
   dispatchAvailableTasks: () => void
   requestWander: (agentId: AgentId, target: GridCell) => boolean
@@ -114,6 +130,8 @@ function nextRevision(agent: AgentRecord): number {
 export const useAgentStore = create<AgentStore>((set) => ({
   taskQueue: [],
   agents: cloneAgents(),
+  completions: [],
+
 
   enqueueTask: (input) => {
     const task: Task = {
@@ -221,6 +239,17 @@ export const useAgentStore = create<AgentStore>((set) => ({
             lastCompletedDestination: agent.currentTask.destination,
           },
         },
+        completions: [
+          ...state.completions,
+          {
+            id: agent.currentTask.id,
+            agentId,
+            category: agent.currentTask.category,
+            destination: agent.currentTask.destination,
+            content: agent.currentTask.content,
+            completedAt: Date.now(),
+          },
+        ],
       }
     })
     return accepted
@@ -319,6 +348,6 @@ export const useAgentStore = create<AgentStore>((set) => ({
 
   resetForTests: () => {
     taskSequence = 0
-    set({ taskQueue: [], agents: cloneAgents() })
+    set({ taskQueue: [], agents: cloneAgents(), completions: [] })
   },
 }))

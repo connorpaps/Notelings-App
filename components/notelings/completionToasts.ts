@@ -1,0 +1,26 @@
+import type { TaskCompletion } from '@/components/office/agentStore'
+import type { AgentId } from '@/components/office/agentDestinations'
+
+/**
+ * Pure presentation helpers for the physical-delivery success toast. Kept out
+ * of the React component so the formatting contract is unit-testable and the
+ * store stays free of UI dependencies. Agent titles mirror AgentStatusCard.
+ */
+export const AGENT_DISPLAY_NAMES: Record<AgentId, string> = {
+  blue: 'Blue Agent',
+  green: 'Green Agent',
+  red: 'Red Agent',
+}
+
+/** Completions that are newer than a caller's already-seen watermark. */
+export function collectNewCompletions(
+  completions: readonly TaskCompletion[],
+  seenCount: number,
+): TaskCompletion[] {
+  return completions.slice(seenCount)
+}
+
+export function completionToastMessage(completion: TaskCompletion): string {
+  const agentName = AGENT_DISPLAY_NAMES[completion.agentId] ?? completion.agentId
+  return `Success: ${agentName} filed your note in ${completion.category}.`
+}

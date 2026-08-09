@@ -6,6 +6,7 @@ import WelcomeScreen from './WelcomeScreen'
 import AgentStatusCard from './AgentStatusCard'
 import TaskQueuePanel from './TaskQueuePanel'
 import CommandDock from './CommandDock'
+import { useTaskCompletionToasts } from './useTaskCompletionToasts'
 
 type NotelingsUIProps = { enabled?: boolean }
 
@@ -17,6 +18,9 @@ type NotelingsUIProps = { enabled?: boolean }
  */
 export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+  // Fires 'Success: <Agent> filed your note in <Category>.' when a robot
+  // finishes a physical delivery (store `completions` log).
+  useTaskCompletionToasts()
   if (!enabled) return null
 
   return (

@@ -5,22 +5,23 @@ import { Archive, BookOpen, ShieldAlert } from 'lucide-react'
 import { useAgentStore } from '@/components/office/agentStore'
 import type { AgentId } from '@/components/office/agentDestinations'
 import type { AgentState } from '@/components/office/agentState'
+import { AGENT_DISPLAY_NAMES } from './completionToasts'
 
 const AGENT_META = {
   blue: {
-    title: 'Blue Agent',
+    title: AGENT_DISPLAY_NAMES.blue,
     subtitle: 'Librarian',
     icon: BookOpen,
     gradient: 'linear-gradient(137deg, #FFFFFF 0%, #7DD3FC 45%, #06B6D4 100%)',
   },
   green: {
-    title: 'Green Agent',
+    title: AGENT_DISPLAY_NAMES.green,
     subtitle: 'Archivist',
     icon: Archive,
     gradient: 'linear-gradient(137deg, #4ADE80 0%, #22C55E 45%, #166534 100%)',
   },
   red: {
-    title: 'Red Agent',
+    title: AGENT_DISPLAY_NAMES.red,
     subtitle: 'Security / Error',
     icon: ShieldAlert,
     gradient: 'linear-gradient(137deg, #FF3D77 0%, #EF4444 45%, #991B1B 100%)',

@@ -251,10 +251,15 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
     { destination: 'whiteboard', content: 'plan the Q3 roadmap' },
   ])
 
-  await page.waitForFunction(() => {
-    const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { status: string }> } }).__NOTELINGS_AGENTS__
-    return Object.values(runtime?.agents ?? {}).some((agent) => agent.status === 'processing')
-  }, { timeout: 60_000, polling: 100 })
+  // The physical delivery completes when a robot reaches its destination and
+  // processes → idle, which emits a store completion event → success toast.
+  // Blue gets the first FIFO task (Work/whiteboard), Green the second (Admin/printer).
+  // Waits run concurrently so each toast is caught the moment it appears,
+  // regardless of which robot finishes first (toasts auto-dismiss after 4s).
+  await Promise.all([
+    page.getByText('Success: Blue Agent filed your note in Work.').waitFor({ state: 'visible', timeout: 60_000 }),
+    page.getByText('Success: Green Agent filed your note in Admin.').waitFor({ state: 'visible', timeout: 60_000 }),
+  ])
 
   try {
     await page.waitForFunction(() => {
@@ -305,7 +310,7 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
 })
 
 test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and still dispatches', async ({ page }) => {
-  test.setTimeout(45_000)
+  test.setTimeout(60_000)
   const errors: string[] = []
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())
@@ -369,6 +374,9 @@ test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and stil
     return Boolean(runtime && runtime.taskQueueLength === 0
       && Object.values(runtime.agents).some((agent) => (agent.lastArrivedTarget?.[0] ?? -1) === 27 && (agent.lastArrivedTarget?.[1] ?? -1) === 4))
   }, { timeout: 60_000, polling: 100 })
+  // Even the degraded delivery ends with the completion confirmation once the
+  // note physically reaches the corkboard (Blue is the first available agent).
+  await expect(page.getByText(/Success: (Blue|Green) Agent filed your note in Uncategorized\./)).toBeVisible({ timeout: 30_000 })
   // The mocked 500 is deliberate in this test; any OTHER console/page error fails.
   expect(errors.filter((error) => !error.includes('status of 500'))).toEqual([])
 })
