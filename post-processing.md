@@ -135,10 +135,10 @@ These are not post-processing effects, but they substantially influence the fina
 - Device pixel ratio: `dpr={1}` — caps the WebGL backbuffer at CSS resolution to avoid doubling all transparent canvas/composer pixel work on Retina displays while preserving scene geometry and lighting.
 - Frameloop: `"always"` — autonomous Blue and Green agents wander and execute tasks continuously
 - WebGL antialiasing: enabled
-- Alpha channel: enabled (`gl.alpha: true`) so the video background shows through around the office.
+- Alpha channel: enabled (`gl.alpha: true`) so the static Skybridge frame shows through around the office.
 - `preserveDrawingBuffer`: enabled
 - WebGL power preference: `"high-performance"`
-- Scene background: none; the WebGL canvas is transparent and the Bloom video layer provides the page background.
+- Scene background: none; the WebGL canvas is transparent and the static Skybridge frame layer provides the page background.
 - Renderer tone-mapping exposure: `1.2`
 - Camera controls: **removed**; the office is a fixed static diorama
 - Fixed camera position: `[24, 22, 24]`
