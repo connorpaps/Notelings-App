@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { AGENT_GRID_RESOLUTION, AGENT_GRID_TRANSFORM, AGENT_START_CELLS, buildAgentBlockedCells } from './agentGrid'
+import { AGENT_GRID_RESOLUTION, AGENT_GRID_TRANSFORM, AGENT_START_CELLS, RED_START_CELL, buildAgentBlockedCells } from './agentGrid'
 import AgentRobot from './AgentRobot'
 import { useAgentStore } from './agentStore'
 import { useTaskDispatcher } from './useTaskDispatcher'
 import type { AgentId } from './agentDestinations'
 
-const AGENT_IDS: AgentId[] = ['blue', 'green']
+// Blue/Green take notes; Red is the error sentinel (never dispatched).
+const AGENT_IDS: AgentId[] = ['blue', 'green', 'red']
 
 export default function AgentLayer() {
   useTaskDispatcher()
@@ -25,7 +26,7 @@ export default function AgentLayer() {
           currentTask: agents[id].currentTask,
           target: agents[id].target,
           targetKind: agents[id].targetKind,
-          startCell: AGENT_START_CELLS[id],
+          startCell: id === 'red' ? RED_START_CELL : AGENT_START_CELLS[id],
           processingStartedAt: agents[id].processingStartedAt,
           lastCompletedAt: agents[id].lastCompletedAt,
           lastCompletedDestination: agents[id].lastCompletedDestination,
@@ -56,11 +57,12 @@ export default function AgentLayer() {
         <AgentRobot
           key={agentId}
           agentId={agentId}
-          start={AGENT_START_CELLS[agentId]}
+          start={agentId === 'red' ? RED_START_CELL : AGENT_START_CELLS[agentId]}
           blocked={effectiveBlocked}
           grid={AGENT_GRID_TRANSFORM}
           color={agents[agentId].color}
           name={`agent-robot-${agentId}`}
+          errorRecoveryDelayMs={agentId === 'red' ? 5000 : undefined}
         />
       ))}
     </group>

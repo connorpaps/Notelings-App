@@ -60,6 +60,8 @@ type AgentRobotProps = {
   grid: GridTransform
   color?: string
   name?: string
+  /** How long an error state persists before auto-recovery (M4: red sentinel uses a longer window). */
+  errorRecoveryDelayMs?: number
 }
 
 const AgentRobot = function AgentRobot({
@@ -69,8 +71,10 @@ const AgentRobot = function AgentRobot({
   grid,
   color = DEFAULT_BODY_COLOR,
   name = `agent-robot-${agentId}`,
+  errorRecoveryDelayMs = ERROR_RECOVERY_DELAY,
 }: AgentRobotProps) {
   const groupRef = useRef<THREE.Group>(null)
+  const glowMaterialRef = useRef<THREE.MeshBasicMaterial>(null)
   const pathRef = useRef<GridCell[]>([])
   const curveRef = useRef<THREE.CatmullRomCurve3 | null>(null)
   const curveDistanceRef = useRef(0)
@@ -201,13 +205,21 @@ const AgentRobot = function AgentRobot({
 
   useEffect(() => {
     if (status !== 'error') return
-    const timer = setTimeout(() => recoverError(agentId), ERROR_RECOVERY_DELAY)
+    const timer = setTimeout(() => recoverError(agentId), errorRecoveryDelayMs)
     return () => clearTimeout(timer)
-  }, [agentId, recoverError, status])
+  }, [agentId, errorRecoveryDelayMs, recoverError, status])
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const group = groupRef.current
     if (!group) return
+
+    // M4: pulsing red glow while the error state is active (LLM failure path).
+    const glowMaterial = glowMaterialRef.current
+    if (glowMaterial) {
+      glowMaterial.opacity = status === 'error'
+        ? 0.18 + 0.22 * (0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 6))
+        : 0
+    }
 
     // The LCD is a normal child of the moving root group. Its local +Z
     // orientation therefore follows the same heading as the capsule; do not
@@ -293,6 +305,23 @@ const AgentRobot = function AgentRobot({
       >
         <planeGeometry args={[FACE_WIDTH, FACE_HEIGHT]} />
         <meshBasicMaterial map={faceTexture} />
+      </mesh>
+      {/* M4 error sentinel glow: only visible while status is `error`. */}
+      <mesh
+        name="robot-glow"
+        position-y={BODY_Y - BODY_FLOOR_OVERLAP}
+        visible={status === 'error'}
+        userData={{ notelingsRobotPart: 'glow' }}
+      >
+        <sphereGeometry args={[BODY_RADIUS * 1.3, 16, 16]} />
+        <meshBasicMaterial
+          ref={glowMaterialRef}
+          color="#ff2d2d"
+          transparent
+          opacity={0}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
       </mesh>
     </group>
   )
