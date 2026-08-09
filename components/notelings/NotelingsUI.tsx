@@ -36,8 +36,8 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
         <header className="flex items-center justify-between">
           <div className="flex items-baseline gap-3">
             {/* Logotype, not a heading: the page keeps one h1 (welcome hero). */}
-            <p className="static-world-brand text-2xl font-semibold tracking-tighter text-white">notelings</p>
-            <span className="static-world-brand-muted hidden font-serif text-[15px] italic text-white/50 md:inline">second brain</span>
+            <p className="text-2xl font-semibold tracking-tighter text-white">notelings</p>
+            <span className="hidden font-serif text-[15px] italic text-white/50 md:inline">second brain</span>
           </div>
           <div className="liquid-glass flex items-center gap-2.5 rounded-full px-4 py-2 text-xs text-white/70">
             <span className="relative flex size-1.5">

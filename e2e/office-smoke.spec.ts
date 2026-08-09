@@ -103,7 +103,6 @@ test('static office diorama preserves the locked baseline with three robots and 
       lockedScenePresent: Boolean(find(scene, 'locked-office-scene')),
       builderScenePresent: Boolean(find(scene, 'office-builder-scene')),
       gridDebugPresent: Boolean(find(scene, 'grid-debug')),
-      devicePixelRatio: window.devicePixelRatio,
       rendererPixelRatio: renderer?.getPixelRatio?.() ?? -1,
       rendererToneMappingExposure: renderer?.toneMappingExposure ?? -1,
       ambientIntensity: find(scene, 'office-ambient')?.intensity ?? -1,
@@ -123,7 +122,7 @@ test('static office diorama preserves the locked baseline with three robots and 
   expect(audit.lockedScenePresent).toBe(true)
   expect(audit.builderScenePresent).toBe(false)
   expect(audit.gridDebugPresent).toBe(false)
-  expect(audit.rendererPixelRatio).toBeCloseTo(Math.min(audit.devicePixelRatio, 2), 5)
+  expect(audit.rendererPixelRatio).toBe(1)
   expect(audit.rendererToneMappingExposure).toBe(1.2)
   expect(audit.ambientIntensity).toBe(0.5)
   expect(audit.keyIntensity).toBe(3)
@@ -192,7 +191,7 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.glowVisible).toBe(false)
   }
 
-  // Static world contract: a white background behind the transparent office.
+  // Static white background contract behind the transparent WebGL canvas.
   const backgroundState = await page.evaluate(() => {
     const background = document.querySelector('[data-background="static-white"]')
     return {
@@ -225,7 +224,7 @@ test('static office diorama preserves the locked baseline with three robots and 
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf)
     return Array.from(buf)
   })
-  // The viewport corner is outside the office: alpha 0 means the white page shows through.
+  // The viewport corner is outside the office: alpha 0 means the white background shows through.
   expect(cornerPixel?.[3]).toBe(0)
 
   expect(errors).toEqual([])

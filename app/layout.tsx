@@ -22,10 +22,10 @@ const serif = Source_Serif_4({
 // page body. A body string beginning with `<!--` is ordinary visible text in
 // React; metadata is the correct non-visual home for this internal contract.
 const DIRECTION_CONTRACT =
-  'THESIS: the office is the stage; a dark grayscale liquid-glass control surface floats over a static white world. '
-  'OWN-WORLD: dark Bloom liquid glass with Poppins, Source Serif 4 italic accents, strict grayscale hierarchy, subtle monochrome glow rings, and tiny robot-color identity cues. ' +
-  'STORY: a visitor sees a bright static world with the office at its center; typing a note sends a robot across the floor and a toast confirms delivery. '
-  'FIRST VIEWPORT: white static background, transparent WebGL office, slim brand bar, three glass agent cards, right-side task queue, bottom command dock, and centered welcome panel. '
+  'THESIS: the office is the stage; a grayscale liquid-glass control surface floats over a looping video world. ' +
+  'OWN-WORLD: Bloom liquid glass with Poppins, Source Serif 4 italic accents, strict grayscale hierarchy, subtle monochrome glow rings, and tiny robot-color identity cues. ' +
+  'STORY: a visitor sees a living video world with the office at its center; typing a note sends a robot across the floor and a toast confirms delivery. ' +
+  'FIRST VIEWPORT: looping video, transparent WebGL office, slim brand bar, three glass agent cards, right-side task queue, bottom command dock, and centered welcome panel. ' +
   'FORM: brief-pinned Bloom liquid-glass from bloom-ai-hero. ' +
   'FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md.'
 

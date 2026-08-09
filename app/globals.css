@@ -251,32 +251,37 @@ body {
   }
 }
 
-/* Static-white presentation: retain the Bloom glass language while giving the
-   existing white type a high-contrast dark glass surface. */
-.static-white-world .liquid-glass,
-.static-white-world .liquid-glass-strong {
-  background: rgba(10, 18, 30, 0.86);
-  background-blend-mode: normal;
-  box-shadow:
-    0 18px 45px rgba(10, 18, 30, 0.16),
-    inset 0 1px 1px rgba(255, 255, 255, 0.16);
+/* A slow, soft pool of light drifting across the video behind the office —
+   room-scale echo of the glass glow rings. Screen-blends so it only adds
+   light, never tints. */
+.ambient-glow {
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(
+    36% 36% at 50% 50%,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.05) 42%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  animation: ambient-drift 52s ease-in-out infinite alternate;
+  will-change: transform;
+  pointer-events: none;
 }
 
-.static-white-world .static-world-brand {
-  color: #101827;
-}
-
-.static-white-world .static-world-brand-muted {
-  color: rgba(16, 24, 39, 0.62);
-}
-
-.static-white-world .office-loading {
-  color: rgba(16, 24, 39, 0.62);
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(-14%, -10%, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(14%, 12%, 0) rotate(3deg);
+  }
 }
 
 /* Decorative motion is disabled for reduced-motion users. */
 @media (prefers-reduced-motion: reduce) {
-  .glass-glow-ring {
+  .glass-glow-ring,
+  .ambient-glow {
     animation: none;
   }
 }
