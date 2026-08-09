@@ -251,9 +251,37 @@ body {
   }
 }
 
-/* The rotating ring is decorative: disable it for reduced-motion users. */
+/* A slow, soft pool of light drifting across the video behind the office —
+   room-scale echo of the glass glow rings. Screen-blends so it only adds
+   light, never tints. */
+.ambient-glow {
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(
+    36% 36% at 50% 50%,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.05) 42%,
+    transparent 72%
+  );
+  mix-blend-mode: screen;
+  animation: ambient-drift 52s ease-in-out infinite alternate;
+  will-change: transform;
+  pointer-events: none;
+}
+
+@keyframes ambient-drift {
+  from {
+    transform: translate3d(-14%, -10%, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(14%, 12%, 0) rotate(3deg);
+  }
+}
+
+/* Decorative motion is disabled for reduced-motion users. */
 @media (prefers-reduced-motion: reduce) {
-  .glass-glow-ring {
+  .glass-glow-ring,
+  .ambient-glow {
     animation: none;
   }
 }

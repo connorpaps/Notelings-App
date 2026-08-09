@@ -201,6 +201,17 @@ test('static office diorama preserves the locked baseline with three robots and 
   })
   expect(videoState).toEqual({ src: '/videos/bloom-background.mp4', muted: true, autoplay: true, loop: true })
 
+  // M4.2 polish: the drifting ambient light pool over the video.
+  const ambientGlow = await page.evaluate(() => {
+    const el = document.querySelector('.ambient-glow')
+    if (!el) return null
+    return {
+      blendMode: getComputedStyle(el).mixBlendMode,
+      animation: getComputedStyle(el).animationName,
+    }
+  })
+  expect(ambientGlow).toEqual({ blendMode: 'screen', animation: 'ambient-drift' })
+
   const cornerPixel = await page.evaluate(() => {
     const renderer = (window as unknown as {
       __NOTELINGS_RENDERER__?: {
