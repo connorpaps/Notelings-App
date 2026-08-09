@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AGENT_GRID_COLS, AGENT_GRID_ROWS, AGENT_GRID_TRANSFORM, AGENT_START_CELL, AGENT_START_CELLS, buildAgentBlockedCells } from './agentGrid'
-import { TASK_DESTINATIONS, TASK_DESTINATION_ANCHORS } from './agentDestinations'
+import { TASK_DESTINATIONS, TASK_DESTINATION_ANCHORS, WORK_WHITEBOARD_LOCKED_ASSET_ID, WORK_WHITEBOARD_LOCKED_ITEM_ID } from './agentDestinations'
 import { createSafePathCurve, findPath, gridCellToWorld, isPathSafe, ROBOT_NAVIGATION_CLEARANCE, worldToGridCell } from './pathfinding'
 
 describe('agent destinations', () => {
@@ -49,10 +49,18 @@ describe('agent destinations', () => {
     }
   })
 
+  it('binds the Work destination to the exact locked Whiteboard 02 item', () => {
+    expect(WORK_WHITEBOARD_LOCKED_ITEM_ID).toBe('asset:misc-office-misc-w-ed322119')
+    expect(WORK_WHITEBOARD_LOCKED_ASSET_ID).toBe('asset:misc-office-misc-whiteboard-02')
+  })
+
   it('keeps destination anchors tied to the locked asset positions', () => {
-    expect(TASK_DESTINATION_ANCHORS.whiteboard).toEqual([24, 10])
+    // The task must target the lower-right locked Whiteboard 02 asset—the
+    // board that visibly carries the Work lettering—not the lounge-side
+    // Whiteboard 01 asset at [24, 10].
+    expect(TASK_DESTINATION_ANCHORS.whiteboard).toEqual([29, 3])
     expect(TASK_DESTINATION_ANCHORS.printer).toEqual([28, 12])
-    expect(TASK_DESTINATIONS.whiteboard).toEqual([19, 10])
+    expect(TASK_DESTINATIONS.whiteboard).toEqual([29, 4])
     expect(TASK_DESTINATIONS.printer).toEqual([30, 13])
 
     for (const [name, goal] of Object.entries(TASK_DESTINATIONS)) {
@@ -60,6 +68,7 @@ describe('agent destinations', () => {
       const [goalX, goalZ] = gridCellToWorld(goal, AGENT_GRID_TRANSFORM)
       const [anchorX, anchorZ] = gridCellToWorld(anchor, AGENT_GRID_TRANSFORM)
       expect(Math.hypot(goalX - anchorX, goalZ - anchorZ)).toBeLessThan(3.1)
+      if (name === 'whiteboard') expect(Math.hypot(goalX - anchorX, goalZ - anchorZ)).toBeLessThan(0.6)
       expect(worldToGridCell(anchorX, anchorZ, AGENT_GRID_TRANSFORM)).toEqual(anchor)
     }
   })

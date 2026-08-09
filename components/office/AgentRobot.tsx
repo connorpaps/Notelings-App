@@ -33,9 +33,16 @@ const BODY_FLOOR_OVERLAP = 0.02
 const DEFAULT_BODY_COLOR = '#2fa8e0'
 const FACE_WIDTH = 0.6
 const FACE_HEIGHT = 0.4
-const FACE_Y = 1.0
-const FACE_PROTRUDE = 0.17
-const FACE_Z = BODY_RADIUS + FACE_PROTRUDE
+// Raise the LCD toward the capsule's head while keeping it local to the
+// animated robot root. The face overlaps the upper half of the capsule instead
+// of reading as a low, floating panel during movement.
+const FACE_Y = BODY_Y + 0.4
+// Keep the screen centered on the capsule's local X axis. A lateral bias
+// projects outward for the down-right heading under the fixed isometric camera.
+const FACE_LATERAL_OFFSET = 0
+// Keep the LCD just beyond the capsule's measured front radius. Values below
+// BODY_RADIUS place the plane inside the capsule at this raised Y position.
+const FACE_Z = 0.42
 const WALK_SPEED_WORLD = 2.6
 const TURN_SPEED = 8
 const WAYPOINT_EPSILON = 0.02
@@ -200,7 +207,14 @@ const AgentRobot = function AgentRobot({
 
   useFrame((_, delta) => {
     const group = groupRef.current
-    if (!group || pathRef.current.length === 0) return
+    if (!group) return
+
+    // The LCD is a normal child of the moving root group. Its local +Z
+    // orientation therefore follows the same heading as the capsule; do not
+    // billboard it toward the fixed isometric camera. Keep the face centered on
+    // the capsule's local X axis so the isometric projection does not push it
+    // off the body for one diagonal heading.
+    if (pathRef.current.length === 0) return
 
     const step = WALK_SPEED_WORLD * Math.min(delta, MAX_FRAME_DELTA)
     const curve = curveRef.current
@@ -262,11 +276,21 @@ const AgentRobot = function AgentRobot({
         notelingsAgentStart: start,
       }}
     >
-      <mesh position-y={BODY_Y - BODY_FLOOR_OVERLAP} castShadow receiveShadow>
+      <mesh
+        name="robot-body"
+        position-y={BODY_Y - BODY_FLOOR_OVERLAP}
+        castShadow
+        receiveShadow
+        userData={{ notelingsRobotPart: 'body' }}
+      >
         <capsuleGeometry args={[BODY_RADIUS, BODY_LENGTH, 12, 24]} />
         <meshStandardMaterial color={color} roughness={0.35} metalness={0.1} />
       </mesh>
-      <mesh position={[0, FACE_Y, FACE_Z]}>
+      <mesh
+        name="robot-face"
+        position={[FACE_LATERAL_OFFSET, FACE_Y, FACE_Z]}
+        userData={{ notelingsRobotPart: 'face', notelingsFaceOrientation: 'heading-aligned' }}
+      >
         <planeGeometry args={[FACE_WIDTH, FACE_HEIGHT]} />
         <meshBasicMaterial map={faceTexture} />
       </mesh>

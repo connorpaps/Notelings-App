@@ -71,7 +71,7 @@ describe('agent store', () => {
     expect(useAgentStore.getState().arriveAtTask('blue')).toBe(true)
     const processing = useAgentStore.getState().agents.blue
     expect(processing.processingStartedAt).toEqual(expect.any(Number))
-    expect(processing.lastArrivedTarget).toEqual([19, 10])
+    expect(processing.lastArrivedTarget).toEqual([29, 4])
     expect(useAgentStore.getState().completeTask('blue')).toBe(true)
     const completed = useAgentStore.getState().agents.blue
     expect(completed.lastCompletedAt).toEqual(expect.any(Number))

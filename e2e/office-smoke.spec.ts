@@ -15,7 +15,9 @@ type SceneObject = {
   receiveShadow?: boolean
   intensity?: number
   position?: { x?: number; y?: number; z?: number }
+  rotation?: { x?: number; y?: number; z?: number }
   userData?: Record<string, unknown>
+  parent?: { name?: string }
   material?: unknown
   shadow?: {
     mapSize?: { x?: number; y?: number }
@@ -128,6 +130,51 @@ test('static office diorama preserves the locked visual baseline with two agents
   expect(audit.builderExportStorage).toBe('preexisting-builder-export')
   expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1.5, 0], zoom: 38, near: -100, far: 300, controls: false, frameloop: 'always' })
   expect(audit.renderProfile).toEqual({ frameloop: 'always', shadows: true, shadowMapSize: [4096, 4096], postprocessing: true, toneMappingMode: null, toneMappingExposure: 1.2, bloom: { luminanceThreshold: 1, intensity: 0.2 }, ssao: { samples: 32, rings: 4, intensity: 2 } })
+
+  const robotParts = await page.evaluate(() => {
+    const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
+    const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
+      if (root?.name === name) return root
+      for (const child of root?.children ?? []) {
+        const match = find(child, name)
+        if (match) return match
+      }
+      return undefined
+    }
+    return ['blue', 'green'].map((id) => {
+      const robot = find(scene, `agent-robot-${id}`)
+      const body = robot?.children?.find((child) => child.name === 'robot-body')
+      const face = robot?.children?.find((child) => child.name === 'robot-face')
+      return {
+        robotParent: robot?.name,
+        bodyParentName: body?.parent?.name,
+        faceParentName: face?.parent?.name,
+        bodyPart: body?.userData?.notelingsRobotPart,
+        facePart: face?.userData?.notelingsRobotPart,
+        faceOrientation: face?.userData?.notelingsFaceOrientation,
+        bodyPosition: body?.position,
+        facePosition: face?.position,
+        faceRotation: face?.rotation,
+      }
+    })
+  })
+  for (const parts of robotParts) {
+    expect(parts.robotParent).toMatch(/^agent-robot-/)
+    expect(parts.bodyParentName).toBe(parts.robotParent)
+    expect(parts.faceParentName).toBe(parts.robotParent)
+    expect(parts.bodyPart).toBe('body')
+    expect(parts.facePart).toBe('face')
+    expect(parts.faceOrientation).toBe('heading-aligned')
+    expect(parts.bodyPosition?.x).toBe(0)
+    expect(parts.bodyPosition?.z).toBe(0)
+    expect(parts.facePosition?.x).toBeCloseTo(0, 2)
+    expect((parts.facePosition?.y ?? 0) - (parts.bodyPosition?.y ?? 0)).toBeCloseTo(0.42, 2)
+    // The face must clear the capsule's 0.38 radius; a smaller Z embeds the
+    // plane inside the body even though parentage and heading are correct.
+    expect(parts.facePosition?.z).toBeGreaterThan(0.38)
+    expect(parts.facePosition?.z).toBeCloseTo(0.42, 2)
+    expect(parts.faceRotation?.y ?? 0).toBeCloseTo(0, 5)
+  }
   expect(errors).toEqual([])
 
   await page.screenshot({ path: 'test-results/office-static-diorama.png', fullPage: true, animations: 'disabled' })
@@ -185,6 +232,26 @@ test('Milestone 3 dispatches two tasks to two robots and completes them', async 
     return Object.values(runtime?.agents ?? {}).map((agent) => agent.currentTask?.destination).sort()
   })
   expect(assignments).toEqual(['printer', 'whiteboard'])
+
+  // During a real turn, the root heading changes while the LCD remains a
+  // heading-aligned child with neutral local rotation. This guards against a
+  // future camera-billboard regression.
+  await page.waitForFunction(() => {
+    const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
+    const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
+      if (root?.name === name) return root
+      for (const child of root?.children ?? []) {
+        const match = find(child, name)
+        if (match) return match
+      }
+      return undefined
+    }
+    return ['blue', 'green'].some((id) => {
+      const robot = find(scene, `agent-robot-${id}`)
+      const face = robot?.children?.find((child) => child.name === 'robot-face')
+      return Math.abs(robot?.rotation?.y ?? 0) > 0.05 && Math.abs(face?.rotation?.y ?? 0) < 0.001
+    })
+  }, { timeout: 20_000, polling: 100 })
 
   await page.waitForFunction(() => {
     const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { status: string }> } }).__NOTELINGS_AGENTS__
@@ -250,6 +317,6 @@ test('Milestone 3 dispatches two tasks to two robots and completes them', async 
     }).__NOTELINGS_AGENTS__
     return Object.values(runtime?.agents ?? {}).map((agent) => agent.lastArrivedTarget)
   })
-  expect(arrivalTargets).toEqual(expect.arrayContaining([[19, 10], [30, 13]]))
+  expect(arrivalTargets).toEqual(expect.arrayContaining([[29, 4], [30, 13]]))
   expect(errors).toEqual([])
 })
