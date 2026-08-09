@@ -191,21 +191,30 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.glowVisible).toBe(false)
   }
 
-  // Static white background contract behind the transparent WebGL canvas.
+  // Static frame contract: the reference video is not mounted at runtime.
   const backgroundState = await page.evaluate(() => {
-    const background = document.querySelector('[data-background="static-white"]')
+    const background = document.querySelector('[data-background="static-frame"]')
+    const image = background instanceof HTMLImageElement ? background : null
+    const ambientGlow = document.querySelector('.ambient-glow')
     return {
       present: Boolean(background),
-      color: background ? getComputedStyle(background).backgroundColor : null,
+      src: image?.getAttribute('src') ?? null,
+      naturalWidth: image?.naturalWidth ?? 0,
+      naturalHeight: image?.naturalHeight ?? 0,
       videoCount: document.querySelectorAll('video').length,
-      ambientGlowCount: document.querySelectorAll('.ambient-glow').length,
+      ambientGlow: ambientGlow ? {
+        blendMode: getComputedStyle(ambientGlow).mixBlendMode,
+        animation: getComputedStyle(ambientGlow).animationName,
+      } : null,
     }
   })
   expect(backgroundState).toEqual({
     present: true,
-    color: 'rgb(255, 255, 255)',
+    src: '/images/skybridge-background-frame.jpg',
+    naturalWidth: 1920,
+    naturalHeight: 1080,
     videoCount: 0,
-    ambientGlowCount: 0,
+    ambientGlow: { blendMode: 'screen', animation: 'ambient-drift' },
   })
 
   const cornerPixel = await page.evaluate(() => {

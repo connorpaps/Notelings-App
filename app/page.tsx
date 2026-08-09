@@ -22,8 +22,8 @@ const OfficeBuilderApp = ENABLE_OFFICE_BUILDER
   ? dynamic(() => import('@/components/office/OfficeBuilderApp'), { ssr: false })
   : null
 
-// Bloom world layering: video (z-0) → transparent WebGL office (z-10) → glass
-// UI overlay (z-20). The office stays the colored centerpiece above the video.
+// Static Skybridge frame (z-0) → transparent WebGL office (z-10) → glass
+// UI overlay (z-20). The office stays the colored centerpiece above the frame.
 export default function Home() {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-black">
