@@ -3,11 +3,15 @@
 import { create } from 'zustand'
 import type { AgentState } from './agentState'
 import { TASK_DESTINATIONS, type AgentId, type TaskDestination } from './agentDestinations'
+import type { NoteCategory } from '@/lib/notes/types'
 import type { GridCell } from './pathfinding'
 
 export type Task = {
   id: string
   destination: TaskDestination
+  content: string
+  category: NoteCategory
+  tags: string[]
   createdAt: number
 }
 
@@ -27,10 +31,17 @@ export type AgentRecord = {
   lastArrivedTarget: GridCell | null
 }
 
+export type EnqueueTaskInput = {
+  destination: TaskDestination
+  content: string
+  category: NoteCategory
+  tags: string[]
+}
+
 export type AgentStore = {
   taskQueue: Task[]
   agents: Record<AgentId, AgentRecord>
-  enqueueTask: (destination: TaskDestination) => string
+  enqueueTask: (input: EnqueueTaskInput) => string
   dispatchAvailableTasks: () => void
   requestWander: (agentId: AgentId, target: GridCell) => boolean
   arriveAtTask: (agentId: AgentId) => boolean
@@ -38,6 +49,8 @@ export type AgentStore = {
   failTask: (agentId: AgentId) => boolean
   finishWander: (agentId: AgentId) => boolean
   recoverError: (agentId: AgentId) => boolean
+  /** M4 LLM-failure path: mark an agent error regardless of prior state. */
+  signalError: (agentId: AgentId) => boolean
   resetForTests: () => void
 }
 
@@ -68,6 +81,20 @@ const INITIAL_AGENTS: Record<AgentId, AgentRecord> = {
     lastCompletedDestination: null,
     lastArrivedTarget: null,
   },
+  // Error sentinel: rendered + wandering, never claimed by the dispatcher.
+  red: {
+    id: 'red',
+    color: '#ef4444',
+    status: 'idle',
+    currentTask: null,
+    target: null,
+    targetKind: null,
+    commandRevision: 0,
+    processingStartedAt: null,
+    lastCompletedAt: null,
+    lastCompletedDestination: null,
+    lastArrivedTarget: null,
+  },
 }
 
 let taskSequence = 0
@@ -76,6 +103,7 @@ function cloneAgents(): Record<AgentId, AgentRecord> {
   return {
     blue: { ...INITIAL_AGENTS.blue },
     green: { ...INITIAL_AGENTS.green },
+    red: { ...INITIAL_AGENTS.red },
   }
 }
 
@@ -87,10 +115,13 @@ export const useAgentStore = create<AgentStore>((set) => ({
   taskQueue: [],
   agents: cloneAgents(),
 
-  enqueueTask: (destination) => {
+  enqueueTask: (input) => {
     const task: Task = {
       id: `task-${++taskSequence}`,
-      destination,
+      destination: input.destination,
+      content: input.content,
+      category: input.category,
+      tags: input.tags,
       createdAt: Date.now(),
     }
     set((state) => ({ taskQueue: [...state.taskQueue, task] }))
@@ -99,6 +130,7 @@ export const useAgentStore = create<AgentStore>((set) => ({
 
   dispatchAvailableTasks: () => {
     set((state) => {
+      // Red is an error sentinel and is deliberately NOT in the dispatch roster.
       const available = (['blue', 'green'] as AgentId[]).filter((id) => {
         const agent = state.agents[id]
         return agent.status === 'idle' && agent.currentTask === null
@@ -249,6 +281,31 @@ export const useAgentStore = create<AgentStore>((set) => ({
           [agentId]: {
             ...agent,
             status: 'idle',
+            currentTask: null,
+            target: null,
+            targetKind: null,
+            commandRevision: nextRevision(agent),
+          },
+        },
+      }
+    })
+    return accepted
+  },
+
+  signalError: (agentId) => {
+    let accepted = false
+    set((state) => {
+      const agent = state.agents[agentId]
+      if (agent.status === 'error') return state
+      accepted = true
+      return {
+        agents: {
+          ...state.agents,
+          [agentId]: {
+            ...agent,
+            status: 'error',
+            // The sentinel never holds a task, but if signalError is ever
+            // reused on a dispatched agent, clear the stale task too.
             currentTask: null,
             target: null,
             targetKind: null,

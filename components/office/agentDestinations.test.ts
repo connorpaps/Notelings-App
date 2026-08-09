@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AGENT_GRID_COLS, AGENT_GRID_ROWS, AGENT_GRID_TRANSFORM, AGENT_START_CELL, AGENT_START_CELLS, buildAgentBlockedCells } from './agentGrid'
-import { TASK_DESTINATIONS, TASK_DESTINATION_ANCHORS, WORK_WHITEBOARD_LOCKED_ASSET_ID, WORK_WHITEBOARD_LOCKED_ITEM_ID } from './agentDestinations'
+import { TASK_DESTINATIONS, TASK_DESTINATION_ANCHORS, WORK_WHITEBOARD_LOCKED_ASSET_ID, WORK_WHITEBOARD_LOCKED_ITEM_ID, CORKBOARD_LOCKED_ASSET_ID, CORKBOARD_LOCKED_ITEM_ID } from './agentDestinations'
 import { createSafePathCurve, findPath, gridCellToWorld, isPathSafe, ROBOT_NAVIGATION_CLEARANCE, worldToGridCell } from './pathfinding'
 
 describe('agent destinations', () => {
@@ -8,6 +8,12 @@ describe('agent destinations', () => {
     const blocked = buildAgentBlockedCells()
     expect(AGENT_START_CELL).toEqual([6, 12])
     expect(AGENT_START_CELLS).toEqual({ blue: [6, 12], green: [4, 12] })
+    // The corkboard staging sits on the same back-wall aisle as the whiteboard
+    // staging; [25,4]/[26,4] are blocked by Table White 2x2 01.
+    expect(TASK_DESTINATIONS.corkboard).toEqual([27, 4])
+    expect(TASK_DESTINATION_ANCHORS.corkboard).toEqual([25, 3])
+    expect(blocked.has('27,4')).toBe(false)
+    expect(blocked.has('25,4')).toBe(true)
     for (const cell of Object.values(AGENT_START_CELLS)) {
       expect(blocked.has(`${cell[0]},${cell[1]}`)).toBe(false)
       expect(findPath(AGENT_START_CELL, cell, { blocked, cols: AGENT_GRID_COLS, rows: AGENT_GRID_ROWS })).not.toBeNull()
@@ -54,14 +60,21 @@ describe('agent destinations', () => {
     expect(WORK_WHITEBOARD_LOCKED_ASSET_ID).toBe('asset:misc-office-misc-whiteboard-02')
   })
 
+  it('binds the corkboard destination to the exact locked board item', () => {
+    expect(CORKBOARD_LOCKED_ITEM_ID).toBe('asset:misc-office-misc-w-40665142')
+    expect(CORKBOARD_LOCKED_ASSET_ID).toBe('asset:misc-office-misc-wall-corkboard-02')
+  })
+
   it('keeps destination anchors tied to the locked asset positions', () => {
     // The task must target the lower-right locked Whiteboard 02 asset—the
     // board that visibly carries the Work lettering—not the lounge-side
     // Whiteboard 01 asset at [24, 10].
     expect(TASK_DESTINATION_ANCHORS.whiteboard).toEqual([29, 3])
     expect(TASK_DESTINATION_ANCHORS.printer).toEqual([28, 12])
+    expect(TASK_DESTINATION_ANCHORS.corkboard).toEqual([25, 3])
     expect(TASK_DESTINATIONS.whiteboard).toEqual([29, 4])
     expect(TASK_DESTINATIONS.printer).toEqual([30, 13])
+    expect(TASK_DESTINATIONS.corkboard).toEqual([27, 4])
 
     for (const [name, goal] of Object.entries(TASK_DESTINATIONS)) {
       const anchor = TASK_DESTINATION_ANCHORS[name as keyof typeof TASK_DESTINATION_ANCHORS]

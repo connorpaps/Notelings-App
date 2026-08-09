@@ -28,7 +28,7 @@ export default function Milestone3VerificationOverlay({ enabled = true }: Milest
           <button
             type="button"
             className="rounded-xl border border-cyan-200/20 bg-cyan-400/15 px-3 py-2 text-left text-xs font-medium text-cyan-50 transition hover:border-cyan-200/50 hover:bg-cyan-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 active:scale-[0.98]"
-            onClick={() => enqueueTask('whiteboard')}
+            onClick={() => enqueueTask({ destination: 'whiteboard', content: 'Verification note', category: 'Work', tags: [] })}
           >
             <span className="block">Send to</span>
             <span className="mt-0.5 block text-cyan-200">Whiteboard</span>
@@ -36,7 +36,7 @@ export default function Milestone3VerificationOverlay({ enabled = true }: Milest
           <button
             type="button"
             className="rounded-xl border border-emerald-200/20 bg-emerald-400/15 px-3 py-2 text-left text-xs font-medium text-emerald-50 transition hover:border-emerald-200/50 hover:bg-emerald-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 active:scale-[0.98]"
-            onClick={() => enqueueTask('printer')}
+            onClick={() => enqueueTask({ destination: 'printer', content: 'Verification note', category: 'Admin', tags: [] })}
           >
             <span className="block">Send to</span>
             <span className="mt-0.5 block text-emerald-200">Printer</span>

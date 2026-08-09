@@ -146,3 +146,13 @@ export const AGENT_START_CELLS: Record<'blue' | 'green', GridCell> = {
     rows: AGENT_GRID_ROWS,
   }) ?? [4, 12],
 }
+
+/**
+ * Error-sentinel spawn (measured free + reachable from blue's start). Red is
+ * rendered and wanders like the others but is never claimed by the dispatcher.
+ */
+export const RED_START_CELL: GridCell =
+  findFreeCell([7, 12], AGENT_BLOCKED_CELLS, {
+    cols: AGENT_GRID_COLS,
+    rows: AGENT_GRID_ROWS,
+  }) ?? [7, 12]

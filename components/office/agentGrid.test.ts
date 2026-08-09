@@ -8,6 +8,7 @@ import {
   AGENT_GRID_ROWS,
   AGENT_GRID_TRANSFORM,
   AGENT_START_CELL,
+  RED_START_CELL,
   buildAgentBlockedCells,
   CUBICLE_ACCESS_POCKETS,
 } from './agentGrid'
@@ -117,5 +118,16 @@ describe('agent grid', () => {
   it('round-trips the start cell through the anchored transform', () => {
     const [x, z] = gridCellToWorld(AGENT_START_CELL, AGENT_GRID_TRANSFORM)
     expect(worldToGridCell(x, z, AGENT_GRID_TRANSFORM)).toEqual(AGENT_START_CELL)
+  })
+
+  it('keeps the red sentinel start free and connected', () => {
+    const blocked = buildAgentBlockedCells()
+    expect(RED_START_CELL).toEqual([7, 12])
+    expect(blocked.has(`${RED_START_CELL[0]},${RED_START_CELL[1]}`)).toBe(false)
+    expect(findPath(AGENT_START_CELL, RED_START_CELL, {
+      blocked,
+      cols: AGENT_GRID_COLS,
+      rows: AGENT_GRID_ROWS,
+    })).not.toBeNull()
   })
 })
