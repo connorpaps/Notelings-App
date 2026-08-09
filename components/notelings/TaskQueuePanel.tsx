@@ -27,7 +27,7 @@ export default function TaskQueuePanel() {
           {taskQueue.length === 0 ? (
             <p className="text-[14px] leading-[1.6] text-gray-400">No pending notes — the office is quiet.</p>
           ) : (
-            <ul className="flex flex-col gap-2" aria-live="polite">
+            <ul className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1" aria-live="polite">
               <AnimatePresence initial={false}>
                 {taskQueue.map((task) => (
                   <motion.li

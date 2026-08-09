@@ -21,9 +21,10 @@ export async function POST(request: Request) {
     const result = await categorizeNote(input.content)
     category = result.category
     tags = result.tags
-  } catch {
+  } catch (error) {
     // MASTER_SPEC_FINAL §6 fallback: 10s timeout or API failure → save as
     // Uncategorized so the user still gets persistence + a dispatched agent.
+    console.error('LLM categorization failed, degrading to Uncategorized:', error)
     degraded = true
   }
 

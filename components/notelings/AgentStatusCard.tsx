@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Archive, BookOpen, ShieldAlert } from 'lucide-react'
 import { useAgentStore } from '@/components/office/agentStore'
 import type { AgentId } from '@/components/office/agentDestinations'
+import type { AgentState } from '@/components/office/agentState'
 
 const AGENT_META = {
   blue: {
@@ -26,7 +27,7 @@ const AGENT_META = {
   },
 } as const
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<AgentState, string> = {
   idle: 'Idle — awaiting tasks',
   walking: 'Walking — delivering a note',
   processing: 'Processing — at destination',

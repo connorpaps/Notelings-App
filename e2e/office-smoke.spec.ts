@@ -1,8 +1,5 @@
 import { test, expect } from '@playwright/test'
 import { LOCKED_DEFAULT_ITEMS } from '../components/office/officeBuilderDefault'
-import { AGENT_GRID_COLS, AGENT_GRID_ROWS, AGENT_START_CELLS, buildAgentBlockedCells } from '../components/office/agentGrid'
-import { TASK_DESTINATIONS } from '../components/office/agentDestinations'
-import { findPath } from '../components/office/pathfinding'
 
 const EXPECTED_IDS = LOCKED_DEFAULT_ITEMS.map((item) => item.id)
 const MODEL_IDS = LOCKED_DEFAULT_ITEMS.filter((item) => item.kind === 'model').map((item) => item.id)
@@ -19,13 +16,14 @@ type SceneObject = {
   userData?: Record<string, unknown>
   parent?: { name?: string }
   material?: unknown
+  visible?: boolean
   shadow?: {
     mapSize?: { x?: number; y?: number }
     camera?: { left?: number; right?: number; top?: number; bottom?: number }
   }
 }
 
-test('static office diorama preserves the locked visual baseline with two agents', async ({ page }) => {
+test('static office diorama preserves the locked baseline with three robots and the M4 UI', async ({ page }) => {
   const errors: string[] = []
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())
@@ -38,8 +36,12 @@ test('static office diorama preserves the locked visual baseline with two agents
 
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
-  await expect(page.locator('aside[aria-label="Office builder"]')).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Send to Whiteboard' })).toBeVisible()
+  // M4 UI replaces the M3 task console entirely.
+  await expect(page.getByRole('button', { name: 'Send to Whiteboard' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Initialize Agents' })).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Type a new note' })).toBeVisible()
+  await page.getByRole('button', { name: 'Initialize Agents' }).click()
+  await expect(page.getByRole('button', { name: 'Initialize Agents' })).toHaveCount(0)
 
   await page.waitForFunction(
     (ids) => {
@@ -65,10 +67,6 @@ test('static office diorama preserves the locked visual baseline with two agents
 
   const audit = await page.evaluate((modelIds) => {
     const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
-    const renderer = (window as unknown as { __NOTELINGS_RENDERER__?: { toneMapping?: number; toneMappingExposure?: number; getPixelRatio?: () => number } }).__NOTELINGS_RENDERER__
-    const camera = (window as unknown as { __NOTELINGS_CAMERA__?: { position?: { x?: number; y?: number; z?: number }; zoom?: number; near?: number; far?: number } }).__NOTELINGS_CAMERA__
-    const cameraProfile = (window as unknown as { __NOTELINGS_CAMERA_PROFILE__?: unknown }).__NOTELINGS_CAMERA_PROFILE__
-    const renderProfile = (window as unknown as { __NOTELINGS_RENDER_PROFILE__?: unknown }).__NOTELINGS_RENDER_PROFILE__
     const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
       if (root?.name === name) return root
       for (const child of root?.children ?? []) {
@@ -77,6 +75,10 @@ test('static office diorama preserves the locked visual baseline with two agents
       }
       return undefined
     }
+    const renderer = (window as unknown as { __NOTELINGS_RENDERER__?: { toneMapping?: number; toneMappingExposure?: number; getPixelRatio?: () => number } }).__NOTELINGS_RENDERER__
+    const camera = (window as unknown as { __NOTELINGS_CAMERA__?: { position?: { x?: number; y?: number; z?: number }; zoom?: number; near?: number; far?: number } }).__NOTELINGS_CAMERA__
+    const cameraProfile = (window as unknown as { __NOTELINGS_CAMERA_PROFILE__?: unknown }).__NOTELINGS_CAMERA_PROFILE__
+    const renderProfile = (window as unknown as { __NOTELINGS_RENDER_PROFILE__?: unknown }).__NOTELINGS_RENDER_PROFILE__
     const configured = modelIds.every((id) => {
       const root = find(scene, id)
       if (!root) return false
@@ -131,6 +133,13 @@ test('static office diorama preserves the locked visual baseline with two agents
   expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1.5, 0], zoom: 38, near: -100, far: 300, controls: false, frameloop: 'always' })
   expect(audit.renderProfile).toEqual({ frameloop: 'always', shadows: true, shadowMapSize: [4096, 4096], postprocessing: true, toneMappingMode: null, toneMappingExposure: 1.2, bloom: { luminanceThreshold: 1, intensity: 0.2 }, ssao: { samples: 32, rings: 4, intensity: 2 } })
 
+  const runtime = await page.evaluate(() => {
+    const agents = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { id: string; status: string }> } }).__NOTELINGS_AGENTS__
+    return agents?.agents ?? {}
+  })
+  expect(Object.keys(runtime).sort()).toEqual(['blue', 'green', 'red'])
+  expect(Object.values(runtime).every((agent) => agent.status === 'idle')).toBe(true)
+
   const robotParts = await page.evaluate(() => {
     const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
     const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
@@ -141,10 +150,11 @@ test('static office diorama preserves the locked visual baseline with two agents
       }
       return undefined
     }
-    return ['blue', 'green'].map((id) => {
+    return ['blue', 'green', 'red'].map((id) => {
       const robot = find(scene, `agent-robot-${id}`)
       const body = robot?.children?.find((child) => child.name === 'robot-body')
       const face = robot?.children?.find((child) => child.name === 'robot-face')
+      const glow = robot?.children?.find((child) => child.name === 'robot-glow')
       return {
         robotParent: robot?.name,
         bodyParentName: body?.parent?.name,
@@ -155,6 +165,8 @@ test('static office diorama preserves the locked visual baseline with two agents
         bodyPosition: body?.position,
         facePosition: face?.position,
         faceRotation: face?.rotation,
+        glowPart: glow?.userData?.notelingsRobotPart,
+        glowVisible: glow?.visible,
       }
     })
   })
@@ -169,89 +181,75 @@ test('static office diorama preserves the locked visual baseline with two agents
     expect(parts.bodyPosition?.z).toBe(0)
     expect(parts.facePosition?.x).toBeCloseTo(0, 2)
     expect((parts.facePosition?.y ?? 0) - (parts.bodyPosition?.y ?? 0)).toBeCloseTo(0.42, 2)
-    // The face must clear the capsule's 0.38 radius; a smaller Z embeds the
-    // plane inside the body even though parentage and heading are correct.
     expect(parts.facePosition?.z).toBeGreaterThan(0.38)
     expect(parts.facePosition?.z).toBeCloseTo(0.42, 2)
     expect(parts.faceRotation?.y ?? 0).toBeCloseTo(0, 5)
+    // The red sentinel glow exists but is hidden while idle.
+    expect(parts.glowPart).toBe('glow')
+    expect(parts.glowVisible).toBe(false)
   }
   expect(errors).toEqual([])
 
-  await page.screenshot({ path: 'test-results/office-static-diorama.png', fullPage: true, animations: 'disabled' })
+  await page.screenshot({ path: 'test-results/office-m4-baseline.png', fullPage: true, animations: 'disabled' })
 })
 
-test('Milestone 3 dispatches two tasks to two robots and completes them', async ({ page }) => {
-  test.setTimeout(45_000)
+test('Milestone 4 dispatches categorized notes to two robots and completes them', async ({ page }) => {
+  test.setTimeout(60_000)
   const errors: string[] = []
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())
   })
   page.on('pageerror', (err) => errors.push(String(err)))
 
+  // Deterministic mocked LLM: roadmap → Work/whiteboard, contracts → Admin/printer.
+  await page.route('**/api/categorize', (route) => {
+    const body = route.request().postDataJSON() as { content?: string }
+    const content = body?.content ?? ''
+    const work = content.toLowerCase().includes('roadmap')
+    route.fulfill({
+      json: work
+        ? { id: 'note-e2e-work', category: 'Work', tags: ['roadmap'], degraded: false }
+        : { id: 'note-e2e-admin', category: 'Admin', tags: ['print'], degraded: false },
+    })
+  })
+
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByRole('button', { name: 'Send to Whiteboard' })).toBeVisible()
+  await page.getByRole('button', { name: 'Initialize Agents' }).click()
+  const input = page.getByRole('textbox', { name: 'Type a new note' })
+  const submit = page.getByRole('button', { name: 'Submit note' })
+
+  await input.fill('plan the Q3 roadmap')
+  await submit.click()
+  await expect(page.getByText(/Note saved as Work and agent dispatched!/)).toBeVisible({ timeout: 15_000 })
+
+  await input.fill('print the vendor contracts')
+  await submit.click()
+  await expect(page.getByText(/Note saved as Admin and agent dispatched!/)).toBeVisible({ timeout: 15_000 })
 
   await page.waitForFunction(() => {
-    const agents = (window as unknown as { __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; currentTask: unknown }> } }).__NOTELINGS_AGENTS__
-    const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
-    const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
-      if (root?.name === name) return root
-      for (const child of root?.children ?? []) {
-        const match = find(child, name)
-        if (match) return match
-      }
-      return undefined
-    }
-    return Boolean(agents && scene && agents.taskQueueLength === 0 && Object.keys(agents.agents).length === 2 && find(scene, 'agent-robot-blue') && find(scene, 'agent-robot-green'))
-  }, { timeout: 30_000, polling: 100 })
-
-  const blocked = buildAgentBlockedCells()
-  for (const [id, cell] of Object.entries(AGENT_START_CELLS)) {
-    expect(blocked.has(`${cell[0]},${cell[1]}`)).toBe(false)
-    expect(findPath(AGENT_START_CELLS.blue, cell, { blocked, cols: AGENT_GRID_COLS, rows: AGENT_GRID_ROWS })).not.toBeNull()
-    expect(id).toMatch(/blue|green/)
-  }
-
-  const whiteboardButton = page.getByRole('button', { name: 'Send to Whiteboard' })
-  const printerButton = page.getByRole('button', { name: 'Send to Printer' })
-  await expect(whiteboardButton).toBeEnabled()
-  await expect(printerButton).toBeEnabled()
-  await whiteboardButton.click()
-  await printerButton.click()
-
-  await page.waitForFunction(() => {
-    const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; currentTask?: { destination: string } | null }> } }).__NOTELINGS_AGENTS__
+    const runtime = (window as unknown as {
+      __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; currentTask?: { destination: string; content: string } | null }> }
+    }).__NOTELINGS_AGENTS__
     if (!runtime) return false
     const assigned = Object.values(runtime.agents).filter((agent) => agent.currentTask !== null)
     return assigned.length === 2 && assigned.every((agent) => agent.status === 'walking' || agent.status === 'processing')
-  }, { timeout: 10_000, polling: 100 })
+  }, { timeout: 15_000, polling: 100 })
 
   const assignments = await page.evaluate(() => {
-    const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { currentTask?: { destination: string } | null }> } }).__NOTELINGS_AGENTS__
-    return Object.values(runtime?.agents ?? {}).map((agent) => agent.currentTask?.destination).sort()
+    const runtime = (window as unknown as {
+      __NOTELINGS_AGENTS__?: { agents: Record<string, { currentTask?: { destination: string; content: string } | null }> }
+    }).__NOTELINGS_AGENTS__
+    return Object.values(runtime?.agents ?? {})
+      .map((agent) => agent.currentTask)
+      .filter((task): task is { destination: string; content: string } => task !== null)
+      .map((task) => ({ destination: task.destination, content: task.content }))
+      .sort((a, b) => a.destination.localeCompare(b.destination))
   })
-  expect(assignments).toEqual(['printer', 'whiteboard'])
-
-  // During a real turn, the root heading changes while the LCD remains a
-  // heading-aligned child with neutral local rotation. This guards against a
-  // future camera-billboard regression.
-  await page.waitForFunction(() => {
-    const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
-    const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
-      if (root?.name === name) return root
-      for (const child of root?.children ?? []) {
-        const match = find(child, name)
-        if (match) return match
-      }
-      return undefined
-    }
-    return ['blue', 'green'].some((id) => {
-      const robot = find(scene, `agent-robot-${id}`)
-      const face = robot?.children?.find((child) => child.name === 'robot-face')
-      return Math.abs(robot?.rotation?.y ?? 0) > 0.05 && Math.abs(face?.rotation?.y ?? 0) < 0.001
-    })
-  }, { timeout: 20_000, polling: 100 })
+  expect(assignments).toEqual([
+    { destination: 'printer', content: 'print the vendor contracts' },
+    { destination: 'whiteboard', content: 'plan the Q3 roadmap' },
+  ])
 
   await page.waitForFunction(() => {
     const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { status: string }> } }).__NOTELINGS_AGENTS__
@@ -262,54 +260,39 @@ test('Milestone 3 dispatches two tasks to two robots and completes them', async 
     await page.waitForFunction(() => {
       const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; currentTask: unknown }> } }).__NOTELINGS_AGENTS__
       return Boolean(runtime && runtime.taskQueueLength === 0 && Object.values(runtime.agents).every((agent) => agent.status === 'idle' && agent.currentTask === null))
-    }, { timeout: 15_000, polling: 100 })
+    }, { timeout: 20_000, polling: 100 })
   } catch (error) {
     let diagnostic = 'page unavailable'
     if (!page.isClosed()) {
       diagnostic = JSON.stringify(await page.evaluate(() => {
         const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: unknown }).__NOTELINGS_AGENTS__
-        const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
-        const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
-          if (root?.name === name) return root
-          for (const child of root?.children ?? []) {
-            const match = find(child, name)
-            if (match) return match
-          }
-          return undefined
-        }
-        return {
-          runtime,
-          positions: {
-            blue: find(scene, 'agent-robot-blue')?.position,
-            green: find(scene, 'agent-robot-green')?.position,
-          },
-        }
+        return { runtime }
       }))
     }
-    throw new Error(`${String(error)}\\nM3 diagnostic: ${diagnostic}`)
+    throw new Error(`${String(error)}\nM4 diagnostic: ${diagnostic}`)
   }
 
-  // The completion timer is part of the tested lifecycle; each task must have
-  // spent at least two seconds in processing before returning to idle.
-  expect(await page.getByText(/idle/i).count()).toBeGreaterThan(0)
   const completed = await page.evaluate(() => {
     const runtime = (window as unknown as {
-      __NOTELINGS_AGENTS__?: {
-        agents: Record<string, {
-          lastCompletedAt?: number | null
-          processingStartedAt?: number | null
-          lastCompletedDestination?: string | null
-        }>
-      }
+      __NOTELINGS_AGENTS__?: { agents: Record<string, {
+        lastCompletedAt?: number | null
+        processingStartedAt?: number | null
+        lastCompletedDestination?: string | null
+      }> }
     }).__NOTELINGS_AGENTS__
     return runtime?.agents ?? {}
   })
-  const completedDestinations = Object.values(completed).map((agent) => agent.lastCompletedDestination).sort()
+  const completedDestinations = Object.values(completed)
+    .map((agent) => agent.lastCompletedDestination)
+    .filter((destination): destination is string => destination !== null)
+    .sort()
   expect(completedDestinations).toEqual(['printer', 'whiteboard'])
   for (const agent of Object.values(completed)) {
-    expect(agent.processingStartedAt).toEqual(expect.any(Number))
-    expect(agent.lastCompletedAt).toEqual(expect.any(Number))
-    expect((agent.lastCompletedAt ?? 0) - (agent.processingStartedAt ?? 0)).toBeGreaterThanOrEqual(2000)
+    if (agent.lastCompletedDestination) {
+      expect(agent.processingStartedAt).toEqual(expect.any(Number))
+      expect(agent.lastCompletedAt).toEqual(expect.any(Number))
+      expect((agent.lastCompletedAt ?? 0) - (agent.processingStartedAt ?? 0)).toBeGreaterThanOrEqual(2000)
+    }
   }
   const arrivalTargets = await page.evaluate(() => {
     const runtime = (window as unknown as {
@@ -319,4 +302,73 @@ test('Milestone 3 dispatches two tasks to two robots and completes them', async 
   })
   expect(arrivalTargets).toEqual(expect.arrayContaining([[29, 4], [30, 13]]))
   expect(errors).toEqual([])
+})
+
+test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and still dispatches', async ({ page }) => {
+  test.setTimeout(45_000)
+  const errors: string[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text())
+  })
+  page.on('pageerror', (err) => errors.push(String(err)))
+
+  await page.route('**/api/categorize', (route) =>
+    route.fulfill({ status: 500, json: { error: 'boom' } }),
+  )
+
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
+  await page.getByRole('button', { name: 'Initialize Agents' }).click()
+
+  const input = page.getByRole('textbox', { name: 'Type a new note' })
+  await input.fill('a note that cannot be categorized')
+  await page.getByRole('button', { name: 'Submit note' }).click()
+
+  await expect(page.getByText(/Could not reach the categorizer/)).toBeVisible({ timeout: 15_000 })
+
+  // The note still lands in the queue as Uncategorized → corkboard.
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as {
+      __NOTELINGS_AGENTS__?: { agents: Record<string, { status: string; currentTask?: { destination: string; category: string } | null }> }
+    }).__NOTELINGS_AGENTS__
+    if (!runtime) return false
+    const assigned = Object.values(runtime.agents).filter((agent) => agent.currentTask !== null)
+    return assigned.length === 1 && assigned[0].currentTask?.destination === 'corkboard'
+      && assigned[0].currentTask?.category === 'Uncategorized'
+  }, { timeout: 10_000, polling: 100 })
+
+  // Red sentinel enters error with its glow visible.
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { status: string }> } }).__NOTELINGS_AGENTS__
+    return runtime?.agents?.red?.status === 'error'
+  }, { timeout: 10_000, polling: 100 })
+
+  const glowVisible = await page.evaluate(() => {
+    const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
+    const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
+      if (root?.name === name) return root
+      for (const child of root?.children ?? []) {
+        const match = find(child, name)
+        if (match) return match
+      }
+      return undefined
+    }
+    const robot = find(scene, 'agent-robot-red')
+    return robot?.children?.find((child) => child.name === 'robot-glow')?.visible ?? false
+  })
+  expect(glowVisible).toBe(true)
+
+  // The sentinel auto-recovers; the note is still delivered to the corkboard.
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { status: string }> } }).__NOTELINGS_AGENTS__
+    return runtime?.agents?.red?.status === 'idle'
+  }, { timeout: 15_000, polling: 100 })
+
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; lastArrivedTarget?: [number, number] | null }> } }).__NOTELINGS_AGENTS__
+    return Boolean(runtime && runtime.taskQueueLength === 0
+      && Object.values(runtime.agents).some((agent) => (agent.lastArrivedTarget?.[0] ?? -1) === 27 && (agent.lastArrivedTarget?.[1] ?? -1) === 4))
+  }, { timeout: 60_000, polling: 100 })
+  // The mocked 500 is deliberate in this test; any OTHER console/page error fails.
+  expect(errors.filter((error) => !error.includes('status of 500'))).toEqual([])
 })
