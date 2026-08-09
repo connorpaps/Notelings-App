@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { ENABLE_OFFICE_BUILDER } from '@/components/office/officeMode'
-import Milestone3VerificationOverlay from '@/components/office/Milestone3VerificationOverlay'
+import NotelingsUI from '@/components/notelings/NotelingsUI'
 
 // WebGL scene must not be SSR'd (three needs browser APIs)
 const OfficeCanvas = dynamic(() => import('@/components/office/OfficeCanvas'), {
@@ -30,7 +30,7 @@ export default function Home() {
   return (
     <main style={{ position: 'fixed', inset: 0 }}>
       {OfficeBuilderApp ? <OfficeBuilderApp /> : <OfficeCanvas />}
-      <Milestone3VerificationOverlay enabled={!ENABLE_OFFICE_BUILDER} />
+      <NotelingsUI enabled={!ENABLE_OFFICE_BUILDER} />
     </main>
   )
 }
