@@ -1,1 +1,61 @@
 # Notelings-App
+
+Notelings is a visual second brain: notes are categorized, saved, and physically delivered by capsule agents through a 3D voxel office.
+
+## First-time setup (macOS or Windows)
+
+Prerequisites:
+
+- Node.js 22.x (the current AI SDK dependencies require Node 22 or newer)
+- npm
+- Git
+- A Supabase project and Google Generative AI API key for real note submission
+
+From the repository root:
+
+```bash
+npm ci
+npx playwright install chromium
+bash scripts/machine-sync.sh
+cp .env.example .env.local
+```
+
+Open `.env.local` and fill the four values. `.env.local` is ignored by Git and must never be committed.
+
+On Windows, run the commands from Git Bash (the committed shell scripts use portable POSIX paths and `.gitattributes` keeps them LF-only). PowerShell can still run the npm commands; Git Bash is required for the memory bootstrap scripts.
+
+## Run the app
+
+```bash
+npm run dev
+```
+
+Open <http://localhost:3000>.
+
+The 3D office and UI work without credentials. Credentials are required only when submitting a real note through `/api/categorize`.
+
+## Validation
+
+```bash
+npx tsc --noEmit
+npm test
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+`npm run test:e2e` starts its own dev server when one is not already running. On a fresh machine, install Chromium once with `npx playwright install chromium`.
+
+## Git/memory setup
+
+`bash scripts/machine-sync.sh` is safe to run at the start of every session. It fetches `origin/main` only when the working tree is clean and automatically enables the committed `.githooks` directory when local Git config has not been set yet. The hook configuration is machine-local and is not transferred by GitHub.
+
+The repository uses `main` and tracks `origin/main`:
+
+```bash
+git status --short --branch
+git remote -v
+git pull --ff-only
+```
+
+Never commit `.env.local`, build output, `node_modules`, or Playwright reports.

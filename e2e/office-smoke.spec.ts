@@ -36,6 +36,8 @@ test('static office diorama preserves the locked baseline with three robots and 
 
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('body')).not.toContainText('THESIS: the office is the stage')
+  await expect(page.locator('meta[name="notelings-direction-contract"]')).toHaveAttribute('content', /THESIS: the office is the stage/)
   // M4 UI replaces the M3 task console entirely.
   await expect(page.getByRole('button', { name: 'Send to Whiteboard' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Initialize Agents' })).toBeVisible()

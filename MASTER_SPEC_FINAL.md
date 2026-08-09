@@ -54,7 +54,7 @@ For the MVP, only one core table is required. Agents and Queue live in client-si
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-LLM_API_KEY=your_gemini_or_groq_api_key
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_generative_ai_api_key
 ```
 
 ---
