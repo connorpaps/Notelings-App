@@ -50,8 +50,25 @@ if (!CORKBOARD_ITEM || CORKBOARD_ITEM.assetId !== CORKBOARD_ASSET_ID) {
   throw new Error('Locked Corkboard item is missing or points to the wrong asset')
 }
 
+const TRASH_ITEM_ID = 'asset:misc-trashcans-off-ad2d51bd'
+const TRASH_ASSET_ID = 'asset:misc-trashcans-office-misc-trashcan-small-03'
+const TRASH_ITEM = LOCKED_DEFAULT_ITEMS.find((item) => item.id === TRASH_ITEM_ID)
+
+if (!TRASH_ITEM || TRASH_ITEM.assetId !== TRASH_ASSET_ID) {
+  throw new Error('Locked Trash Can item is missing or points to the wrong asset')
+}
+
 export const CORKBOARD_LOCKED_ITEM_ID = CORKBOARD_ITEM_ID
 export const CORKBOARD_LOCKED_ASSET_ID = CORKBOARD_ASSET_ID
+
+export const TRASH_LOCKED_ITEM_ID = TRASH_ITEM_ID
+export const TRASH_LOCKED_ASSET_ID = TRASH_ASSET_ID
+
+/**
+ * Walkable staging cell adjacent to the locked `Misc Trashcan Small 03` (item
+ * cell [30,25]): the M2 agentic-delete flow disposes archived notes here.
+ */
+export const TRASH_STAGING_CELL: GridCell = [29, 24]
 
 /** World anchors used to keep destination cells tied to the locked export. */
 export const TASK_DESTINATION_ANCHORS: Record<TaskDestination, GridCell> = {

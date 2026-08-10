@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { AGENT_GRID_COLS, AGENT_GRID_ROWS, AGENT_GRID_TRANSFORM, AGENT_START_CELL, AGENT_START_CELLS, buildAgentBlockedCells } from './agentGrid'
-import { TASK_DESTINATIONS, TASK_DESTINATION_ANCHORS, WORK_WHITEBOARD_LOCKED_ASSET_ID, WORK_WHITEBOARD_LOCKED_ITEM_ID, CORKBOARD_LOCKED_ASSET_ID, CORKBOARD_LOCKED_ITEM_ID } from './agentDestinations'
+import { TASK_DESTINATIONS, TASK_DESTINATION_ANCHORS, TRASH_LOCKED_ASSET_ID, TRASH_LOCKED_ITEM_ID, TRASH_STAGING_CELL, WORK_WHITEBOARD_LOCKED_ASSET_ID, WORK_WHITEBOARD_LOCKED_ITEM_ID, CORKBOARD_LOCKED_ASSET_ID, CORKBOARD_LOCKED_ITEM_ID } from './agentDestinations'
 import { createSafePathCurve, findPath, gridCellToWorld, isPathSafe, ROBOT_NAVIGATION_CLEARANCE, worldToGridCell } from './pathfinding'
+import { LOCKED_DEFAULT_ITEMS } from './officeBuilderDefault'
 
 describe('agent destinations', () => {
   it('keeps both robot starts free and connected', () => {
@@ -63,6 +64,24 @@ describe('agent destinations', () => {
   it('binds the corkboard destination to the exact locked board item', () => {
     expect(CORKBOARD_LOCKED_ITEM_ID).toBe('asset:misc-office-misc-w-40665142')
     expect(CORKBOARD_LOCKED_ASSET_ID).toBe('asset:misc-office-misc-wall-corkboard-02')
+  })
+
+  it('binds the trash destination to the locked trash can and a free reachable staging cell', () => {
+    const blocked = buildAgentBlockedCells()
+    expect(TRASH_LOCKED_ITEM_ID).toBe('asset:misc-trashcans-off-ad2d51bd')
+    expect(TRASH_LOCKED_ASSET_ID).toBe('asset:misc-trashcans-office-misc-trashcan-small-03')
+    const item = LOCKED_DEFAULT_ITEMS.find((entry) => entry.id === TRASH_LOCKED_ITEM_ID)
+    expect(item).toBeDefined()
+    expect(item!.assetId).toBe(TRASH_LOCKED_ASSET_ID)
+    const [col, row] = TRASH_STAGING_CELL
+    expect(col).toBeGreaterThanOrEqual(0)
+    expect(col).toBeLessThan(AGENT_GRID_COLS)
+    expect(row).toBeGreaterThanOrEqual(0)
+    expect(row).toBeLessThan(AGENT_GRID_ROWS)
+    expect(blocked.has(`${col},${row}`)).toBe(false)
+    expect(findPath(AGENT_START_CELL, TRASH_STAGING_CELL, { blocked, cols: AGENT_GRID_COLS, rows: AGENT_GRID_ROWS })).not.toBeNull()
+    const itemCell = worldToGridCell(item!.transform.position[0], item!.transform.position[2], AGENT_GRID_TRANSFORM)
+    expect(Math.hypot(col - itemCell[0], row - itemCell[1])).toBeLessThanOrEqual(1.5)
   })
 
   it('keeps destination anchors tied to the locked asset positions', () => {

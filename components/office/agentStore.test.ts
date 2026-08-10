@@ -1,11 +1,21 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAgentStore } from './agentStore'
+import { TASK_DESTINATIONS } from './agentDestinations'
 
 const task = (destination: 'whiteboard' | 'printer' | 'corkboard', content = 'a', category: 'Work' | 'Admin' | 'Uncategorized' = 'Work') => ({
   destination,
   content,
   category,
   tags: ['tag'],
+})
+
+const note = (id: string, status: 'pending' | 'in_transit' | 'filed' | 'archived' = 'pending') => ({
+  id,
+  content: 'note content',
+  category: 'Work' as const,
+  tags: [],
+  status,
+  created_at: new Date().toISOString(),
 })
 
 describe('agent store', () => {
@@ -175,5 +185,92 @@ describe('agent store', () => {
     expect(state.completions.map((completion) => completion.category)).toEqual(['Work', 'Admin'])
     state.resetForTests()
     expect(useAgentStore.getState().completions).toEqual([])
+  })
+
+  it('carries the DB note id through enqueueTask and dispatch', () => {
+    const id = useAgentStore.getState().enqueueTask({ ...task('whiteboard'), noteId: 'note-1' })
+    useAgentStore.getState().dispatchAvailableTasks()
+    expect(useAgentStore.getState().agents.blue.currentTask?.noteId).toBe('note-1')
+    expect(useAgentStore.getState().agents.blue.currentTask?.kind).toBe('note')
+    useAgentStore.getState().arriveAtTask('blue')
+    useAgentStore.getState().completeTask('blue')
+    expect(useAgentStore.getState().completions[0].noteId).toBe('note-1')
+    expect(useAgentStore.getState().completions[0].kind).toBe('note')
+    expect(id).toBe('task-1')
+  })
+
+  it('keeps notes and terminal logs in state with a 100-entry cap', () => {
+    const store = useAgentStore.getState()
+    store.setNotes([note('n1')])
+    expect(useAgentStore.getState().notes.n1.status).toBe('pending')
+    for (let i = 0; i < 120; i += 1) useAgentStore.getState().logTerminal(`line ${i}`)
+    expect(useAgentStore.getState().terminalLogs).toHaveLength(100)
+    expect(useAgentStore.getState().terminalLogs[99].message).toBe('line 119')
+    store.upsertNote({ ...useAgentStore.getState().notes.n1, status: 'filed' })
+    expect(useAgentStore.getState().notes.n1.status).toBe('filed')
+    store.removeNote('n1')
+    expect(useAgentStore.getState().notes.n1).toBeUndefined()
+  })
+
+  it('logs queued/dispatched/filed events to the terminal', () => {
+    useAgentStore.getState().enqueueTask(task('whiteboard', 'roadmap', 'Work'))
+    useAgentStore.getState().dispatchAvailableTasks()
+    useAgentStore.getState().arriveAtTask('blue')
+    useAgentStore.getState().completeTask('blue')
+    const messages = useAgentStore.getState().terminalLogs.map((entry) => entry.message)
+    expect(messages[0]).toMatch(/Note queued: "roadmap"/)
+    expect(messages[1]).toMatch(/Blue Agent dispatched: "roadmap"/)
+    expect(messages[2]).toMatch(/Blue Agent filed "roadmap" in Work\./)
+  })
+
+  it('runs the archive state machine without emitting a delivery completion', () => {
+    useAgentStore.getState().markNoteArchiving('note-a')
+    expect(useAgentStore.getState().archivingNoteIds).toContain('note-a')
+    useAgentStore.getState().enqueueArchive({ noteId: 'note-a', category: 'Work', content: 'old idea', tags: [] })
+    useAgentStore.getState().dispatchAvailableTasks()
+    const walking = useAgentStore.getState().agents.blue
+    expect(walking.targetKind).toBe('archive')
+    expect(walking.target).toEqual(TASK_DESTINATIONS.whiteboard)
+    expect(walking.currentTask?.finalDestination).toEqual([29, 24])
+    expect(useAgentStore.getState().arriveArchiveStage('blue')).toBe(true)
+    expect(useAgentStore.getState().agents.blue.status).toBe('processing')
+    expect(useAgentStore.getState().completeArchiveStage('blue')).toBe(true)
+    expect(useAgentStore.getState().agents.blue.targetKind).toBe('archive-final')
+    expect(useAgentStore.getState().agents.blue.target).toEqual([29, 24])
+    expect(useAgentStore.getState().arriveArchiveFinal('blue')).toBe(true)
+    expect(useAgentStore.getState().agents.blue.status).toBe('idle')
+    expect(useAgentStore.getState().agents.blue.currentTask).toBeNull()
+    expect(useAgentStore.getState().archivingNoteIds).not.toContain('note-a')
+    expect(useAgentStore.getState().completions).toEqual([])
+    expect(useAgentStore.getState().archivedTasks).toHaveLength(1)
+    expect(useAgentStore.getState().archivedTasks[0]).toMatchObject({ noteId: 'note-a', kind: 'archive', agentId: 'blue' })
+    expect(useAgentStore.getState().terminalLogs.at(-1)?.message).toMatch(/Blue Agent archived "old idea"\./)
+  })
+
+  it('guards the archive machine against invalid transitions', () => {
+    expect(useAgentStore.getState().arriveArchiveStage('blue')).toBe(false)
+    expect(useAgentStore.getState().completeArchiveStage('blue')).toBe(false)
+    expect(useAgentStore.getState().arriveArchiveFinal('blue')).toBe(false)
+    useAgentStore.getState().enqueueArchive({ noteId: 'n', category: 'Admin', content: 'x', tags: [] })
+    useAgentStore.getState().dispatchAvailableTasks()
+    // Leg 2 cannot start before the robot arrives at the destination.
+    expect(useAgentStore.getState().completeArchiveStage('blue')).toBe(false)
+    expect(useAgentStore.getState().arriveArchiveStage('blue')).toBe(true)
+    // The final arrival cannot happen before leg 2 is issued.
+    expect(useAgentStore.getState().arriveArchiveFinal('blue')).toBe(false)
+    expect(useAgentStore.getState().completeArchiveStage('blue')).toBe(true)
+    expect(useAgentStore.getState().arriveArchiveFinal('blue')).toBe(true)
+  })
+
+  it('clears notes, logs, and archive state in resetForTests', () => {
+    const store = useAgentStore.getState()
+    store.setNotes([note('n1')])
+    store.logTerminal('hello')
+    store.markNoteArchiving('n1')
+    store.resetForTests()
+    expect(useAgentStore.getState().notes).toEqual({})
+    expect(useAgentStore.getState().terminalLogs).toEqual([])
+    expect(useAgentStore.getState().archivingNoteIds).toEqual([])
+    expect(useAgentStore.getState().archivedTasks).toEqual([])
   })
 })
