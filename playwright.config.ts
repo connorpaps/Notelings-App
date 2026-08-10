@@ -20,7 +20,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testMatch: /office-smoke\.spec\.ts/,
+      testMatch: /(office-smoke|tag-explorer|librarian-chat)\.spec\.ts/,
       use: { browserName: 'chromium', launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader'] } },
     },
   ],

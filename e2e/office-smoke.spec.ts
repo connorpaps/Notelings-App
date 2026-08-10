@@ -56,6 +56,12 @@ test('static office diorama preserves the locked baseline with three robots and 
   await expect(page.getByRole('heading', { name: 'In Transit' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Filed' })).toBeVisible()
   await expect(page.locator('[data-terminal-log]')).toBeVisible()
+  // M3/M4 dock controls: tag explorer search + New Note / Ask AI mode toggle.
+  await expect(page.getByRole('button', { name: 'Explore tags' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ask AI' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'New Note' })).toHaveAttribute('aria-pressed', 'true')
+  // Note mode remains the default: the M4 UI must not steal the M4 input.
+  await expect(page.getByRole('textbox', { name: 'Type a new note' })).toBeVisible()
 
   await page.waitForFunction(
     (ids) => {
