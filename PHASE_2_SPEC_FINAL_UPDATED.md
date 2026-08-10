@@ -13,7 +13,7 @@ Phase 2 focuses on the "Read & Think" engine. We will transform the UI into a re
 |---|---|---|
 | M1 SAMS Control Center (Kanban & Terminal) | ✅ Complete | 3-column live Kanban (Pending / In Transit / Filed) fed by `GET /api/notes` + Supabase Realtime; bottom terminal dock with embedded note input + capped event log; status lifecycle `pending → in_transit → filed` synced by robots. |
 | M2 Note Management (Edit & Archive) | ✅ Complete | Edit modal (content + tags), agentic two-leg archive to the trash, archived view with Restore / Delete forever. |
-| M3 Obsidian-Style Tag Browser | ✅ Complete | Search icon in the dock opens a `.liquid-glass-strong` Tag Explorer: unique tags via `GET /api/tags`, tag chips with live counts, masonry grid of matching notes. |
+| M3 Obsidian-Style Tag Browser | ✅ Complete | Search icon in the dock opens a `.liquid-glass-strong` Tag Explorer: unique tags via `GET /api/tags`, tag chips with live counts, masonry grid of matching notes, plus a tag filter input. |
 | M4 "Ask the Librarian" (RAG Chat) | ✅ Complete | New Note / Ask AI dock toggle; `POST /api/chat` streams via `gemini-2.5-flash` with `temperature: 0`, `maxRetries: 0`, and a strict-grounding system prompt (refuses out-of-context questions verbatim, cites notes `[n]`, allows grounded partial answers, exact counting over content + tags incl. word stems). |
 | M5 Knowledge Graph | ⏭️ Next milestone | Not started — planned per §3 below. |
 
@@ -23,6 +23,12 @@ Phase 2 focuses on the "Read & Think" engine. We will transform the UI into a re
 - **Chat context includes `created_at`** per note so metadata follow-ups ("when did I create that note?") are answerable; context is capped at the 150 newest non-archived notes (MVP size bound).
 - **Chat history is pruned server-side** to the last 20 messages instead of rejecting longer conversations.
 - **`@ai-sdk/react`** (v4) provides `useChat`; AI SDK v7 has no `ai/react` subpath and uses `toUIMessageStreamResponse`.
+
+**Additional additions folded into Phase 2 (2026-08-10, all validated):**
+- **Clickable `[n]` citations** — a deterministic global citation index (`lib/notes/citations.ts`) is computed identically server-side (prompt labels) and client-side (realtime store mirror): newest-first by `created_at`, `id` tiebreak. Clicking a citation chip in a chat answer opens an inline preview of that exact note. Works in every context mode (all-notes, retrieval subset, deterministic counts) because numbers are global, not positional.
+- **Deterministic counting** (`lib/notes/countIntent.ts`) — count questions ("how many …?") never reach the LLM: the route detects the intent, matches notes over category/content/tags in code, and streams an exact counted answer with citations via a hand-built UI-message SSE stream (`lib/notes/uiMessageStream.ts`). Exact, instant, free.
+- **Embedding retrieval for vaults >150 notes** (`lib/notes/embeddingRetrieval.ts` + `lib/notes/similarity.ts`) — above the context cap the route embeds the query and note contents with `gemini-embedding-001` and keeps the top-K (60) most similar notes as context (cosine similarity, deterministic tie-breaks); retrieval failure falls back to newest 150.
+- **Tag filter input** — the Tag Explorer now has a live "Filter tags…" search field above the chips.
 
 ---
 
