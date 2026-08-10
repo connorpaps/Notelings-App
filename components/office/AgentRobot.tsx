@@ -80,7 +80,7 @@ const AgentRobot = function AgentRobot({
   const curveDistanceRef = useRef(0)
   const curveLengthRef = useRef(0)
   const commandRevisionRef = useRef(-1)
-  const commandKindRef = useRef<'task' | 'wander' | null>(null)
+  const commandKindRef = useRef<'task' | 'wander' | 'archive' | 'archive-final' | null>(null)
   const wanderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const processingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -88,12 +88,26 @@ const AgentRobot = function AgentRobot({
   const target = useAgentStore((state) => state.agents[agentId].target)
   const targetKind = useAgentStore((state) => state.agents[agentId].targetKind)
   const commandRevision = useAgentStore((state) => state.agents[agentId].commandRevision)
+  const currentTask = useAgentStore((state) => state.agents[agentId].currentTask)
   const requestWander = useAgentStore((state) => state.requestWander)
   const finishWander = useAgentStore((state) => state.finishWander)
   const arriveAtTask = useAgentStore((state) => state.arriveAtTask)
   const completeTask = useAgentStore((state) => state.completeTask)
   const failTask = useAgentStore((state) => state.failTask)
   const recoverError = useAgentStore((state) => state.recoverError)
+  // M2 archive machine: two-leg walks (destination → trash) chain through these.
+  const arriveArchiveStage = useAgentStore((state) => state.arriveArchiveStage)
+  const completeArchiveStage = useAgentStore((state) => state.completeArchiveStage)
+  const arriveArchiveFinal = useAgentStore((state) => state.arriveArchiveFinal)
+
+  // The robot visibly carries a note card: during every note delivery, and on
+  // archive tasks only AFTER the pickup at the destination (spec: walks to the
+  // destination, "picks it up", walks to the trash).
+  const carrying = currentTask
+    ? currentTask.kind === 'note'
+      ? status === 'walking' || status === 'processing'
+      : status === 'processing' || targetKind === 'archive-final'
+    : false
 
   const startWorld = useMemo(() => gridCellToWorld(start, grid), [grid, start])
   const faceTexture = useMemo(() => createFaceTexture(status), [status])
@@ -136,15 +150,18 @@ const AgentRobot = function AgentRobot({
       cols: grid.cols,
       rows: grid.rows,
     })
+    const isTaskKind = targetKind === 'task' || targetKind === 'archive' || targetKind === 'archive-final'
     if (!path) {
       clearPath()
-      if (targetKind === 'task') failTask(agentId)
+      if (isTaskKind) failTask(agentId)
       else finishWander(agentId)
       return
     }
     if (path.length <= 1) {
       clearPath()
       if (targetKind === 'task') arriveAtTask(agentId)
+      else if (targetKind === 'archive') arriveArchiveStage(agentId)
+      else if (targetKind === 'archive-final') arriveArchiveFinal(agentId)
       else finishWander(agentId)
       return
     }
@@ -167,7 +184,7 @@ const AgentRobot = function AgentRobot({
     curveDistanceRef.current = 0
     curveLengthRef.current = curveRef.current?.getLength() ?? 0
     commandKindRef.current = targetKind
-  }, [agentId, arriveAtTask, blocked, commandRevision, failTask, finishWander, grid, status, target, targetKind])
+  }, [agentId, arriveArchiveFinal, arriveArchiveStage, arriveAtTask, blocked, commandRevision, failTask, finishWander, grid, status, target, targetKind])
 
   // Idle agents continually request another reachable target. Wander commands
   // intentionally leave the store status idle so a queued task preempts them.
@@ -195,13 +212,16 @@ const AgentRobot = function AgentRobot({
     if (status !== 'processing') return
     processingTimerRef.current = setTimeout(() => {
       processingTimerRef.current = null
-      completeTask(agentId)
+      // Archive tasks: the "processing" beat is the pickup — then the store
+      // issues leg 2 to the trash instead of filing a completion.
+      if (currentTask?.kind === 'archive') completeArchiveStage(agentId)
+      else completeTask(agentId)
     }, 2000)
     return () => {
       if (processingTimerRef.current) clearTimeout(processingTimerRef.current)
       processingTimerRef.current = null
     }
-  }, [agentId, completeTask, status])
+  }, [agentId, completeArchiveStage, completeTask, currentTask, status])
 
   useEffect(() => {
     if (status !== 'error') return
@@ -270,9 +290,12 @@ const AgentRobot = function AgentRobot({
     }
 
     if (pathRef.current.length === 0) {
-      if (commandKindRef.current === 'task') arriveAtTask(agentId)
-      else finishWander(agentId)
+      const kind = commandKindRef.current
       commandKindRef.current = null
+      if (kind === 'task') arriveAtTask(agentId)
+      else if (kind === 'archive') arriveArchiveStage(agentId)
+      else if (kind === 'archive-final') arriveArchiveFinal(agentId)
+      else finishWander(agentId)
     }
   })
 
@@ -322,6 +345,18 @@ const AgentRobot = function AgentRobot({
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
+      </mesh>
+      {/* Phase 2: a small white note card the robot carries while working. */}
+      <mesh
+        name="robot-note"
+        position={[0, BODY_Y + 0.62, 0]}
+        rotation={[0, 0, 0.35]}
+        castShadow
+        visible={carrying}
+        userData={{ notelingsRobotPart: 'note' }}
+      >
+        <boxGeometry args={[0.26, 0.03, 0.34]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.7} />
       </mesh>
     </group>
   )
