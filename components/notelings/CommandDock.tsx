@@ -11,12 +11,17 @@ import GlassPanel from './GlassPanel'
 
 type NoteForm = { content: string }
 
+type CommandDockProps = {
+  /** Inside the Terminal dock (M1): drop the floating pill positioning. */
+  embedded?: boolean
+}
+
 /**
  * Bloom command dock: a liquid-glass-strong pill with the reference's CTA
  * anatomy (icon in a white/15 circle, hover:scale-105 active:scale-95).
  * Accessible names are unchanged for the E2E contract.
  */
-export default function CommandDock() {
+export default function CommandDock({ embedded = false }: CommandDockProps) {
   const submitNote = useSubmitNote()
   const {
     register,
@@ -37,7 +42,11 @@ export default function CommandDock() {
     <form
       onSubmit={onSubmit}
       aria-label="New note"
-      className="pointer-events-auto absolute bottom-8 left-1/2 z-30 w-[min(600px,calc(100vw-2rem))] -translate-x-1/2"
+      className={
+        embedded
+          ? 'pointer-events-auto w-full'
+          : 'pointer-events-auto absolute bottom-8 left-1/2 z-30 w-[min(600px,calc(100vw-2rem))] -translate-x-1/2'
+      }
     >
       <GlassPanel strong glow className="rounded-full">
         <div className="flex items-center gap-2 p-2">

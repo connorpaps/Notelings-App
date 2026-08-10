@@ -36,8 +36,10 @@ export function useSubmitNote() {
       const parsed = CategorizeResponseSchema.safeParse(json)
       if (!parsed.success) throw new Error('Invalid categorize response')
 
-      const { category, tags, degraded } = parsed.data
-      enqueue({ destination: categoryToDestination(category), content, category, tags })
+      const { id, category, tags, degraded } = parsed.data
+      // The DB row id rides along so the status-sync hook can advance the
+      // note pending → in_transit → filed as the robot works (Phase 2 M1).
+      enqueue({ noteId: id, destination: categoryToDestination(category), content, category, tags })
       if (degraded) {
         toast.error('LLM unavailable — note saved as Uncategorized and agent dispatched!')
         signalError('red')

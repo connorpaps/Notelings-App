@@ -285,3 +285,20 @@ body {
     animation: none;
   }
 }
+
+/* ---- Phase 2 control center: thin grayscale scrollbars ---- */
+.terminal-log-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.terminal-log-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.terminal-log-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.terminal-log-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
