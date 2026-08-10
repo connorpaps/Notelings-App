@@ -30,7 +30,9 @@ export async function POST(request: Request) {
 
   const { data, error } = await createServerSupabase()
     .from('notes')
-    .insert({ content: input.content, category, tags, status: degraded ? 'pending' : 'categorized' })
+    // Phase 2: every created note starts in Pending; the client's status-sync
+    // hook advances it to in_transit (robot pickup) and filed (delivery).
+    .insert({ content: input.content, category, tags, status: 'pending' })
     .select('id')
     .single()
 
