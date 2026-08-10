@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { Archive, Pencil } from 'lucide-react'
 import { timeAgo } from '@/lib/notes/kanban'
 import type { NoteRecord } from '@/lib/notes/types'
 
@@ -8,6 +9,8 @@ type NoteCardProps = {
   note: NoteRecord
   /** Archive walk in progress — shows a subtle pulse (M2). */
   archiving?: boolean
+  onEdit?: () => void
+  onArchive?: () => void
 }
 
 const STATUS_DOT: Record<NoteRecord['status'], string> = {
@@ -17,8 +20,9 @@ const STATUS_DOT: Record<NoteRecord['status'], string> = {
   archived: 'bg-white/20',
 }
 
-/** A single note on the Spatial Board (PHASE_2_SPEC M1). Grayscale glass. */
-export default function NoteCard({ note, archiving = false }: NoteCardProps) {
+/** A single note on the Spatial Board (PHASE_2_SPEC M1 + M2 actions). */
+export default function NoteCard({ note, archiving = false, onEdit, onArchive }: NoteCardProps) {
+  const canManage = note.status !== 'archived'
   return (
     <motion.article
       whileHover={{ scale: 1.02 }}
@@ -36,9 +40,9 @@ export default function NoteCard({ note, archiving = false }: NoteCardProps) {
           </span>
         ))}
       </div>
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-2 flex items-center justify-between gap-2">
         <span className="text-[10px] text-white/35">{timeAgo(note.created_at)}</span>
-        {archiving && (
+        {archiving ? (
           <span className="flex items-center gap-1.5 text-[10px] text-white/60">
             <motion.span
               aria-hidden
@@ -48,6 +52,31 @@ export default function NoteCard({ note, archiving = false }: NoteCardProps) {
             />
             Archiving…
           </span>
+        ) : (
+          canManage && (
+            <span className="flex items-center gap-1">
+              {onEdit && (
+                <button
+                  type="button"
+                  aria-label="Edit note"
+                  onClick={onEdit}
+                  className="flex size-6 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-110 active:scale-95"
+                >
+                  <Pencil size={11} />
+                </button>
+              )}
+              {onArchive && (
+                <button
+                  type="button"
+                  aria-label="Archive note"
+                  onClick={onArchive}
+                  className="flex size-6 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-110 active:scale-95"
+                >
+                  <Archive size={11} />
+                </button>
+              )}
+            </span>
+          )
         )}
       </div>
     </motion.article>

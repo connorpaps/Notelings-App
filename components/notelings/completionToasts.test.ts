@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AGENT_DISPLAY_NAMES, collectNewCompletions, completionToastMessage } from './completionToasts'
+import { AGENT_DISPLAY_NAMES, archiveToastMessage, collectNewCompletions, completionToastMessage } from './completionToasts'
 import type { TaskCompletion } from '../office/agentStore'
 
 const completion = (overrides: Partial<TaskCompletion> = {}): TaskCompletion => ({
@@ -41,6 +41,15 @@ describe('completion toast helpers', () => {
     )
     expect(completionToastMessage(completion({ agentId: 'red', category: 'Uncategorized' }))).toBe(
       'Success: Red Agent filed your note in Uncategorized.',
+    )
+  })
+
+  it('formats the archive message with the agent name', () => {
+    expect(archiveToastMessage(completion({ kind: 'archive' }))).toBe(
+      'Note archived — Blue Agent filed it in the trash.',
+    )
+    expect(archiveToastMessage(completion({ agentId: 'green', kind: 'archive' }))).toBe(
+      'Note archived — Green Agent filed it in the trash.',
     )
   })
 })

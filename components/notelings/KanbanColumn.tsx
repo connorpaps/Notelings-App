@@ -9,6 +9,8 @@ type KanbanColumnProps = {
   hint: string
   notes: NoteRecord[]
   archivingIds: string[]
+  onEdit?: (note: NoteRecord) => void
+  onArchive?: (note: NoteRecord) => void
 }
 
 const COLUMN_DOT: Record<string, string> = {
@@ -18,7 +20,7 @@ const COLUMN_DOT: Record<string, string> = {
 }
 
 /** One kanban column (Pending / In Transit / Filed). */
-export default function KanbanColumn({ title, hint, notes, archivingIds }: KanbanColumnProps) {
+export default function KanbanColumn({ title, hint, notes, archivingIds, onEdit, onArchive }: KanbanColumnProps) {
   return (
     <section aria-label={`${title} column`} className="flex min-w-[150px] flex-1 flex-col gap-2.5">
       <div className="flex items-center gap-2">
@@ -40,7 +42,12 @@ export default function KanbanColumn({ title, hint, notes, archivingIds }: Kanba
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
             >
-              <NoteCard note={note} archiving={archivingIds.includes(note.id)} />
+              <NoteCard
+                note={note}
+                archiving={archivingIds.includes(note.id)}
+                onEdit={onEdit ? () => onEdit(note) : undefined}
+                onArchive={onArchive ? () => onArchive(note) : undefined}
+              />
             </motion.div>
           ))}
         </AnimatePresence>

@@ -8,6 +8,7 @@ import AgentStatusCard from './AgentStatusCard'
 import KanbanPanel from './KanbanPanel'
 import TerminalDock from './TerminalDock'
 import { useTaskCompletionToasts } from './useTaskCompletionToasts'
+import { useArchiveToasts } from './useArchiveToasts'
 import { useNotesRealtime } from './useNotesRealtime'
 import { useNoteSync } from './useNoteSync'
 import { useAgentStore } from '@/components/office/agentStore'
@@ -27,6 +28,8 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const [kanbanOpen, setKanbanOpen] = useState(false)
   // Fires 'Success: <Agent> filed your note in <Category>.' per delivery.
   useTaskCompletionToasts()
+  // M2: 'Note archived — <Agent> filed it in the trash.' per disposal.
+  useArchiveToasts()
   // Phase 2 M1: fetch + realtime-mirror notes into the store; push robot
   // lifecycle transitions (pending → in_transit → filed) to the DB.
   useNotesRealtime()
