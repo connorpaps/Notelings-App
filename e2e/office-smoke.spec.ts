@@ -33,6 +33,11 @@ test('static office diorama preserves the locked baseline with three robots and 
     window.localStorage.setItem('notelings-office-builder-v4', 'preexisting-builder-snapshot')
     window.localStorage.setItem('notelings-office-builder-json-v1', 'preexisting-builder-export')
   })
+  // Phase 2: the board fetch is mocked so the baseline is deterministic
+  // (empty kanban) regardless of the live database. Note the glob must also
+  // match the bare /api/notes (no trailing slash) used by the GET fetch.
+  await page.route('**/api/notes', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/notes/**', (route) => route.fulfill({ json: [] }))
 
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
@@ -44,6 +49,13 @@ test('static office diorama preserves the locked baseline with three robots and 
   await expect(page.getByRole('textbox', { name: 'Type a new note' })).toBeVisible()
   await page.getByRole('button', { name: 'Initialize Agents' }).click()
   await expect(page.getByRole('button', { name: 'Initialize Agents' })).toHaveCount(0)
+
+  // Phase 2 control center: the Spatial Board (3 columns) + terminal dock.
+  await expect(page.getByRole('heading', { name: /Spatial Board/ })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('heading', { name: 'Pending' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'In Transit' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Filed' })).toBeVisible()
+  await expect(page.locator('[data-terminal-log]')).toBeVisible()
 
   await page.waitForFunction(
     (ids) => {
@@ -157,6 +169,7 @@ test('static office diorama preserves the locked baseline with three robots and 
       const body = robot?.children?.find((child) => child.name === 'robot-body')
       const face = robot?.children?.find((child) => child.name === 'robot-face')
       const glow = robot?.children?.find((child) => child.name === 'robot-glow')
+      const note = robot?.children?.find((child) => child.name === 'robot-note')
       return {
         robotParent: robot?.name,
         bodyParentName: body?.parent?.name,
@@ -169,6 +182,8 @@ test('static office diorama preserves the locked baseline with three robots and 
         faceRotation: face?.rotation,
         glowPart: glow?.userData?.notelingsRobotPart,
         glowVisible: glow?.visible,
+        notePart: note?.userData?.notelingsRobotPart,
+        noteVisible: note?.visible,
       }
     })
   })
@@ -189,6 +204,9 @@ test('static office diorama preserves the locked baseline with three robots and 
     // The red sentinel glow exists but is hidden while idle.
     expect(parts.glowPart).toBe('glow')
     expect(parts.glowVisible).toBe(false)
+    // The note card exists on every robot and is hidden while idle.
+    expect(parts.notePart).toBe('note')
+    expect(parts.noteVisible).toBe(false)
   }
 
   // Static frame contract: the reference video is not mounted at runtime.
@@ -260,12 +278,37 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
         : { id: 'note-e2e-admin', category: 'Admin', tags: ['print'], degraded: false },
     })
   })
+  // Phase 2: the board fetch returns the two notes as pending; status PATCHes
+  // echo the requested status so the sync hook never touches the real DB.
+  const notesMock = (route: { request: () => { method: () => string; postDataJSON: () => unknown } ; fulfill: (options: { json?: unknown }) => Promise<void> }) => {
+    if (route.request().method() === 'GET') {
+      route.fulfill({
+        json: [
+          { id: 'note-e2e-work', content: 'plan the Q3 roadmap', category: 'Work', tags: ['roadmap'], status: 'pending', created_at: '2026-08-09T00:00:00Z' },
+          { id: 'note-e2e-admin', content: 'print the vendor contracts', category: 'Admin', tags: ['print'], status: 'pending', created_at: '2026-08-09T00:00:01Z' },
+        ],
+      })
+    } else if (route.request().method() === 'PATCH') {
+      const body = route.request().postDataJSON() as { status?: string }
+      route.fulfill({
+        json: { id: 'mock', content: 'mock', category: 'Work', tags: [], status: body.status ?? 'pending', created_at: '2026-08-09T00:00:00Z' },
+      })
+    } else {
+      route.fulfill({ json: { ok: true } })
+    }
+  }
+  await page.route('**/api/notes', notesMock)
+  await page.route('**/api/notes/**', notesMock)
 
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
   await page.getByRole('button', { name: 'Initialize Agents' }).click()
   const input = page.getByRole('textbox', { name: 'Type a new note' })
   const submit = page.getByRole('button', { name: 'Submit note' })
+
+  // The mocked notes land on the Spatial Board in Pending.
+  await expect(page.getByText('plan the Q3 roadmap', { exact: true })).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('print the vendor contracts', { exact: true })).toBeVisible()
 
   await input.fill('plan the Q3 roadmap')
   await submit.click()
@@ -325,6 +368,12 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
     throw new Error(`${String(error)}\nM4 diagnostic: ${diagnostic}`)
   }
 
+  // Phase 2 terminal: the store logs the lifecycle as the robots work.
+  const terminal = page.locator('[data-terminal-log]')
+  await expect(terminal).toContainText(/Blue Agent dispatched: "plan the Q3 roadmap"/, { timeout: 20_000 })
+  await expect(terminal).toContainText(/Blue Agent filed "plan the Q3 roadmap" in Work\./, { timeout: 60_000 })
+  await expect(terminal).toContainText(/Green Agent filed "print the vendor contracts" in Admin\./, { timeout: 60_000 })
+
   const completed = await page.evaluate(() => {
     const runtime = (window as unknown as {
       __NOTELINGS_AGENTS__?: { agents: Record<string, {
@@ -368,6 +417,9 @@ test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and stil
   await page.route('**/api/categorize', (route) =>
     route.fulfill({ status: 500, json: { error: 'boom' } }),
   )
+  // Deterministic empty board; the degraded note is local-only (no DB row).
+  await page.route('**/api/notes', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/notes/**', (route) => route.fulfill({ json: [] }))
 
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
