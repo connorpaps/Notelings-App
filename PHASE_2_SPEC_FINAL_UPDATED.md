@@ -7,6 +7,25 @@ Phase 2 focuses on the "Read & Think" engine. We will transform the UI into a re
 
 ---
 
+## 1b. Implementation Status (2026-08-10)
+
+| Milestone | Status | Notes |
+|---|---|---|
+| M1 SAMS Control Center (Kanban & Terminal) | ✅ Complete | 3-column live Kanban (Pending / In Transit / Filed) fed by `GET /api/notes` + Supabase Realtime; bottom terminal dock with embedded note input + capped event log; status lifecycle `pending → in_transit → filed` synced by robots. |
+| M2 Note Management (Edit & Archive) | ✅ Complete | Edit modal (content + tags), agentic two-leg archive to the trash, archived view with Restore / Delete forever. |
+| M3 Obsidian-Style Tag Browser | ✅ Complete | Search icon in the dock opens a `.liquid-glass-strong` Tag Explorer: unique tags via `GET /api/tags`, tag chips with live counts, masonry grid of matching notes. |
+| M4 "Ask the Librarian" (RAG Chat) | ✅ Complete | New Note / Ask AI dock toggle; `POST /api/chat` streams via `gemini-2.5-flash` with `temperature: 0`, `maxRetries: 0`, and a strict-grounding system prompt (refuses out-of-context questions verbatim, cites notes `[n]`, allows grounded partial answers, exact counting over content + tags incl. word stems). |
+| M5 Knowledge Graph | ⏭️ Next milestone | Not started — planned per §3 below. |
+
+**Recorded implementation decisions (deviations from the original milestone text, per user):**
+- **Tag filtering reads the realtime store mirror** (already synced from Supabase), not a per-click DB query — instant and always fresh.
+- **Archived notes are excluded** from tag results, tag counts, and the RAG context (retired = not knowledge).
+- **Chat context includes `created_at`** per note so metadata follow-ups ("when did I create that note?") are answerable; context is capped at the 150 newest non-archived notes (MVP size bound).
+- **Chat history is pruned server-side** to the last 20 messages instead of rejecting longer conversations.
+- **`@ai-sdk/react`** (v4) provides `useChat`; AI SDK v7 has no `ai/react` subpath and uses `toUIMessageStreamResponse`.
+
+---
+
 ## 2. Global Aesthetic Rules (Strict)
 All UI overlays built in Phase 2 MUST adhere to the "Bloom AI / Agent Grove" aesthetic established in Phase 1:
 - **Layout:** The 3D isometric office remains a passive visual centerpiece at `z-10` over the looping video background at `z-0`. All UI components are absolute-positioned overlays at `z-20`. Do NOT add interactive click events to the 3D meshes.
@@ -40,7 +59,7 @@ All UI overlays built in Phase 2 MUST adhere to the "Bloom AI / Agent Grove" aes
 **Goal:** Allow the user to synthesize and chat with their stored knowledge.
 *   **The Chat Toggle:** Add a UI toggle in the bottom dock to switch between "New Note" and "Ask AI".
 *   **The Backend Route:** Create a new API route (`app/api/chat/route.ts`).
-*   **The RAG Logic:** Fetch all user notes from Supabase. Feed them into the Vercel AI SDK (`gemini-2.5-flash`) as system context, forcing the LLM to answer the user's question using ONLY their stored data. Stream the response back to the UI.
+*   **The RAG Logic (Strict Grounding):** Fetch all user notes from Supabase. Feed them into the Vercel AI SDK (`gemini-2.5-flash`) as system context. **CRITICAL:** Use a system prompt and a temperature of `0` to enforce strict grounding. If the user asks a question that is not covered by the notes, the LLM must explicitly refuse to answer (e.g., "I couldn't find any notes related to that") instead of guessing or hallucinating from outside knowledge.
 
 ### Milestone 5: The Knowledge Graph (Obsidian-Style)
 **Goal:** Visualize how different notes connect across categories.
