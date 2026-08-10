@@ -5,6 +5,7 @@ import type { TaskCompletion } from '../office/agentStore'
 const completion = (overrides: Partial<TaskCompletion> = {}): TaskCompletion => ({
   id: 'task-1',
   agentId: 'blue',
+  kind: 'note',
   category: 'Work',
   destination: 'whiteboard',
   content: 'plan the roadmap',

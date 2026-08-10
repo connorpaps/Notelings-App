@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { NotePatchSchema } from '@/lib/notes/notesApi'
+import { NotePatchSchema, type NotePatch } from '@/lib/notes/notesApi'
 import { createServerSupabase } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -10,7 +10,7 @@ type RouteContext = { params: Promise<{ id: string }> }
 /** Update content, tags, and/or lifecycle status (pending/in_transit/filed/archived). */
 export async function PATCH(request: Request, context: RouteContext) {
   const { id } = await context.params
-  let patch: unknown
+  let patch: NotePatch
   try {
     patch = NotePatchSchema.parse(await request.json())
   } catch {
