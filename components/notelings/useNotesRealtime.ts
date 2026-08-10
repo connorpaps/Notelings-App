@@ -52,7 +52,10 @@ export function useNotesRealtime() {
     channel
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notes' }, (payload) => {
         const parsed = NoteRecordSchema.safeParse(payload.new)
-        if (parsed.success) useAgentStore.getState().upsertNote(parsed.data)
+        if (parsed.success) {
+          useAgentStore.getState().upsertNote(parsed.data)
+          useAgentStore.getState().logTerminal(`Note created: "${parsed.data.content.slice(0, 24)}"`)
+        }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notes' }, (payload) => {
         const parsed = NoteRecordSchema.safeParse(payload.new)

@@ -23,14 +23,23 @@ async function patchStatus(noteId: string, status: NoteStatus): Promise<void> {
   if (!res.ok) throw new Error(`status sync failed: ${res.status}`)
 }
 
+/**
+ * Deliberate beat so the board visibly reads Pending → In Transit → Filed
+ * (and so the INSERT event always lands in the store before the in_transit
+ * UPDATE — no ordering race). The robot is already en route; the walk takes
+ * far longer than this delay.
+ */
+export const IN_TRANSIT_DELAY_MS = 1500
+
 export function useNoteSync() {
   const seenCompletions = useRef(useAgentStore.getState().completions.length)
   const seenArchived = useRef(useAgentStore.getState().archivedTasks.length)
-  const dispatchedSent = useRef(new Set<string>())
+  const sentInTransit = useRef(new Set<string>())
+  const inTransitTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
 
   useEffect(() => {
     return useAgentStore.subscribe((state) => {
-      // Robot woke up for a note task → In Transit.
+      // Robot woke up for a note task → In Transit (after the Pending beat).
       for (const agent of Object.values(state.agents)) {
         const task = agent.currentTask
         if (
@@ -38,20 +47,31 @@ export function useNoteSync() {
           task?.kind === 'note' &&
           task.noteId &&
           agent.targetKind === 'task' &&
-          !dispatchedSent.current.has(task.id)
+          !sentInTransit.current.has(task.id)
         ) {
-          dispatchedSent.current.add(task.id)
-          patchStatus(task.noteId, 'in_transit').catch(() => {
-            useAgentStore.getState().logTerminal('Status sync failed (offline?).', 'error')
-          })
+          sentInTransit.current.add(task.id)
+          const noteId = task.noteId
+          const timer = setTimeout(() => {
+            inTransitTimers.current.delete(task.id)
+            patchStatus(noteId, 'in_transit').catch(() => {
+              useAgentStore.getState().logTerminal('Status sync failed (offline?).', 'error')
+            })
+          }, IN_TRANSIT_DELAY_MS)
+          inTransitTimers.current.set(task.id, timer)
         }
       }
 
-      // Delivery finished → Filed.
+      // Delivery finished → Filed. Cancel a pending in_transit beat if the
+      // walk somehow finished before it fired.
       const fresh = collectNewCompletions(state.completions, seenCompletions.current)
       if (fresh.length > 0) {
         seenCompletions.current = state.completions.length
         for (const completion of fresh) {
+          const timer = inTransitTimers.current.get(completion.id)
+          if (timer) {
+            clearTimeout(timer)
+            inTransitTimers.current.delete(completion.id)
+          }
           if (completion.noteId) {
             patchStatus(completion.noteId, 'filed').catch(() => {
               useAgentStore.getState().logTerminal('Status sync failed (offline?).', 'error')

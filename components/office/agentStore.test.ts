@@ -262,6 +262,20 @@ describe('agent store', () => {
     expect(useAgentStore.getState().arriveArchiveFinal('blue')).toBe(true)
   })
 
+  it('merges fetched notes without clobbering newer realtime updates', () => {
+    const store = useAgentStore.getState()
+    store.setNotes([{ ...note('n1'), created_at: '2026-08-09T00:00:00Z' }])
+    // A realtime upsert arrives with a newer updated_at.
+    store.upsertNote({ ...note('n1'), status: 'in_transit', created_at: '2026-08-09T00:00:00Z', updated_at: '2026-08-09T00:01:00Z' })
+    // A LATE initial-fetch snapshot (older updated_at) must not clobber it.
+    store.setNotes([{ ...note('n1'), status: 'pending', created_at: '2026-08-09T00:00:00Z', updated_at: '2026-08-09T00:00:30Z' }])
+    expect(useAgentStore.getState().notes.n1.status).toBe('in_transit')
+    // The snapshot still adds notes that are missing locally.
+    store.setNotes([{ ...note('n2'), status: 'filed' }])
+    expect(useAgentStore.getState().notes.n2.status).toBe('filed')
+    expect(useAgentStore.getState().notes.n1.status).toBe('in_transit')
+  })
+
   it('clears notes, logs, and archive state in resetForTests', () => {
     const store = useAgentStore.getState()
     store.setNotes([note('n1')])

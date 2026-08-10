@@ -522,7 +522,22 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   setNotes: (notes) =>
-    set({ notes: Object.fromEntries(notes.map((note) => [note.id, note])) }),
+    set((state) => {
+      // MERGE, never replace: the initial GET snapshot can resolve AFTER
+      // realtime events for a freshly submitted note (cold-route latency),
+      // and a replace would clobber the newer pending/in_transit upserts.
+      // Newest-wins by updated_at (fall back to created_at).
+      const merged = { ...state.notes }
+      for (const note of notes) {
+        const existing = merged[note.id]
+        const stamp = note.updated_at ?? note.created_at
+        const existingStamp = existing ? existing.updated_at ?? existing.created_at : null
+        if (!existing || !existingStamp || stamp >= existingStamp) {
+          merged[note.id] = note
+        }
+      }
+      return { notes: merged }
+    }),
 
   upsertNote: (note) =>
     set((state) => ({ notes: { ...state.notes, [note.id]: note } })),
