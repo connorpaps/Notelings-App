@@ -9,10 +9,12 @@ type GlassModalProps = {
   onClose: () => void
   title: string
   children: ReactNode
+  /** M3: 'wide' for the tag explorer masonry. Default: 'default'. */
+  size?: 'default' | 'wide'
 }
 
 /** Bloom liquid-glass modal: backdrop fade + scale-in, ESC/backdrop close. */
-export default function GlassModal({ open, onClose, title, children }: GlassModalProps) {
+export default function GlassModal({ open, onClose, title, children, size = 'default' }: GlassModalProps) {
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
@@ -29,7 +31,7 @@ export default function GlassModal({ open, onClose, title, children }: GlassModa
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) onClose()
           }}
@@ -42,7 +44,7 @@ export default function GlassModal({ open, onClose, title, children }: GlassModa
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="liquid-glass-strong w-[min(92vw,540px)] rounded-[2rem] p-7"
+            className={`liquid-glass-strong ${size === 'wide' ? 'w-[min(92vw,880px)]' : 'w-[min(92vw,540px)]'} rounded-[2rem] p-7`}
           >
             <div className="flex items-center justify-between gap-4">
               <h3 className="text-lg font-medium tracking-tight text-white">{title}</h3>
