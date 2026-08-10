@@ -43,6 +43,13 @@ const FACE_LATERAL_OFFSET = 0
 // Keep the LCD just beyond the capsule's measured front radius. Values below
 // BODY_RADIUS place the plane inside the capsule at this raised Y position.
 const FACE_Z = 0.42
+const NOTE_WIDTH = 0.42
+const NOTE_HEIGHT = 0.52
+const NOTE_DEPTH = 0.035
+const NOTE_X = 0.28
+const NOTE_Y = BODY_Y + 0.46
+// Keep the card clearly in front of the LCD/body along the robot's local +Z.
+const NOTE_Z = 0.56
 const WALK_SPEED_WORLD = 2.6
 const TURN_SPEED = 8
 const WAYPOINT_EPSILON = 0.02
@@ -346,18 +353,37 @@ const AgentRobot = function AgentRobot({
           depthWrite={false}
         />
       </mesh>
-      {/* Phase 2: a small white note card the robot carries while working. */}
-      <mesh
+      {/* Phase 2: a readable clipboard-like note the robot carries while working. */}
+      <group
         name="robot-note"
-        position={[0, BODY_Y + 0.62, 0]}
-        rotation={[0, 0, 0.35]}
-        castShadow
+        position={[NOTE_X, NOTE_Y, NOTE_Z]}
+        rotation={[0.16, 0, 0.35]}
         visible={carrying}
         userData={{ notelingsRobotPart: 'note' }}
       >
-        <boxGeometry args={[0.26, 0.03, 0.34]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.7} />
-      </mesh>
+        <mesh castShadow userData={{ notelingsRobotPart: 'note-card' }}>
+          <boxGeometry args={[NOTE_WIDTH, NOTE_HEIGHT, NOTE_DEPTH]} />
+          <meshStandardMaterial
+            color="#ffffff"
+            emissive="#ffffff"
+            emissiveIntensity={0.35}
+            roughness={0.55}
+            metalness={0.05}
+          />
+        </mesh>
+        <mesh position={[0, NOTE_HEIGHT * 0.28, NOTE_DEPTH / 2 + 0.008]} userData={{ notelingsRobotPart: 'note-clip' }}>
+          <boxGeometry args={[0.26, 0.055, 0.012]} />
+          <meshStandardMaterial color="#27313a" roughness={0.4} metalness={0.25} />
+        </mesh>
+        <mesh position={[0, -0.02, NOTE_DEPTH / 2 + 0.008]} userData={{ notelingsRobotPart: 'note-line-1' }}>
+          <boxGeometry args={[0.25, 0.018, 0.012]} />
+          <meshStandardMaterial color="#8a959e" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, -0.1, NOTE_DEPTH / 2 + 0.008]} userData={{ notelingsRobotPart: 'note-line-2' }}>
+          <boxGeometry args={[0.18, 0.018, 0.012]} />
+          <meshStandardMaterial color="#b0bac1" roughness={0.7} />
+        </mesh>
+      </group>
     </group>
   )
 }
