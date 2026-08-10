@@ -26,6 +26,15 @@ A shared vocabulary for the "Second Brain" note-organizer product. Terminology o
 - `Admin` → Printer (paperwork, printing, errands).
 - `Uncategorized` → Corkboard (everything else; also the degraded-fallback route).
 
+## Phase 2 (SAMS Control Center)
+
+- **Spatial Board (Kanban)** — the right-side live panel with three columns: `Pending`, `In Transit`, `Filed`. Fed by an initial fetch (`GET /api/notes`) plus a Supabase Realtime `postgres_changes` subscription on `notes`; a note moves columns as its DB `status` changes.
+- **Terminal (event log)** — the bottom dock's monospace log (capped at 100 entries in the Zustand store): note queued, robot dispatched, note updated, filed, archived, edit/restore/delete events.
+- **Status lifecycle** — `pending` (created) → `in_transit` (robot dispatched; after a ~1.5s Pending beat for legibility) → `filed` (delivered). Archiving is soft: `archived` (row kept, restorable from the Archived toggle).
+- **Edit** — clicking a note card opens a glass modal; content + comma-separated tags PATCH to Supabase.
+- **Agentic Archive** — the Archive button enqueues a two-leg task: the robot walks to the note's destination, picks it up (note card appears), and carries it to the **Trash** staging cell `[29,24]` (adjacent to the locked `Misc Trashcan Small 03`), then the note soft-archives with a confirmation toast.
+- **Archived view** — a toggle lists archived notes with Restore (→ `filed`) and Delete forever (hard DELETE).
+
 ## Non-goals (MVP)
 
 - No authentication, no physics/colliders, no rigged animation, no multi-user sync.

@@ -480,3 +480,73 @@ test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and stil
   // The mocked 500 is deliberate in this test; any OTHER console/page error fails.
   expect(errors.filter((error) => !error.includes('status of 500'))).toEqual([])
 })
+
+test('Milestone 2 agentic archive: a robot carries the note to the trash', async ({ page }) => {
+  // Two long SwiftShader walks (destination → trash) need a generous budget.
+  test.setTimeout(180_000)
+  const errors: string[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text())
+  })
+  page.on('pageerror', (err) => errors.push(String(err)))
+
+  await page.route('**/api/categorize', (route) =>
+    route.fulfill({ json: { id: 'note-e2e-archive', category: 'Work', tags: ['old'], degraded: false } }),
+  )
+  await page.route('**/api/notes', (route) =>
+    route.fulfill({
+      json: [
+        { id: 'note-e2e-archive', content: 'an old idea to retire', category: 'Work', tags: ['old'], status: 'filed', created_at: '2026-08-01T00:00:00Z' },
+      ],
+    }),
+  )
+  await page.route('**/api/notes/**', (route) => {
+    if (route.request().method() === 'PATCH') {
+      const body = route.request().postDataJSON() as { status?: string }
+      route.fulfill({
+        json: { id: 'note-e2e-archive', content: 'an old idea to retire', category: 'Work', tags: ['old'], status: body.status ?? 'filed', created_at: '2026-08-01T00:00:00Z' },
+      })
+    } else {
+      route.fulfill({ json: { ok: true } })
+    }
+  })
+
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
+  await page.getByRole('button', { name: 'Initialize Agents' }).click()
+
+  // The mocked note sits in Filed with an Archive action.
+  await expect(page.getByText('an old idea to retire', { exact: true })).toBeVisible({ timeout: 20_000 })
+  await page.getByRole('button', { name: 'Archive note' }).click()
+
+  // The store issues the two-leg archive task to the first available robot.
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as {
+      __NOTELINGS_AGENTS__?: { agents: Record<string, { currentTask?: { kind?: string; noteId?: string } | null; targetKind?: string | null }> }
+    }).__NOTELINGS_AGENTS__
+    return Boolean(runtime && runtime.agents.blue?.currentTask?.kind === 'archive')
+  }, { timeout: 15_000, polling: 100 })
+
+  // Leg 1: robot walks to the note's destination (Work whiteboard).
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as {
+      __NOTELINGS_AGENTS__?: { agents: Record<string, { targetKind?: string | null }> }
+    }).__NOTELINGS_AGENTS__
+    return runtime?.agents.blue?.targetKind === 'archive'
+  }, { timeout: 30_000, polling: 100 })
+
+  // Leg 2: after the pickup beat, the robot heads to the trash staging cell.
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as {
+      __NOTELINGS_AGENTS__?: { agents: Record<string, { targetKind?: string | null }> }
+    }).__NOTELINGS_AGENTS__
+    return runtime?.agents.blue?.targetKind === 'archive-final'
+  }, { timeout: 150_000, polling: 100 })
+
+  // Disposal: archive toast + terminal line confirm the note reached the trash.
+  await expect(page.getByText(/Note archived — (Blue|Green) Agent filed it in the trash\./)).toBeVisible({ timeout: 90_000 })
+  const terminal = page.locator('[data-terminal-log]')
+  await expect(terminal).toContainText(/archived "an old idea to retire"/, { timeout: 30_000 })
+
+  expect(errors).toEqual([])
+})
