@@ -33,17 +33,28 @@ function createdLabel(createdAt: string | null | undefined): string {
   return `created ${trimmed}`
 }
 
-/** Numbered <notes> block over non-archived notes, newest-first order preserved from the caller. */
-export function buildNotesContext(notes: readonly NoteRecord[]): string {
+/**
+ * Numbered <notes> block. Each note is labeled with its GLOBAL citation
+ * number (from `citations.buildCitationIndex`) so `[n]` citations resolve
+ * deterministically on the client — valid in every context mode (≤150 all
+ * notes, embedding retrieval subset, deterministic counts).
+ */
+export function buildNotesContext(
+  notes: readonly NoteRecord[],
+  numberById: ReadonlyMap<string, number>,
+): string {
   const active = notes.filter((note) => note.status !== 'archived')
   if (active.length === 0) return '<notes>\n(no notes)\n</notes>'
-  const lines = active.map(
-    (note, index) =>
-      `[${index + 1}] (${note.category}, ${createdLabel(note.created_at)}, tags: ${note.tags.join(', ') || 'none'}) ${note.content}`,
-  )
+  const lines = active.map((note) => {
+    const n = numberById.get(note.id)
+    return `[${n ?? '?'}] (${note.category}, ${createdLabel(note.created_at)}, tags: ${note.tags.join(', ') || 'none'}) ${note.content}`
+  })
   return `<notes>\n${lines.join('\n')}\n</notes>`
 }
 
-export function buildLibrarianSystemPrompt(notes: readonly NoteRecord[]): string {
-  return `${LIBRARIAN_SYSTEM_PROMPT}\n\n${buildNotesContext(notes)}`
+export function buildLibrarianSystemPrompt(
+  notes: readonly NoteRecord[],
+  numberById: ReadonlyMap<string, number>,
+): string {
+  return `${LIBRARIAN_SYSTEM_PROMPT}\n\n${buildNotesContext(notes, numberById)}`
 }

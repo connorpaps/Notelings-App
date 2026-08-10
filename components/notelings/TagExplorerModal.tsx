@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import { useAgentStore } from '@/components/office/agentStore'
 import { collectUniqueTags, notesWithTag, tagCounts } from '@/lib/notes/tags'
 import GlassModal from './GlassModal'
@@ -29,6 +30,7 @@ export default function TagExplorerModal({ open, onClose }: TagExplorerModalProp
   const [tags, setTags] = useState<string[] | null>(null)
   const [loadState, setLoadState] = useState<LoadState>('idle')
   const [selected, setSelected] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     if (!open || loadState !== 'idle') return
@@ -56,11 +58,15 @@ export default function TagExplorerModal({ open, onClose }: TagExplorerModalProp
   const counts = tagCounts(notes)
   const allTags = tags ?? collectUniqueTags(notes)
   const matches = selected ? notesWithTag(notes, selected) : []
+  const visibleTags = allTags.filter((tag) =>
+    tag.toLowerCase().includes(query.trim().toLowerCase()),
+  )
 
-  // Clear the selection whenever the modal closes (ESC/backdrop/button all
-  // flow through onClose) so reopening always starts at "All tags".
+  // Clear the selection + filter whenever the modal closes (ESC/backdrop/
+  // button all flow through onClose) so reopening starts clean.
   const handleClose = () => {
     setSelected(null)
+    setQuery('')
     onClose()
   }
 
@@ -89,31 +95,52 @@ export default function TagExplorerModal({ open, onClose }: TagExplorerModalProp
           </p>
         ) : (
           <>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                aria-pressed={selected === null}
-                onClick={() => setSelected(null)}
-                className={`rounded-full px-3 py-1.5 text-xs transition-transform duration-200 hover:scale-105 active:scale-95 ${
-                  selected === null ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
-                }`}
-              >
-                All tags
-              </button>
-              {allTags.map((tag) => (
+            <div className="relative">
+              <Search
+                aria-hidden
+                size={14}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
+              />
+              <input
+                type="search"
+                aria-label="Filter tags"
+                placeholder="Filter tags…"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="w-full rounded-full border border-white/10 bg-black/20 py-2 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/40 focus-visible:ring-2 focus-visible:ring-white/30"
+              />
+            </div>
+            {visibleTags.length === 0 ? (
+              <p className="rounded-2xl bg-white/[0.04] px-4 py-4 text-center text-xs text-white/30">
+                No tags match “{query}”.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={tag}
                   type="button"
-                  aria-pressed={selected === tag}
-                  onClick={() => setSelected(selected === tag ? null : tag)}
+                  aria-pressed={selected === null}
+                  onClick={() => setSelected(null)}
                   className={`rounded-full px-3 py-1.5 text-xs transition-transform duration-200 hover:scale-105 active:scale-95 ${
-                    selected === tag ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
+                    selected === null ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
                   }`}
                 >
-                  #{tag} <span className="text-white/40">{counts.get(tag.toLowerCase()) ?? 0}</span>
+                  All tags
                 </button>
-              ))}
-            </div>
+                {visibleTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    aria-pressed={selected === tag}
+                    onClick={() => setSelected(selected === tag ? null : tag)}
+                    className={`rounded-full px-3 py-1.5 text-xs transition-transform duration-200 hover:scale-105 active:scale-95 ${
+                      selected === tag ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60'
+                    }`}
+                  >
+                    #{tag} <span className="text-white/40">{counts.get(tag.toLowerCase()) ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             {selected && (
               <div className="columns-2 gap-3 lg:columns-3">
                 {matches.map((note) => (

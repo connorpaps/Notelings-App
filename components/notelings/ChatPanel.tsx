@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
 import type { UIMessage } from 'ai'
+import { useAgentStore } from '@/components/office/agentStore'
+import { buildCitationIndex, type CitationMap } from '@/lib/notes/citations'
 import GlassPanel from './GlassPanel'
+import NoteCard from './NoteCard'
 import { Spinner } from '@/components/ui/spinner'
 import type { useLibrarianChat } from './useLibrarianChat'
 
@@ -18,18 +21,60 @@ function messageText(message: UIMessage): string {
     .join('')
 }
 
+/** Renders `[n]` citations as clickable chips resolved via the global index. */
+function CitationText({
+  text,
+  index,
+  onSelect,
+}: {
+  text: string
+  index: CitationMap
+  onSelect: (n: number) => void
+}) {
+  const segments = text.split(/(\[\d+\])/g)
+  return (
+    <>
+      {segments.map((segment, i) => {
+        const match = segment.match(/^\[(\d+)\]$/)
+        if (match) {
+          const n = Number(match[1])
+          if (index.has(n)) {
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelect(n)}
+                className="mx-0.5 inline-flex items-center rounded-full bg-white/10 px-1.5 py-0.5 align-baseline text-[10px] font-medium text-white/70 transition-transform duration-200 hover:scale-110 hover:text-white active:scale-95"
+              >
+                {match[1]}
+              </button>
+            )
+          }
+        }
+        return <span key={i}>{segment}</span>
+      })}
+    </>
+  )
+}
+
 /**
  * M4: the Ask-the-Librarian conversation, floating above the bottom dock.
- * Empty until the first question; streams responses with a pulsing cursor.
+ * Citation numbers `[n]` in answers resolve through the same deterministic
+ * index the server uses, and open an inline note preview when clicked.
  */
 export default function ChatPanel({ chat }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const notesMap = useAgentStore((state) => state.notes)
+  const citationIndex = useMemo(() => buildCitationIndex(Object.values(notesMap)), [notesMap])
+  const [openCitation, setOpenCitation] = useState<{ messageId: string; n: number } | null>(null)
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [chat.messages, chat.status])
 
   const hasConversation = chat.messages.length > 0 || chat.status === 'submitted'
   const lastAssistant = chat.messages[chat.messages.length - 1]
+  const citedNote = openCitation ? citationIndex.get(openCitation.n) : undefined
 
   return (
     <motion.div
@@ -55,7 +100,10 @@ export default function ChatPanel({ chat }: ChatPanelProps) {
                 <button
                   type="button"
                   aria-label="Clear conversation"
-                  onClick={() => chat.setMessages([])}
+                  onClick={() => {
+                    setOpenCitation(null)
+                    chat.setMessages([])
+                  }}
                   className="flex size-7 items-center justify-center rounded-full bg-white/10 text-white/50 transition-transform duration-200 hover:scale-110 hover:text-white/80 active:scale-95"
                 >
                   <Trash2 size={12} />
@@ -74,23 +122,49 @@ export default function ChatPanel({ chat }: ChatPanelProps) {
                 filed.
               </p>
             ) : (
-              chat.messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
-                    message.role === 'user'
-                      ? 'self-end bg-white/15 text-white'
-                      : 'self-start liquid-glass text-white/85'
-                  }`}
-                >
-                  {messageText(message)}
-                  {message.role === 'assistant' &&
-                    chat.status === 'streaming' &&
-                    message.id === lastAssistant?.id && (
-                      <span className="ml-0.5 inline-block size-1.5 animate-pulse rounded-full bg-white/70 align-middle" />
+              chat.messages.map((message) => {
+                const text = messageText(message)
+                const isAssistant = message.role === 'assistant'
+                return (
+                  <div key={message.id} className="flex flex-col gap-2">
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
+                        message.role === 'user'
+                          ? 'self-end bg-white/15 text-white'
+                          : 'self-start liquid-glass text-white/85'
+                      }`}
+                    >
+                      {isAssistant ? (
+                        <CitationText
+                          text={text}
+                          index={citationIndex}
+                          onSelect={(n) => setOpenCitation({ messageId: message.id, n })}
+                        />
+                      ) : (
+                        text
+                      )}
+                      {isAssistant &&
+                        chat.status === 'streaming' &&
+                        message.id === lastAssistant?.id && (
+                          <span className="ml-0.5 inline-block size-1.5 animate-pulse rounded-full bg-white/70 align-middle" />
+                        )}
+                    </div>
+                    {isAssistant && openCitation?.messageId === message.id && citedNote && (
+                      <div className="w-full">
+                        <button
+                          type="button"
+                          aria-label="Close cited note"
+                          onClick={() => setOpenCitation(null)}
+                          className="mb-1 text-[10px] text-white/40 transition-colors hover:text-white/70"
+                        >
+                          ▲ note [{openCitation.n}]
+                        </button>
+                        <NoteCard note={citedNote} />
+                      </div>
                     )}
-                </div>
-              ))
+                  </div>
+                )
+              })
             )}
             {chat.status === 'submitted' && (
               <div className="flex items-center gap-2 self-start rounded-2xl bg-white/[0.06] px-3.5 py-2.5 text-xs text-white/50">
