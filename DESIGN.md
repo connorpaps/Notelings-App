@@ -29,7 +29,7 @@ Static Skybridge frame + scrims `z-0` → transparent WebGL office `z-10` (canva
 - **Agent cards** (left, 3): light glass, icon in white/10 circle tinted with the robot color, glowing identity dot, grayscale status; red pulses on error; gentle hover lift.
 - **Task queue** (right, hidden below `lg`): light glass, serif-accent heading, count pill, AnimatePresence note list.
 - **Command dock** (bottom-center): strong glass pill, ghost input, submit button with the reference's icon-in-circle CTA anatomy; `hover:scale-105 active:scale-95`.
-- **Welcome hero**: strong glass panel, tracked overline, Poppins headline with serif italic accent, tagline, three destination pills (Whiteboard/Printer/Corkboard), `Initialize Agents` CTA.
+- **Welcome hero**: strong glass panel, tracked overline, Poppins headline with serif italic accent, tagline, three destination pills (Manager's Bookshelf / Filing Cabinets / Hallway Bookshelf), `Initialize Agents` CTA.
 - **Toasts**: dark glass (`rgba(10,10,11,0.72)`, blur, white text), bottom-right.
 
 ## Motion

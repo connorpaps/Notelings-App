@@ -1,7 +1,7 @@
 # PRODUCT.md — Notelings
 
 ## What this is
-Notelings is a gamified, visual "Second Brain" note organizer. Notes typed into a 2D inbox are LLM-categorized (Gemini 2.5 Flash) and physically delivered by capsule "Librarian" robots to category destinations inside a 3D isometric voxel office: **Work → whiteboard**, **Admin → printer**, **Uncategorized → corkboard**.
+Notelings is a gamified, visual "Second Brain" note organizer. Notes typed into a 2D inbox are LLM-categorized (Gemini 2.5 Flash) and physically delivered by capsule "Librarian" robots to category destinations inside a 3D isometric office (the 10 m `3d_note_office.glb`): **Work → Manager's Bookshelf** (glass office), **Admin → Filing Cabinets**, **Uncategorized → Hallway Bookshelf**.
 
 ## Audience & real scene
 A single personal user at a desktop, capturing quick thoughts while the office animates in the center of the screen. The office is the product's stage; the 2D glass overlay is the control surface. The feel to protect: calm, watchable, delightful — a living room for your notes.

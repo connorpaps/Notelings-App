@@ -1,6 +1,6 @@
 # Notelings-App
 
-Notelings is a visual second brain: notes are categorized, saved, and physically delivered by capsule agents through a 3D voxel office.
+Notelings is a visual second brain: notes are categorized, saved, and physically delivered by capsule agents through a 3D office.
 
 ## First-time setup (macOS or Windows)
 
