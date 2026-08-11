@@ -1,7 +1,13 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
-import { AGENT_GRID_RESOLUTION, AGENT_GRID_TRANSFORM, AGENT_START_CELLS, RED_START_CELL, buildAgentBlockedCells } from './agentGrid'
+import { useEffect } from 'react'
+import {
+  NEW_OFFICE_GRID_RESOLUTION,
+  NEW_OFFICE_GRID_TRANSFORM,
+  NEW_OFFICE_AGENT_START_CELLS,
+  NEW_OFFICE_RED_START_CELL,
+  NEW_OFFICE_EFFECTIVE_BLOCKED,
+} from './newOfficeGrid'
 import AgentRobot from './AgentRobot'
 import { useAgentStore } from './agentStore'
 import { useTaskDispatcher } from './useTaskDispatcher'
@@ -12,7 +18,9 @@ const AGENT_IDS: AgentId[] = ['blue', 'green', 'red']
 
 export default function AgentLayer() {
   useTaskDispatcher()
-  const effectiveBlocked = useMemo(() => buildAgentBlockedCells(), [])
+  // Active grid: the new GLB office (42×42 @ 0.25 m). The legacy agentGrid is
+  // preserved untouched for the pre-new-office backup (VoxelOffice_Legacy).
+  const effectiveBlocked = NEW_OFFICE_EFFECTIVE_BLOCKED
   const agents = useAgentStore((state) => state.agents)
   const taskQueueLength = useAgentStore((state) => state.taskQueue.length)
 
@@ -26,7 +34,7 @@ export default function AgentLayer() {
           currentTask: agents[id].currentTask,
           target: agents[id].target,
           targetKind: agents[id].targetKind,
-          startCell: id === 'red' ? RED_START_CELL : AGENT_START_CELLS[id],
+          startCell: id === 'red' ? NEW_OFFICE_RED_START_CELL : NEW_OFFICE_AGENT_START_CELLS[id],
           processingStartedAt: agents[id].processingStartedAt,
           lastCompletedAt: agents[id].lastCompletedAt,
           lastCompletedDestination: agents[id].lastCompletedDestination,
@@ -45,9 +53,9 @@ export default function AgentLayer() {
     }).__NOTELINGS_AGENTS__ = {
       taskQueueLength,
       agents: runtimeAgents,
-      gridCols: AGENT_GRID_TRANSFORM.cols ?? 0,
-      gridRows: AGENT_GRID_TRANSFORM.rows ?? 0,
-      gridResolution: AGENT_GRID_RESOLUTION,
+      gridCols: NEW_OFFICE_GRID_TRANSFORM.cols ?? 0,
+      gridRows: NEW_OFFICE_GRID_TRANSFORM.rows ?? 0,
+      gridResolution: NEW_OFFICE_GRID_RESOLUTION,
     }
   }, [agents, taskQueueLength])
 
@@ -57,9 +65,9 @@ export default function AgentLayer() {
         <AgentRobot
           key={agentId}
           agentId={agentId}
-          start={agentId === 'red' ? RED_START_CELL : AGENT_START_CELLS[agentId]}
+          start={agentId === 'red' ? NEW_OFFICE_RED_START_CELL : NEW_OFFICE_AGENT_START_CELLS[agentId]}
           blocked={effectiveBlocked}
-          grid={AGENT_GRID_TRANSFORM}
+          grid={NEW_OFFICE_GRID_TRANSFORM}
           color={agents[agentId].color}
           name={`agent-robot-${agentId}`}
           errorRecoveryDelayMs={agentId === 'red' ? 5000 : undefined}
