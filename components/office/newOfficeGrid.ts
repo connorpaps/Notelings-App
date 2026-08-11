@@ -7,19 +7,25 @@ export const NEW_OFFICE_GRID_RESOLUTION = 1
 
 const GRID_OPTS = { cols: NEW_OFFICE_GRID_COLS, rows: NEW_OFFICE_GRID_ROWS }
 
-/** Spawn near the big entrance; green spawns near the front-right door. */
+/**
+ * Spawn near the big entrance; green spawns near the front-right door. The
+ * fallbacks are the CURRENT resolved free cells (the anchors themselves sit in
+ * the sealed exterior wall and are blocked — never fall back to them).
+ */
 export const NEW_OFFICE_AGENT_START_CELLS: Record<'blue' | 'green', GridCell> = {
-  blue: findOpenStartCell([9, 5], NEW_OFFICE_BLOCKED_CELLS, GRID_OPTS) ?? [9, 5],
-  green: findFreeCell([30, 2], NEW_OFFICE_BLOCKED_CELLS, GRID_OPTS) ?? [30, 2],
+  blue: findOpenStartCell([9, 5], NEW_OFFICE_BLOCKED_CELLS, GRID_OPTS) ?? [5, 11],
+  green: findFreeCell([30, 2], NEW_OFFICE_BLOCKED_CELLS, GRID_OPTS) ?? [30, 4],
 }
 
 /**
  * Red error sentinel spawns beside the reception desk. Resolved from the
  * LARGEST connected region (findFreeCell's nearest-free semantics can land in
  * a dead-end pocket behind the desk — red must reach every destination).
+ * The fallback [32, 18] is a currently-free cell (the anchor (37,21) is the
+ * desk itself and is blocked).
  */
 export const NEW_OFFICE_RED_START_CELL: GridCell =
-  findOpenStartCell([37, 21], NEW_OFFICE_BLOCKED_CELLS, GRID_OPTS) ?? [37, 21]
+  findOpenStartCell([37, 21], NEW_OFFICE_BLOCKED_CELLS, GRID_OPTS) ?? [32, 18]
 
 /** Baked + clearance-inflated blocked set (see newOfficeGridData.ts). */
 export const NEW_OFFICE_EFFECTIVE_BLOCKED = NEW_OFFICE_BLOCKED_CELLS

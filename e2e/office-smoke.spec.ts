@@ -129,7 +129,9 @@ test('static office diorama preserves the locked baseline with three robots and 
   })
 
   expect(audit.newOfficeScenePresent).toBe(true)
-  expect(audit.officeMeshCount).toBeGreaterThan(0)
+  // The GLB adds ~696 meshes (the 3 robots alone are only ~15), so a large
+  // count proves the model actually rendered — not just the agent layer.
+  expect(audit.officeMeshCount).toBeGreaterThan(100)
   expect(audit.officeHasStandardMaterial).toBe(true)
   expect(audit.officeHasCastShadow).toBe(true)
   expect(audit.lockedScenePresent).toBe(false)

@@ -56,8 +56,9 @@ const THICK = 0.05 // conservative wall thickness margin for thin triangles
 // Material → y-band (model space) = the robot BODY band only. The floor
 // (max y ≈ -0.01), the baseboard (max y ≈ 0.109) and low 0.14 m tables sit
 // below the band and are deliberately ignored (robots float/slide above them).
-// Glass partitions span y 0.03..1.76 plus 0.16 m lintels at y 1.83..1.98
-// (walk-under, ignored).
+// Glass partitions span y 0.03..1.76 with 0.16 m lintels at y 1.83..1.98; the
+// lintels are INSIDE the glass band (they block the upper wall line), which is
+// fine because the CARVE_ZONES open the actual doorways at the robot band.
 const BANDS = {
   Glass: [0.2, 2.2],
   default: [0.2, 1.6],
