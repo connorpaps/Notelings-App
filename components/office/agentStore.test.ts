@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useAgentStore } from './agentStore'
-import { TASK_DESTINATIONS } from './agentDestinations'
+import { TASK_DESTINATIONS, TRASH_STAGING_CELL } from './agentDestinations'
 
 const task = (destination: 'whiteboard' | 'printer' | 'corkboard', content = 'a', category: 'Work' | 'Admin' | 'Uncategorized' = 'Work') => ({
   destination,
@@ -68,7 +68,7 @@ describe('agent store', () => {
     const agent = useAgentStore.getState().agents.blue
     expect(agent.status).toBe('walking')
     expect(agent.targetKind).toBe('task')
-    expect(agent.target).toEqual([30, 13])
+    expect(agent.target).toEqual(TASK_DESTINATIONS.printer)
     expect(agent.currentTask?.destination).toBe('printer')
   })
 
@@ -92,7 +92,7 @@ describe('agent store', () => {
     expect(useAgentStore.getState().arriveAtTask('blue')).toBe(true)
     const processing = useAgentStore.getState().agents.blue
     expect(processing.processingStartedAt).toEqual(expect.any(Number))
-    expect(processing.lastArrivedTarget).toEqual([29, 4])
+    expect(processing.lastArrivedTarget).toEqual(TASK_DESTINATIONS.whiteboard)
     expect(useAgentStore.getState().completeTask('blue')).toBe(true)
     const completed = useAgentStore.getState().agents.blue
     expect(completed.lastCompletedAt).toEqual(expect.any(Number))
@@ -231,12 +231,12 @@ describe('agent store', () => {
     const walking = useAgentStore.getState().agents.blue
     expect(walking.targetKind).toBe('archive')
     expect(walking.target).toEqual(TASK_DESTINATIONS.whiteboard)
-    expect(walking.currentTask?.finalDestination).toEqual([29, 24])
+    expect(walking.currentTask?.finalDestination).toEqual(TRASH_STAGING_CELL)
     expect(useAgentStore.getState().arriveArchiveStage('blue')).toBe(true)
     expect(useAgentStore.getState().agents.blue.status).toBe('processing')
     expect(useAgentStore.getState().completeArchiveStage('blue')).toBe(true)
     expect(useAgentStore.getState().agents.blue.targetKind).toBe('archive-final')
-    expect(useAgentStore.getState().agents.blue.target).toEqual([29, 24])
+    expect(useAgentStore.getState().agents.blue.target).toEqual(TRASH_STAGING_CELL)
     expect(useAgentStore.getState().arriveArchiveFinal('blue')).toBe(true)
     expect(useAgentStore.getState().agents.blue.status).toBe('idle')
     expect(useAgentStore.getState().agents.blue.currentTask).toBeNull()

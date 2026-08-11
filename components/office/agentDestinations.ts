@@ -1,8 +1,12 @@
-import { LOCKED_DEFAULT_ITEMS } from './officeBuilderDefault'
-import type { GridCell } from './pathfinding'
-import { AGENT_GRID_TRANSFORM } from './agentGrid'
-import { worldToGridCell } from './pathfinding'
 import type { TaskDestination } from '@/lib/notes/types'
+import type { GridCell } from './pathfinding'
+import { worldToGridCell } from './pathfinding'
+import {
+  NEW_OFFICE_GRID_TRANSFORM,
+  NEW_OFFICE_RECENTER,
+  NEW_OFFICE_ANCHORS,
+  NEW_OFFICE_DESTINATION_ANCHOR_CELLS,
+} from './newOfficeLayout'
 
 // Re-exported so scene code keeps one import surface; the type itself lives in
 // the light shared module so the server route never drags in the scene.
@@ -10,77 +14,56 @@ export type { TaskDestination } from '@/lib/notes/types'
 
 export type AgentId = 'blue' | 'green' | 'red'
 
+/** Mutable GridCell tuple from the shared verified staging table (as const). */
+const staging = (name: keyof typeof NEW_OFFICE_DESTINATION_ANCHOR_CELLS): GridCell => {
+  const [col, row] = NEW_OFFICE_DESTINATION_ANCHOR_CELLS[name]
+  return [col, row]
+}
+
 /**
- * Safe walkable staging cells adjacent to the named locked-scene assets.
- * Whiteboard/Printer were validated in M3; the corkboard staging was measured
- * against the real blocked map: [25,4]/[26,4] are blocked by Table White 2x2 01,
- * so the aisle cell [27,4] is used instead.
+ * Walkable staging cells in the 3D Note Office, locked against the generated
+ * blocked map (42×42 @ 0.25 m) on 2026-08-10: each cell is FREE and
+ * A*-reachable from both robot starts, chosen as the closest free cell to the
+ * destination furniture:
+ *   whiteboard → Manager's Bookshelf [22,37] (anchor (20,38) is blocked by the
+ *     shelf + interior wall; the robot stands east of the shelf)
+ *   printer → Filing Cabinets [34,4] (anchor (36,2); chairs + a desk strip
+ *     block the immediate front, the closest free band is 4 cells north)
+ *   corkboard → Hallway Bookshelf [3,21] (anchor (2,22))
  */
 export const TASK_DESTINATIONS: Record<TaskDestination, GridCell> = {
-  // The user-facing Work whiteboard is the lower-right `Whiteboard 02` wall
-  // item, not the similarly named board near the lounge. Stand one fine-grid
-  // cell in front of it on the room-facing aisle side.
-  whiteboard: [29, 4],
-  printer: [30, 13],
-  corkboard: [27, 4],
+  whiteboard: staging('workBookshelf'),
+  printer: staging('adminCabinets'),
+  corkboard: staging('hallwayBookshelf'),
 }
 
 export const TASK_DESTINATION_LABELS: Record<TaskDestination, string> = {
-  whiteboard: 'Work Whiteboard',
-  printer: 'Printer',
-  corkboard: 'Corkboard',
+  whiteboard: "Manager's Bookshelf",
+  printer: 'Filing Cabinets',
+  corkboard: 'Hallway Bookshelf',
 }
-
-const WORK_WHITEBOARD_ITEM_ID = 'asset:misc-office-misc-w-ed322119'
-const WORK_WHITEBOARD_ASSET_ID = 'asset:misc-office-misc-whiteboard-02'
-const WORK_WHITEBOARD_ITEM = LOCKED_DEFAULT_ITEMS.find((item) => item.id === WORK_WHITEBOARD_ITEM_ID)
-
-if (!WORK_WHITEBOARD_ITEM || WORK_WHITEBOARD_ITEM.assetId !== WORK_WHITEBOARD_ASSET_ID) {
-  throw new Error('Locked Work Whiteboard item is missing or points to the wrong asset')
-}
-
-export const WORK_WHITEBOARD_LOCKED_ITEM_ID = WORK_WHITEBOARD_ITEM_ID
-export const WORK_WHITEBOARD_LOCKED_ASSET_ID = WORK_WHITEBOARD_ASSET_ID
-
-const CORKBOARD_ITEM_ID = 'asset:misc-office-misc-w-40665142'
-const CORKBOARD_ASSET_ID = 'asset:misc-office-misc-wall-corkboard-02'
-const CORKBOARD_ITEM = LOCKED_DEFAULT_ITEMS.find((item) => item.id === CORKBOARD_ITEM_ID)
-
-if (!CORKBOARD_ITEM || CORKBOARD_ITEM.assetId !== CORKBOARD_ASSET_ID) {
-  throw new Error('Locked Corkboard item is missing or points to the wrong asset')
-}
-
-const TRASH_ITEM_ID = 'asset:misc-trashcans-off-ad2d51bd'
-const TRASH_ASSET_ID = 'asset:misc-trashcans-office-misc-trashcan-small-03'
-const TRASH_ITEM = LOCKED_DEFAULT_ITEMS.find((item) => item.id === TRASH_ITEM_ID)
-
-if (!TRASH_ITEM || TRASH_ITEM.assetId !== TRASH_ASSET_ID) {
-  throw new Error('Locked Trash Can item is missing or points to the wrong asset')
-}
-
-export const CORKBOARD_LOCKED_ITEM_ID = CORKBOARD_ITEM_ID
-export const CORKBOARD_LOCKED_ASSET_ID = CORKBOARD_ASSET_ID
-
-export const TRASH_LOCKED_ITEM_ID = TRASH_ITEM_ID
-export const TRASH_LOCKED_ASSET_ID = TRASH_ASSET_ID
 
 /**
- * Walkable staging cell adjacent to the locked `Misc Trashcan Small 03` (item
- * cell [30,25]): the M2 agentic-delete flow disposes archived notes here.
+ * Walkable staging cell at the black trash bin (anchor cell (26,8) is itself
+ * free): the M2 agentic-delete flow disposes archived notes here.
  */
-export const TRASH_STAGING_CELL: GridCell = [29, 24]
+export const TRASH_STAGING_CELL: GridCell = staging('trashBin')
 
-/** World anchors used to keep destination cells tied to the locked export. */
+/** Exact furniture anchor cells derived from the GLB model coordinates. */
 export const TASK_DESTINATION_ANCHORS: Record<TaskDestination, GridCell> = {
   whiteboard: worldToGridCell(
-    WORK_WHITEBOARD_ITEM.transform.position[0],
-    WORK_WHITEBOARD_ITEM.transform.position[2],
-    AGENT_GRID_TRANSFORM,
+    NEW_OFFICE_ANCHORS.workBookshelf[0] + NEW_OFFICE_RECENTER[0],
+    NEW_OFFICE_ANCHORS.workBookshelf[1] + NEW_OFFICE_RECENTER[2],
+    NEW_OFFICE_GRID_TRANSFORM,
   ),
-  printer: worldToGridCell(3.4132448525146737, -2.4955851123078587, AGENT_GRID_TRANSFORM),
+  printer: worldToGridCell(
+    NEW_OFFICE_ANCHORS.adminCabinets[0] + NEW_OFFICE_RECENTER[0],
+    NEW_OFFICE_ANCHORS.adminCabinets[1] + NEW_OFFICE_RECENTER[2],
+    NEW_OFFICE_GRID_TRANSFORM,
+  ),
   corkboard: worldToGridCell(
-    CORKBOARD_ITEM.transform.position[0],
-    CORKBOARD_ITEM.transform.position[2],
-    AGENT_GRID_TRANSFORM,
+    NEW_OFFICE_ANCHORS.hallwayBookshelf[0] + NEW_OFFICE_RECENTER[0],
+    NEW_OFFICE_ANCHORS.hallwayBookshelf[1] + NEW_OFFICE_RECENTER[2],
+    NEW_OFFICE_GRID_TRANSFORM,
   ),
 }

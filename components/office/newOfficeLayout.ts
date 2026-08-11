@@ -44,10 +44,10 @@ export const NEW_OFFICE_ANCHORS = {
  * (the exact anchor cells sit ON the furniture and are blocked).
  */
 export const NEW_OFFICE_DESTINATION_ANCHOR_CELLS = {
-  workBookshelf: [23, 38], // east of the Manager's Office bookshelf
-  adminCabinets: [35, 5], // in front of the grey filing cabinets
-  hallwayBookshelf: [4, 22], // in front of the IDEAS shelf
-  trashBin: [26, 9], // next to the black bin
+  workBookshelf: [22, 37], // east of the Manager's Office bookshelf
+  adminCabinets: [34, 4], // in front of the grey filing cabinets
+  hallwayBookshelf: [3, 21], // in front of the IDEAS shelf
+  trashBin: [26, 8], // at the black bin (its cell is itself free)
   receptionDesk: [32, 18], // in front of the green reception desk
   bigEntrance: [9, 5],
   frontRightDoor: [30, 1],
