@@ -13,8 +13,10 @@ const BLOOM_PROPS = {
 } as const
 const SHADOW_CASCADE = 30
 const CAMERA_POSITION: [number, number, number] = [24, 22, 24]
-const CAMERA_TARGET: [number, number, number] = [0, 1.5, 0]
-const CAMERA_ZOOM = 38
+// Re-framed for the 10 m GLB office (2026-08-10 swap): zoom raised so the
+// smaller floor fills the frame like the legacy 21.6×16.8 m office did.
+const CAMERA_TARGET: [number, number, number] = [0, 1, 0]
+const CAMERA_ZOOM = 72
 const CAMERA_NEAR = -100
 const CAMERA_FAR = 300
 

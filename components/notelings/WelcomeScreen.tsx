@@ -1,13 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Pin, Printer, Sparkles, StickyNote } from 'lucide-react'
+import { Archive, BookMarked, Library, Sparkles } from 'lucide-react'
 import GlassPanel from './GlassPanel'
 
 const DESTINATION_PILLS = [
-  { label: 'Whiteboard', icon: StickyNote },
-  { label: 'Printer', icon: Printer },
-  { label: 'Corkboard', icon: Pin },
+  { label: "Manager's Bookshelf", icon: BookMarked },
+  { label: 'Filing Cabinets', icon: Archive },
+  { label: 'Hallway Bookshelf', icon: Library },
 ]
 
 /** Bloom hero welcome: the first-viewport moment, reskinned per the reference. */
