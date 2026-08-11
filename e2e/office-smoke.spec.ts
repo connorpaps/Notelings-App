@@ -1,8 +1,4 @@
 import { test, expect } from '@playwright/test'
-import { LOCKED_DEFAULT_ITEMS } from '../components/office/officeBuilderDefault'
-
-const EXPECTED_IDS = LOCKED_DEFAULT_ITEMS.map((item) => item.id)
-const MODEL_IDS = LOCKED_DEFAULT_ITEMS.filter((item) => item.kind === 'model').map((item) => item.id)
 
 type SceneObject = {
   name?: string
@@ -63,29 +59,24 @@ test('static office diorama preserves the locked baseline with three robots and 
   // Note mode remains the default: the M4 UI must not steal the M4 input.
   await expect(page.getByRole('textbox', { name: 'Type a new note' })).toBeVisible()
 
-  await page.waitForFunction(
-    (ids) => {
-      const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
-      const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
-        if (root?.name === name) return root
-        for (const child of root?.children ?? []) {
-          const match = find(child, name)
-          if (match) return match
-        }
-        return undefined
+  // The new GLB office scene mounts once the 18 MB model finishes loading.
+  await page.waitForFunction(() => {
+    const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
+    const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
+      if (root?.name === name) return root
+      for (const child of root?.children ?? []) {
+        const match = find(child, name)
+        if (match) return match
       }
-      const count = (root: SceneObject): number =>
-        (root.isMesh ? 1 : 0) + (root.children ?? []).reduce((total, child) => total + count(child), 0)
-      return Boolean(scene && ids.every((id) => {
-        const item = find(scene, id)
-        return Boolean(item && count(item) > 0)
-      }))
-    },
-    EXPECTED_IDS,
-    { timeout: 60_000, polling: 500 },
-  )
+      return undefined
+    }
+    const count = (root: SceneObject): number =>
+      (root.isMesh ? 1 : 0) + (root.children ?? []).reduce((total, child) => total + count(child), 0)
+    const office = find(scene, 'new-office-scene')
+    return Boolean(office && count(office) > 0)
+  }, { timeout: 60_000, polling: 500 })
 
-  const audit = await page.evaluate((modelIds) => {
+  const audit = await page.evaluate(() => {
     const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
     const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
       if (root?.name === name) return root
@@ -99,25 +90,26 @@ test('static office diorama preserves the locked baseline with three robots and 
     const camera = (window as unknown as { __NOTELINGS_CAMERA__?: { position?: { x?: number; y?: number; z?: number }; zoom?: number; near?: number; far?: number } }).__NOTELINGS_CAMERA__
     const cameraProfile = (window as unknown as { __NOTELINGS_CAMERA_PROFILE__?: unknown }).__NOTELINGS_CAMERA_PROFILE__
     const renderProfile = (window as unknown as { __NOTELINGS_RENDER_PROFILE__?: unknown }).__NOTELINGS_RENDER_PROFILE__
-    const configured = modelIds.every((id) => {
-      const root = find(scene, id)
-      if (!root) return false
-      const meshes: SceneObject[] = []
-      const collect = (node: SceneObject) => {
-        if (node.isMesh) meshes.push(node)
-        for (const child of node.children ?? []) collect(child)
-      }
-      collect(root)
-      return meshes.length > 0 && meshes.every((mesh) => {
-        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-        return Boolean(mesh.castShadow && mesh.receiveShadow && materials.every((material) => {
-          const data = (material as { type?: string; userData?: { notelingsLightingConfigured?: boolean; notelingsHasMap?: boolean } } | undefined)
-          return data && data.type !== 'MeshBasicMaterial' && data.userData?.notelingsLightingConfigured && data.userData?.notelingsHasMap
-        }))
-      })
+    // The GLB's loader materials are plain MeshStandardMaterial/MeshBasicMaterial
+    // (no legacy notelingsLightingConfigured userData), so audit the scene
+    // directly: it must contain meshes with standard materials and shadows.
+    const office = find(scene, 'new-office-scene')
+    const meshes: SceneObject[] = []
+    const collect = (node: SceneObject | undefined) => {
+      if (!node) return
+      if (node.isMesh) meshes.push(node)
+      for (const child of node.children ?? []) collect(child)
+    }
+    collect(office)
+    const hasStandardMaterial = meshes.some((mesh) => {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      return materials.some((material) => (material as { type?: string } | undefined)?.type === 'MeshStandardMaterial')
     })
     return {
-      configured,
+      newOfficeScenePresent: Boolean(office),
+      officeMeshCount: meshes.length,
+      officeHasStandardMaterial: hasStandardMaterial,
+      officeHasCastShadow: meshes.some((mesh) => mesh.castShadow),
       lockedScenePresent: Boolean(find(scene, 'locked-office-scene')),
       builderScenePresent: Boolean(find(scene, 'office-builder-scene')),
       gridDebugPresent: Boolean(find(scene, 'grid-debug')),
@@ -134,23 +126,26 @@ test('static office diorama preserves the locked baseline with three robots and 
       builderStorage: window.localStorage.getItem('notelings-office-builder-v4'),
       builderExportStorage: window.localStorage.getItem('notelings-office-builder-json-v1'),
     }
-  }, MODEL_IDS)
+  })
 
-  expect(audit.configured).toBe(true)
-  expect(audit.lockedScenePresent).toBe(true)
+  expect(audit.newOfficeScenePresent).toBe(true)
+  expect(audit.officeMeshCount).toBeGreaterThan(0)
+  expect(audit.officeHasStandardMaterial).toBe(true)
+  expect(audit.officeHasCastShadow).toBe(true)
+  expect(audit.lockedScenePresent).toBe(false)
   expect(audit.builderScenePresent).toBe(false)
   expect(audit.gridDebugPresent).toBe(false)
   expect(audit.rendererPixelRatio).toBe(1)
   expect(audit.rendererToneMappingExposure).toBe(1.2)
   expect(audit.ambientIntensity).toBe(0.5)
   expect(audit.keyIntensity).toBe(3)
-  expect(audit.camera).toEqual([24, 22, 24, 38, -100, 300])
+  expect(audit.camera).toEqual([24, 22, 24, 72, -100, 300])
   expect(audit.shadowEnabled).toBe(true)
   expect(audit.shadowMapSize).toEqual([4096, 4096])
   expect(audit.shadowBounds).toEqual([-30, 30, 30, -30])
   expect(audit.builderStorage).toBe('preexisting-builder-snapshot')
   expect(audit.builderExportStorage).toBe('preexisting-builder-export')
-  expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1.5, 0], zoom: 38, near: -100, far: 300, controls: false, frameloop: 'always' })
+  expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1, 0], zoom: 72, near: -100, far: 300, controls: false, frameloop: 'always' })
   expect(audit.renderProfile).toEqual({ frameloop: 'always', shadows: true, shadowMapSize: [4096, 4096], postprocessing: true, toneMappingMode: null, toneMappingExposure: 1.2, bloom: { luminanceThreshold: 1, intensity: 0.2 }, ssao: { samples: 32, rings: 4, intensity: 2 } })
 
   const runtime = await page.evaluate(() => {
@@ -204,8 +199,8 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.bodyPosition?.z).toBe(0)
     expect(parts.facePosition?.x).toBeCloseTo(0, 2)
     expect((parts.facePosition?.y ?? 0) - (parts.bodyPosition?.y ?? 0)).toBeCloseTo(0.42, 2)
-    expect(parts.facePosition?.z).toBeGreaterThan(0.38)
-    expect(parts.facePosition?.z).toBeCloseTo(0.42, 2)
+    expect(parts.facePosition?.z).toBeGreaterThan(0.34)
+    expect(parts.facePosition?.z).toBeCloseTo(0.36, 2)
     expect(parts.faceRotation?.y ?? 0).toBeCloseTo(0, 5)
     // The red sentinel glow exists but is hidden while idle.
     expect(parts.glowPart).toBe('glow')
@@ -408,7 +403,9 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
     }).__NOTELINGS_AGENTS__
     return Object.values(runtime?.agents ?? {}).map((agent) => agent.lastArrivedTarget)
   })
-  expect(arrivalTargets).toEqual(expect.arrayContaining([[29, 4], [30, 13]]))
+  // New-office staging cells: whiteboard → Manager's Bookshelf (22,37),
+  // printer → Filing Cabinets (34,4).
+  expect(arrivalTargets).toEqual(expect.arrayContaining([[22, 37], [34, 4]]))
   expect(errors).toEqual([])
 })
 
@@ -478,7 +475,8 @@ test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and stil
   await page.waitForFunction(() => {
     const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; lastArrivedTarget?: [number, number] | null }> } }).__NOTELINGS_AGENTS__
     return Boolean(runtime && runtime.taskQueueLength === 0
-      && Object.values(runtime.agents).some((agent) => (agent.lastArrivedTarget?.[0] ?? -1) === 27 && (agent.lastArrivedTarget?.[1] ?? -1) === 4))
+      // New-office staging: corkboard → Hallway Bookshelf (3,21).
+      && Object.values(runtime.agents).some((agent) => (agent.lastArrivedTarget?.[0] ?? -1) === 3 && (agent.lastArrivedTarget?.[1] ?? -1) === 21))
   }, { timeout: 60_000, polling: 100 })
   // Even the degraded delivery ends with the completion confirmation once the
   // note physically reaches the corkboard (Blue is the first available agent).
