@@ -8,6 +8,7 @@ import {
   NEW_OFFICE_RED_START_CELL,
   NEW_OFFICE_EFFECTIVE_BLOCKED,
 } from './newOfficeGrid'
+import { NEW_OFFICE_CLEARANCE } from './newOfficeLayout'
 import AgentRobot from './AgentRobot'
 import { useAgentStore } from './agentStore'
 import { useTaskDispatcher } from './useTaskDispatcher'
@@ -71,6 +72,7 @@ export default function AgentLayer() {
           color={agents[agentId].color}
           name={`agent-robot-${agentId}`}
           errorRecoveryDelayMs={agentId === 'red' ? 5000 : undefined}
+          clearanceWorld={NEW_OFFICE_CLEARANCE}
         />
       ))}
     </group>

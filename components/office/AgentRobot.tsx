@@ -20,14 +20,17 @@ import { useAgentStore } from './agentStore'
 import type { AgentState } from './agentState'
 import { createFaceTexture } from './agentFace'
 
-const BODY_RADIUS = 0.38
+// Scaled down for the 10 m GLB office (2026-08-10 swap): the new floor plan's
+// narrowest doorways are ~0.9-0.95 m, so the capsule is 0.30 radius + 0.62
+// length with a 0.14 m navigation clearance in the new scene.
+const BODY_RADIUS = 0.3
 // Navigation uses a separately measured grid clearance because the fine grid
 // rasterizes conservative AABBs; the physical capsule is still rendered at
 // BODY_RADIUS. The path-level `isPathSafe` sweep then checks each segment
 // against the occupied cell rectangles before either spline or fallback motion
 // begins. Do not use BODY_RADIUS as cell inflation without re-auditing the
 // locked scene's narrow corridors.
-const BODY_LENGTH = 0.72
+const BODY_LENGTH = 0.62
 const BODY_Y = BODY_RADIUS + BODY_LENGTH / 2
 const BODY_FLOOR_OVERLAP = 0.02
 const DEFAULT_BODY_COLOR = '#2fa8e0'
@@ -42,14 +45,14 @@ const FACE_Y = BODY_Y + 0.4
 const FACE_LATERAL_OFFSET = 0
 // Keep the LCD just beyond the capsule's measured front radius. Values below
 // BODY_RADIUS place the plane inside the capsule at this raised Y position.
-const FACE_Z = 0.42
+const FACE_Z = 0.36
 const NOTE_WIDTH = 0.42
 const NOTE_HEIGHT = 0.52
 const NOTE_DEPTH = 0.035
 const NOTE_X = 0.28
 const NOTE_Y = BODY_Y + 0.46
 // Keep the card clearly in front of the LCD/body along the robot's local +Z.
-const NOTE_Z = 0.56
+const NOTE_Z = 0.5
 const WALK_SPEED_WORLD = 2.6
 const TURN_SPEED = 8
 const WAYPOINT_EPSILON = 0.02
@@ -69,6 +72,9 @@ type AgentRobotProps = {
   name?: string
   /** How long an error state persists before auto-recovery (M4: red sentinel uses a longer window). */
   errorRecoveryDelayMs?: number
+  /** Center clearance used for path-safety sweeps; defaults to the shared
+   *  constant (legacy). The new office passes NEW_OFFICE_CLEARANCE (0.14). */
+  clearanceWorld?: number
 }
 
 const AgentRobot = function AgentRobot({
@@ -79,6 +85,7 @@ const AgentRobot = function AgentRobot({
   color = DEFAULT_BODY_COLOR,
   name = `agent-robot-${agentId}`,
   errorRecoveryDelayMs = ERROR_RECOVERY_DELAY,
+  clearanceWorld = ROBOT_NAVIGATION_CLEARANCE,
 }: AgentRobotProps) {
   const groupRef = useRef<THREE.Group>(null)
   const glowMaterialRef = useRef<THREE.MeshBasicMaterial>(null)
@@ -174,7 +181,7 @@ const AgentRobot = function AgentRobot({
     }
 
     const safePath = isPathSafe(path, grid, blocked, {
-      clearanceWorld: ROBOT_NAVIGATION_CLEARANCE,
+      clearanceWorld,
     })
     if (!safePath) {
       clearPath()
@@ -185,13 +192,13 @@ const AgentRobot = function AgentRobot({
 
     pathRef.current = path.slice(1)
     curveRef.current = createSafePathCurve(path, grid, blocked, {
-      clearanceWorld: ROBOT_NAVIGATION_CLEARANCE,
+      clearanceWorld,
       startWorld: [group.position.x, group.position.z],
     })
     curveDistanceRef.current = 0
     curveLengthRef.current = curveRef.current?.getLength() ?? 0
     commandKindRef.current = targetKind
-  }, [agentId, arriveArchiveFinal, arriveArchiveStage, arriveAtTask, blocked, commandRevision, failTask, finishWander, grid, status, target, targetKind])
+  }, [agentId, arriveArchiveFinal, arriveArchiveStage, arriveAtTask, blocked, clearanceWorld, commandRevision, failTask, finishWander, grid, status, target, targetKind])
 
   // Idle agents continually request another reachable target. Wander commands
   // intentionally leave the store status idle so a queued task preempts them.
