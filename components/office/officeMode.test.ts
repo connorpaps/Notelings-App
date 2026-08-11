@@ -10,7 +10,7 @@ describe('office mode', () => {
     expect(ENABLE_PATH_PREVIEW).toBe(false)
   })
 
-  it('keeps the completed grid debug visualizer disabled', () => {
-    expect(ENABLE_GRID_DEBUG).toBe(false)
+  it('keeps the active GLB grid debug visualizer enabled for navigation QA', () => {
+    expect(ENABLE_GRID_DEBUG).toBe(true)
   })
 })

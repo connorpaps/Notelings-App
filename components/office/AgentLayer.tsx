@@ -12,6 +12,8 @@ import { NEW_OFFICE_CLEARANCE } from './newOfficeLayout'
 import AgentRobot from './AgentRobot'
 import { useAgentStore } from './agentStore'
 import { useTaskDispatcher } from './useTaskDispatcher'
+import GridDebugOverlay from './GridDebugOverlay'
+import { ENABLE_GRID_DEBUG } from './officeMode'
 import type { AgentId } from './agentDestinations'
 
 // Blue/Green take notes; Red is the error sentinel (never dispatched).
@@ -61,7 +63,9 @@ export default function AgentLayer() {
   }, [agents, taskQueueLength])
 
   return (
-    <group name="agent-layer" userData={{ notelingsAgentLayer: true }}>
+    <>
+      {ENABLE_GRID_DEBUG && <GridDebugOverlay blocked={effectiveBlocked} grid={NEW_OFFICE_GRID_TRANSFORM} />}
+      <group name="agent-layer" userData={{ notelingsAgentLayer: true }}>
       {AGENT_IDS.map((agentId) => (
         <AgentRobot
           key={agentId}
@@ -73,8 +77,10 @@ export default function AgentLayer() {
           name={`agent-robot-${agentId}`}
           errorRecoveryDelayMs={agentId === 'red' ? 5000 : undefined}
           clearanceWorld={NEW_OFFICE_CLEARANCE}
+          smoothPath={false}
         />
       ))}
-    </group>
+      </group>
+    </>
   )
 }

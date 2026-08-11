@@ -11,7 +11,7 @@ describe('new office grid invariants', () => {
   it('is a 42×42 grid with a sane blocked-cell population', () => {
     expect(NEW_OFFICE_GRID_COLS).toBe(42)
     expect(NEW_OFFICE_GRID_ROWS).toBe(42)
-    expect(NEW_OFFICE_BLOCKED_CELLS.size).toBeGreaterThan(400) // walls + furniture
+    expect(NEW_OFFICE_BLOCKED_CELLS.size).toBeGreaterThan(400) // walls + low furniture
     expect(NEW_OFFICE_BLOCKED_CELLS.size).toBeLessThan(1500) // still mostly open floor
   })
 
@@ -47,6 +47,18 @@ describe('new office grid invariants', () => {
         expect(findPath(start, goal, OPTS), `start ${start} -> ${goal}`).not.toBeNull()
       }
     }
+  })
+
+  it('keeps the reception/storage pocket blocked while preserving the work doorway route', () => {
+    // The GLB contains low desk/storage geometry below the old 0.2m raster
+    // floor threshold. These cells must stay blocked so the visible robot body
+    // cannot enter the furniture pocket; the corridor carve must still leave
+    // the measured glass-room doorway route connected.
+    for (const cell of [[33, 31], [33, 32]]) {
+      expect(NEW_OFFICE_BLOCKED_CELLS.has(`${cell[0]},${cell[1]}`), `low furniture cell ${cell}`).toBe(true)
+    }
+    const path = findPath(NEW_OFFICE_AGENT_START_CELLS.blue, TASK_DESTINATIONS.whiteboard, OPTS)
+    expect(path, 'work path remains reachable after low-furniture rasterization').not.toBeNull()
   })
 
   it('keeps the glass-room bookshelf reachable through a real doorway', () => {

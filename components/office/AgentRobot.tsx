@@ -20,9 +20,10 @@ import { useAgentStore } from './agentStore'
 import type { AgentState } from './agentState'
 import { createFaceTexture } from './agentFace'
 
-// Scaled down for the 10 m GLB office (2026-08-10 swap): the new floor plan's
-// narrowest doorways are ~0.9-0.95 m, so the capsule is 0.30 radius + 0.62
-// length with a 0.14 m navigation clearance in the new scene.
+// Sized for the 10 m GLB office (2026-08-10 swap): the baked map owns the
+// physical 0.30 m center clearance; the visible robot is rendered at 80% of
+// the original GLB-swap size so it reads proportionally beside the furniture.
+const ROBOT_VISUAL_SCALE = 0.8
 const BODY_RADIUS = 0.3
 // Navigation uses a separately measured grid clearance because the fine grid
 // rasterizes conservative AABBs; the physical capsule is still rendered at
@@ -73,8 +74,11 @@ type AgentRobotProps = {
   /** How long an error state persists before auto-recovery (M4: red sentinel uses a longer window). */
   errorRecoveryDelayMs?: number
   /** Center clearance used for path-safety sweeps; defaults to the shared
-   *  constant (legacy). The new office passes NEW_OFFICE_CLEARANCE (0.14). */
+   *  constant (legacy). The new office passes NEW_OFFICE_CLEARANCE (0). */
   clearanceWorld?: number
+  /** Use corner-smoothed curves only when the active scene has been audited
+   *  for them. Cell-center segments are the conservative GLB-office default. */
+  smoothPath?: boolean
 }
 
 const AgentRobot = function AgentRobot({
@@ -86,6 +90,7 @@ const AgentRobot = function AgentRobot({
   name = `agent-robot-${agentId}`,
   errorRecoveryDelayMs = ERROR_RECOVERY_DELAY,
   clearanceWorld = ROBOT_NAVIGATION_CLEARANCE,
+  smoothPath = true,
 }: AgentRobotProps) {
   const groupRef = useRef<THREE.Group>(null)
   const glowMaterialRef = useRef<THREE.MeshBasicMaterial>(null)
@@ -191,14 +196,16 @@ const AgentRobot = function AgentRobot({
     }
 
     pathRef.current = path.slice(1)
-    curveRef.current = createSafePathCurve(path, grid, blocked, {
-      clearanceWorld,
-      startWorld: [group.position.x, group.position.z],
-    })
+    curveRef.current = smoothPath
+      ? createSafePathCurve(path, grid, blocked, {
+          clearanceWorld,
+          startWorld: [group.position.x, group.position.z],
+        })
+      : null
     curveDistanceRef.current = 0
     curveLengthRef.current = curveRef.current?.getLength() ?? 0
     commandKindRef.current = targetKind
-  }, [agentId, arriveArchiveFinal, arriveArchiveStage, arriveAtTask, blocked, clearanceWorld, commandRevision, failTask, finishWander, grid, status, target, targetKind])
+  }, [agentId, arriveArchiveFinal, arriveArchiveStage, arriveAtTask, blocked, clearanceWorld, commandRevision, failTask, finishWander, grid, smoothPath, status, target, targetKind])
 
   // Idle agents continually request another reachable target. Wander commands
   // intentionally leave the store status idle so a queued task preempts them.
@@ -318,11 +325,14 @@ const AgentRobot = function AgentRobot({
       ref={groupRef}
       name={name}
       position={[startWorld[0], 0, startWorld[1]]}
+      scale={ROBOT_VISUAL_SCALE}
       userData={{
         notelingsAgentRole: 'agent',
         notelingsAgentId: agentId,
         notelingsAgentState: status,
         notelingsAgentStart: start,
+        notelingsSmoothPath: smoothPath,
+        notelingsVisualScale: ROBOT_VISUAL_SCALE,
       }}
     >
       <mesh

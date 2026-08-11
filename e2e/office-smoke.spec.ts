@@ -13,6 +13,7 @@ type SceneObject = {
   parent?: { name?: string }
   material?: unknown
   visible?: boolean
+  scale?: { x?: number; y?: number; z?: number }
   shadow?: {
     mapSize?: { x?: number; y?: number }
     camera?: { left?: number; right?: number; top?: number; bottom?: number }
@@ -139,18 +140,18 @@ test('static office diorama preserves the locked baseline with three robots and 
   expect(audit.officeHasCastShadow).toBe(true)
   expect(audit.lockedScenePresent).toBe(false)
   expect(audit.builderScenePresent).toBe(false)
-  expect(audit.gridDebugPresent).toBe(false)
+  expect(audit.gridDebugPresent).toBe(true)
   expect(audit.rendererPixelRatio).toBe(1)
   expect(audit.rendererToneMappingExposure).toBe(1.2)
   expect(audit.ambientIntensity).toBe(0.5)
   expect(audit.keyIntensity).toBe(3)
-  expect(audit.camera).toEqual([24, 22, 24, 72, -100, 300])
+  expect(audit.camera).toEqual([24, 22, 24, 86, -100, 300])
   expect(audit.shadowEnabled).toBe(true)
   expect(audit.shadowMapSize).toEqual([4096, 4096])
   expect(audit.shadowBounds).toEqual([-30, 30, 30, -30])
   expect(audit.builderStorage).toBe('preexisting-builder-snapshot')
   expect(audit.builderExportStorage).toBe('preexisting-builder-export')
-  expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1, 0], zoom: 72, near: -100, far: 300, controls: false, frameloop: 'always' })
+  expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1, 0], zoom: 86, near: -100, far: 300, controls: false, frameloop: 'always' })
   expect(audit.renderProfile).toEqual({ frameloop: 'always', shadows: true, shadowMapSize: [4096, 4096], postprocessing: true, toneMappingMode: null, toneMappingExposure: 1.2, bloom: { luminanceThreshold: 1, intensity: 0.2 }, ssao: { samples: 32, rings: 4, intensity: 2 } })
 
   const runtime = await page.evaluate(() => {
@@ -190,6 +191,8 @@ test('static office diorama preserves the locked baseline with three robots and 
         glowVisible: glow?.visible,
         notePart: note?.userData?.notelingsRobotPart,
         noteVisible: note?.visible,
+        robotScale: robot?.scale,
+        smoothPath: robot?.userData?.notelingsSmoothPath,
       }
     })
   })
@@ -204,6 +207,9 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.bodyPosition?.z).toBe(0)
     expect(parts.facePosition?.x).toBeCloseTo(0, 2)
     expect((parts.facePosition?.y ?? 0) - (parts.bodyPosition?.y ?? 0)).toBeCloseTo(0.42, 2)
+    // Robot roots are intentionally scaled to 80% for the larger GLB framing.
+    expect(parts.robotScale).toEqual({ x: 0.8, y: 0.8, z: 0.8 })
+    expect(parts.smoothPath).toBe(false)
     expect(parts.facePosition?.z).toBeGreaterThan(0.34)
     expect(parts.facePosition?.z).toBeCloseTo(0.36, 2)
     expect(parts.faceRotation?.y ?? 0).toBeCloseTo(0, 5)

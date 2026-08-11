@@ -26,9 +26,22 @@ On Windows, run the commands from Git Bash (the committed shell scripts use port
 
 ## Run the app
 
+Foreground (any machine):
+
 ```bash
 npm run dev
 ```
+
+Detached background (recommended on Windows Git Bash, where `tmux` is not installed):
+
+```bash
+bash scripts/dev-server.sh start   # boot the dev server and wait for readiness
+bash scripts/dev-server.sh status  # is it up? PID + log tail
+bash scripts/dev-server.sh logs    # follow the server log
+bash scripts/dev-server.sh stop    # shut it down
+```
+
+`start` is idempotent — it is a no-op when the server is already running, so it is safe at the top of every session.
 
 Open <http://localhost:3000>.
 

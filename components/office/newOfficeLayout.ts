@@ -6,7 +6,8 @@ export const NEW_OFFICE_MODEL_PATH = '/models/3D_Note_Office_2/3d_note_office.gl
 /**
  * Measured GLB bbox center (model space): min (-10.0901, -0.2376, -0.1234),
  * max (0.008, 2.0126, 10). The scene is recentered by subtracting this (x/z
- * only); floor top is at y=0. Guarded by newOfficeLayout.test.ts (bbox drift).
+ * only); the visible floor surface sits at y ≈ -0.014 (NEW_OFFICE_FLOOR).
+ * Guarded by newOfficeLayout.test.ts (bbox drift).
  */
 export const NEW_OFFICE_RECENTER: readonly [number, number, number] = [5.041, 0, -4.9383]
 
@@ -20,6 +21,22 @@ export const NEW_OFFICE_GRID_TRANSFORM: GridTransform = {
   cols: NEW_OFFICE_GRID_COLS,
   rows: NEW_OFFICE_GRID_ROWS,
 }
+
+/**
+ * The visible walkable slab (`floor.001`) measured from the GLB in world space
+ * (after NEW_OFFICE_RECENTER): its top surface sits at y = -0.0141 (the grid
+ * y=0 plane is ~1.4 cm above the floor), and its footprint is ~10.06 × 10.11 m
+ * with a center within ~1.2 cm of the grid origin (0,0). The debug overlay
+ * paints walkable cells only inside this footprint so the pathing area never
+ * extends past the real floor. Guarded by newOfficeLayout.test.ts.
+ */
+export const NEW_OFFICE_FLOOR = {
+  topY: -0.0141,
+  minX: -5.04,
+  maxX: 5.0163,
+  minZ: -5.0617,
+  maxZ: 5.0514,
+} as const
 
 /**
  * Runtime path-safety sweep clearance (world units). The baked blocked map

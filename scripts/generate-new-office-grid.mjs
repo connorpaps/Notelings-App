@@ -51,17 +51,20 @@ const CZ = 4.9383 // model bbox center z (scene recenter = -CZ)
 // the map is already center-safe; the sweep only rejects true corner clips.
 // DO NOT double-count clearance here AND in the runtime sweep.
 const CLEARANCE = 0.3
+const OBSTACLE_FLOOR_Y = 0.02
 const THICK = 0.05 // conservative wall thickness margin for thin triangles
 
-// Material → y-band (model space) = the robot BODY band only. The floor
-// (max y ≈ -0.01), the baseboard (max y ≈ 0.109) and low 0.14 m tables sit
-// below the band and are deliberately ignored (robots float/slide above them).
+// Material → y-band (model space) covers the full rendered robot body, from
+// just above the floor through desk height. The previous 0.2 m lower bound
+// ignored bench legs, low cabinets, and desk bases that the capsule visibly
+// intersects. Keep the actual floor below the band, but include all furniture
+// that can overlap the robot's body (visual bottom is ~0.0 m).
 // Glass partitions span y 0.03..1.76 with 0.16 m lintels at y 1.83..1.98; the
-// lintels are INSIDE the glass band (they block the upper wall line), which is
-// fine because the CARVE_ZONES open the actual doorways at the robot band.
+// lintels are INSIDE the glass band, which is fine because CARVE_ZONES open
+// only the measured doorways.
 const BANDS = {
-  Glass: [0.2, 2.2],
-  default: [0.2, 1.6],
+  Glass: [OBSTACLE_FLOOR_Y, 2.2],
+  default: [OBSTACLE_FLOOR_Y, 1.6],
 }
 
 // Desk-top props and tiny decor never block navigation: they sit ON furniture
@@ -86,7 +89,6 @@ const SKIP_MATERIALS = new Set([
   'Stalks',
   '01_-_Default',
   'Coffee',
-  'Metal',
   'floor', // desk-top floor bits (the real floor is 'floor.001', below the band)
 ])
 
@@ -319,8 +321,9 @@ loader.parse(fs.readFileSync(glbPath).buffer, '', (gltf) => {
 /**
  * Blocked cells for the 3D Note Office (42×42 @ 0.25 m, world origin (0,0)).
  * Rasterized from the GLB geometry (walls, glass partitions, furniture in the
- * per-material y-bands), inflated by the robot body radius (0.30 — the full
- * physical center clearance, so the runtime sweep runs with clearance 0), then
+ * per-material y-bands from y=0.02 through the robot body height), inflated by
+ * the robot body radius (0.30 — the full physical center clearance, so the runtime
+ * sweep runs with clearance 0), then
  * carved with the intentional access pockets from CARVE_ZONES in the generator.
  * Doorways are open because the GLB has no door leaves. Keys are "col,row":
  * row 41 = back (z≈5.0), row 0 = front (z≈-5.25); col 0 = left (x≈-5.25).

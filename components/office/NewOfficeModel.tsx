@@ -9,6 +9,7 @@ import { NEW_OFFICE_MODEL_PATH, NEW_OFFICE_RECENTER } from './newOfficeLayout'
  * The 3D Note Office GLB. Cloned (never reparent the useGLTF cache — React 19
  * StrictMode empties it; see lessons) and recentered so the floor center sits
  * at world origin, matching the static navigation grid in newOfficeGridData.
+ * The visible floor slab's top surface sits at y ≈ -0.014 (NEW_OFFICE_FLOOR).
  */
 export default function NewOfficeModel() {
   const { scene } = useGLTF(NEW_OFFICE_MODEL_PATH)

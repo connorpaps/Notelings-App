@@ -1,7 +1,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { ENABLE_OFFICE_BUILDER } from '@/components/office/officeMode'
+import { ENABLE_GRID_DEBUG, ENABLE_OFFICE_BUILDER } from '@/components/office/officeMode'
+import GridEditorPanel from '@/components/office/GridEditorPanel'
 import NotelingsUI from '@/components/notelings/NotelingsUI'
 import BackgroundVideo from '@/components/notelings/BackgroundVideo'
 
@@ -32,6 +33,8 @@ export default function Home() {
         {OfficeBuilderApp ? <OfficeBuilderApp /> : <OfficeCanvas />}
       </div>
       <NotelingsUI enabled={!ENABLE_OFFICE_BUILDER} />
+      {/* Debug-only Nav Grid Editor (manual walkable-area painting + lock-in export). */}
+      {ENABLE_GRID_DEBUG && !ENABLE_OFFICE_BUILDER && <GridEditorPanel />}
     </main>
   )
 }
