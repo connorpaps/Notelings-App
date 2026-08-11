@@ -2,10 +2,8 @@
  * Generates components/office/newOfficeGridData.ts from the 3D Note Office GLB.
  *
  * Rasterizes wall/glass/furniture geometry (per-material y-bands) into the
- * 42×42 @ 0.25 m navigation grid, inflates by NEW_OFFICE_CLEARANCE, applies
- * intentional access pockets / doorways (CARVE_ZONES, model coordinates),
- * prints a doorway-gap report and an anchor report, then writes the baked data
- * module.
+ * 42×42 @ 0.25 m navigation grid, inflates by the robot body radius (0.30,
+ * the full physical center clearance — the runtime sweep uses clearance 0),
  *
  * Run: node scripts/generate-new-office-grid.mjs
  * Regenerate whenever the GLB changes; commit the emitted file.
@@ -47,7 +45,12 @@ const N = 42
 const HALF = N / 2 // 21
 const CX = -5.041 // model bbox center x (scene recenter = -CX)
 const CZ = 4.9383 // model bbox center z (scene recenter = -CZ)
-const CLEARANCE = 0.14 // robot grid clearance (radius 0.24 + 0.14 margin ~ 0.76 m effective)
+// The baked map owns the FULL physical center clearance: the robot body radius
+// (0.30). A free cell's center is therefore >= 0.30 m from every obstacle, so
+// the runtime path-safety sweep runs with clearance 0 (NEW_OFFICE_CLEARANCE) —
+// the map is already center-safe; the sweep only rejects true corner clips.
+// DO NOT double-count clearance here AND in the runtime sweep.
+const CLEARANCE = 0.3
 const THICK = 0.05 // conservative wall thickness margin for thin triangles
 
 // Material → y-band (model space) = the robot BODY band only. The floor
@@ -315,8 +318,9 @@ loader.parse(fs.readFileSync(glbPath).buffer, '', (gltf) => {
 /**
  * Blocked cells for the 3D Note Office (42×42 @ 0.25 m, world origin (0,0)).
  * Rasterized from the GLB geometry (walls, glass partitions, furniture in the
- * per-material y-bands), inflated by NEW_OFFICE_CLEARANCE (0.14), then carved
- * with the intentional access pockets from CARVE_ZONES in the generator.
+ * per-material y-bands), inflated by the robot body radius (0.30 — the full
+ * physical center clearance, so the runtime sweep runs with clearance 0), then
+ * carved with the intentional access pockets from CARVE_ZONES in the generator.
  * Doorways are open because the GLB has no door leaves. Keys are "col,row":
  * row 41 = back (z≈5.0), row 0 = front (z≈-5.25); col 0 = left (x≈-5.25).
  */

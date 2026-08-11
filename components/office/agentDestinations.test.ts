@@ -6,9 +6,9 @@ import {
   TRASH_STAGING_CELL,
 } from './agentDestinations'
 import { NEW_OFFICE_AGENT_START_CELLS, NEW_OFFICE_RED_START_CELL } from './newOfficeGrid'
-import { NEW_OFFICE_GRID_COLS, NEW_OFFICE_GRID_ROWS, NEW_OFFICE_GRID_TRANSFORM } from './newOfficeLayout'
+import { NEW_OFFICE_CLEARANCE, NEW_OFFICE_GRID_COLS, NEW_OFFICE_GRID_ROWS, NEW_OFFICE_GRID_TRANSFORM } from './newOfficeLayout'
 import { NEW_OFFICE_BLOCKED_CELLS } from './newOfficeGridData'
-import { findPath, gridCellToWorld } from './pathfinding'
+import { createSafePathCurve, findPath, gridCellToWorld, isPathSafe } from './pathfinding'
 
 const GRID_OPTS = { blocked: NEW_OFFICE_BLOCKED_CELLS, cols: NEW_OFFICE_GRID_COLS, rows: NEW_OFFICE_GRID_ROWS }
 
@@ -41,6 +41,40 @@ describe('new-office task destinations', () => {
         expect(path, `start ${start} -> ${key} should be reachable`).not.toBeNull()
       }
       expect(findPath(start, TRASH_STAGING_CELL, GRID_OPTS), `start ${start} -> trash`).not.toBeNull()
+    }
+  })
+
+  it('keeps every task route safe under the runtime sweep clearance', () => {
+    // The baked map owns the full 0.30 m physical clearance; the runtime sweep
+    // (NEW_OFFICE_CLEARANCE = 0) must accept every planned path. This guards
+    // the no-double-counting contract (see newOfficeLayout.ts).
+    for (const start of [...Object.values(NEW_OFFICE_AGENT_START_CELLS), NEW_OFFICE_RED_START_CELL]) {
+      for (const [key, goal] of Object.entries(TASK_DESTINATIONS)) {
+        const path = findPath(start, goal, GRID_OPTS)
+        expect(path, `${key} from ${start} should be reachable`).not.toBeNull()
+        expect(
+          isPathSafe(path!, NEW_OFFICE_GRID_TRANSFORM, NEW_OFFICE_BLOCKED_CELLS, {
+            clearanceWorld: NEW_OFFICE_CLEARANCE,
+          }),
+          `${key} path from ${start} must pass the safety sweep`,
+        ).toBe(true)
+      }
+      const trashPath = findPath(start, TRASH_STAGING_CELL, GRID_OPTS)
+      expect(trashPath, `trash from ${start}`).not.toBeNull()
+      expect(
+        isPathSafe(trashPath!, NEW_OFFICE_GRID_TRANSFORM, NEW_OFFICE_BLOCKED_CELLS, {
+          clearanceWorld: NEW_OFFICE_CLEARANCE,
+        }),
+      ).toBe(true)
+      // A rejected spline is valid (the robot falls back to the checked
+      // orthogonal path), but when a curve exists it must be usable.
+      const curve = createSafePathCurve(
+        findPath(start, TASK_DESTINATIONS.whiteboard, GRID_OPTS)!,
+        NEW_OFFICE_GRID_TRANSFORM,
+        NEW_OFFICE_BLOCKED_CELLS,
+        { clearanceWorld: NEW_OFFICE_CLEARANCE },
+      )
+      if (curve) expect(curve.getLength()).toBeGreaterThan(0)
     }
   })
 

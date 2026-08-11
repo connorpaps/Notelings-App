@@ -21,8 +21,15 @@ export const NEW_OFFICE_GRID_TRANSFORM: GridTransform = {
   rows: NEW_OFFICE_GRID_ROWS,
 }
 
-/** Robot center clearance (world units) for the new office (body radius 0.30). */
-export const NEW_OFFICE_CLEARANCE = 0.14
+/**
+ * Runtime path-safety sweep clearance (world units). The baked blocked map
+ * already owns the FULL physical center clearance (the 0.30 m robot body
+ * radius, inflated by scripts/generate-new-office-grid.mjs), so the runtime
+ * sweep runs with 0 — it only rejects true corner clips. NEVER raise this
+ * without re-baking the map: double-counting clearance rejects every path in
+ * this dense 0.25 m-cell office (see the 2026-08-10 E2E incident).
+ */
+export const NEW_OFFICE_CLEARANCE = 0
 
 /** Key spots in MODEL coordinates (verified against the GLB geometry, 2026-08-10). */
 export const NEW_OFFICE_ANCHORS = {
