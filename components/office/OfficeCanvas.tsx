@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { Canvas } from '@react-three/fiber'
 import { Bloom, EffectComposer, SSAO, ToneMapping } from '@react-three/postprocessing'
-import VoxelOffice from './VoxelOffice'
+import NewOfficeScene from './NewOfficeScene'
 
 const SHADOW_MAP_SIZE = 4096
 const TONE_MAPPING_EXPOSURE = 1.2
@@ -133,7 +133,7 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
         shadow-camera-far={70}
       />
       <hemisphereLight name="office-fill" args={['#d8eeee', '#34504f', 0.32]} />
-      <VoxelOffice />
+      <NewOfficeScene />
       <EffectComposer enableNormalPass>
         <SSAO {...SSAO_PROPS} />
         <Bloom {...BLOOM_PROPS} />
