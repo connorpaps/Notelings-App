@@ -60,6 +60,9 @@ test('static office diorama preserves the locked baseline with three robots and 
   await expect(page.getByRole('textbox', { name: 'Type a new note' })).toBeVisible()
 
   // The new GLB office scene mounts once the 18 MB model finishes loading.
+  // Wait for the full mesh count: AgentLayer alone is ~21 meshes (3 robots +
+  // a few office props), while the GLB adds ~696 — so a count > 100 proves
+  // the model itself mounted, not just the agent layer.
   await page.waitForFunction(() => {
     const scene = (window as unknown as { __NOTELINGS_SCENE__?: SceneObject }).__NOTELINGS_SCENE__
     const find = (root: SceneObject | undefined, name: string): SceneObject | undefined => {
@@ -73,7 +76,7 @@ test('static office diorama preserves the locked baseline with three robots and 
     const count = (root: SceneObject): number =>
       (root.isMesh ? 1 : 0) + (root.children ?? []).reduce((total, child) => total + count(child), 0)
     const office = find(scene, 'new-office-scene')
-    return Boolean(office && count(office) > 0)
+    return Boolean(office && count(office) > 100)
   }, { timeout: 60_000, polling: 500 })
 
   const audit = await page.evaluate(() => {
