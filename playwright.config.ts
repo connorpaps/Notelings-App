@@ -16,6 +16,10 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // The e2e baseline samples pixels from the WebGL canvas (corner-alpha +
+    // readPixels), which needs preserveDrawingBuffer. Normal runs leave it
+    // off for GPU memory; only the Playwright server turns it on.
+    env: { NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER: '1' },
   },
   projects: [
     {

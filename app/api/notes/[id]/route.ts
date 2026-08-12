@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { NotePatchSchema, type NotePatch } from '@/lib/notes/notesApi'
 import { createServerSupabase } from '@/lib/supabase/server'
+import { isSameOrigin } from '@/lib/apiGuard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -9,6 +10,9 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 /** Update content, tags, and/or lifecycle status (pending/in_transit/filed/archived). */
 export async function PATCH(request: Request, context: RouteContext) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   const { id } = await context.params
   let patch: NotePatch
   try {
@@ -34,7 +38,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 /** Permanently delete a row (used from the archived view). */
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   const { id } = await context.params
   const { error, count } = await createServerSupabase()
     .from('notes')

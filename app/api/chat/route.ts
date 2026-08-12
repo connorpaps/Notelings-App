@@ -10,6 +10,7 @@ import { createUiMessageStreamResponse } from '@/lib/notes/uiMessageStream'
 import { NotesListSchema } from '@/lib/notes/notesApi'
 import type { NoteRecord } from '@/lib/notes/types'
 import { createServerSupabase } from '@/lib/supabase/server'
+import { CHAT_RATE_LIMIT, isSameOrigin, rateLimit } from '@/lib/apiGuard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -32,6 +33,13 @@ const COUNT_CITATION_CAP = 12
  *  - Archived notes are retired from the brain and excluded.
  */
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  if (!rateLimit(request, { ...CHAT_RATE_LIMIT, scope: 'chat' })) {
+    return NextResponse.json({ error: 'Too many requests, please slow down' }, { status: 429 })
+  }
+
   let input: ChatRequest
   try {
     input = ChatRequestSchema.parse(await request.json())

@@ -15,7 +15,6 @@ import { LOCKED_DEFAULT_ITEMS } from './officeBuilderDefault'
 import {
   getBuilderAssets,
   type BuilderAsset,
-  type BuilderCategory,
   type BuilderItem,
   type BuilderTransform,
 } from './officeBuilderAssets'

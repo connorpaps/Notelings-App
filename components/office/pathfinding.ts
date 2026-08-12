@@ -242,7 +242,7 @@ export function buildEffectiveBlockedCells(
       footprint = item.footprint ?? { width: transform.scale[0], depth: transform.scale[1] }
     }
 
-    const [cx, cy, cz] = item.transform.position
+    const [cx, , cz] = item.transform.position
     const [sx, , sz] = item.transform.scale
     const rotationY = item.transform.rotation[1] ?? 0
     const clearance = Math.max(0, opts.clearanceWorld ?? 0)

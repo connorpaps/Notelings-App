@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { NotesListSchema } from '@/lib/notes/notesApi'
 import { createServerSupabase } from '@/lib/supabase/server'
+import { isSameOrigin } from '@/lib/apiGuard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -8,7 +9,10 @@ export const maxDuration = 30
 /** All notes, newest first. Read-only; the client fetches once on mount and
  *  then follows the Realtime channel. Service role keeps the anon key
  *  read-only. */
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   const { data, error } = await createServerSupabase()
     .from('notes')
     .select('*')

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CELL_SIZE, OFFICE_COLS, OFFICE_ROWS } from './officeLayout'
 import { LOCKED_DEFAULT_ITEMS } from './officeBuilderDefault'
-import { findFreeCell, findPath, gridCellToWorld, worldToGridCell } from './pathfinding'
+import { findPath, gridCellToWorld, worldToGridCell } from './pathfinding'
 import {
   AGENT_GRID_COLS,
   AGENT_GRID_RESOLUTION,

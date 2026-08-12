@@ -22,15 +22,17 @@ begin
   end if;
 end $$;
 
--- Single-user MVP: no auth exists, so RLS is enabled with one permissive
--- policy. Server writes use the service-role key and bypass RLS; tighten
--- this policy when authentication lands.
+-- Single-user MVP (hardened 2026-08-12): RLS is enabled and the anon role is
+-- READ-ONLY. All writes go through server routes with the service-role key
+-- (which bypasses RLS), so the browser's anon key only ever needs SELECT (for
+-- the Realtime postgres_changes subscription). This protects WRITE integrity,
+-- not confidentiality: the public anon key can still SELECT all notes. Tighten
+-- the SELECT policy when auth lands.
 alter table public.notes enable row level security;
 
-create policy "notes_single_user_all" on public.notes
-  for all to anon
-  using (true)
-  with check (true);
+create policy "notes_anon_read" on public.notes
+  for select to anon
+  using (true);
 
 -- Realtime: publication membership + full-row DELETE payloads.
 do $$

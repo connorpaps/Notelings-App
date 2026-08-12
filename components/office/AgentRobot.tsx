@@ -17,7 +17,6 @@ import {
 import type { AgentId } from './agentDestinations'
 import { pickWanderCell } from './agentWandering'
 import { useAgentStore } from './agentStore'
-import type { AgentState } from './agentState'
 import { createFaceTexture } from './agentFace'
 
 // Sized for the 10 m GLB office (2026-08-10 swap): the baked map owns the

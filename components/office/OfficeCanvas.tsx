@@ -65,7 +65,10 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
       gl={{
         antialias: true,
         alpha: true,
-        preserveDrawingBuffer: true,
+        // Kept true only for e2e pixel sampling (corner-alpha + readPixels);
+        // normal runs omit it to avoid the extra GPU memory copy. See
+        // playwright.config.ts webServer.env.
+        preserveDrawingBuffer: process.env.NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER === '1',
         powerPreference: 'high-performance',
         toneMapping: THREE.ACESFilmicToneMapping,
         toneMappingExposure: TONE_MAPPING_EXPOSURE,

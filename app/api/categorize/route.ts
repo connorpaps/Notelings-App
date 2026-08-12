@@ -2,11 +2,19 @@ import { NextResponse } from 'next/server'
 import { CategorizeResponseSchema, NoteInputSchema } from '@/lib/notes/categorization'
 import { categorizeNote } from '@/lib/notes/categorizeNote'
 import { createServerSupabase } from '@/lib/supabase/server'
+import { CATEGORIZE_RATE_LIMIT, isSameOrigin, rateLimit } from '@/lib/apiGuard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  if (!rateLimit(request, { ...CATEGORIZE_RATE_LIMIT, scope: 'categorize' })) {
+    return NextResponse.json({ error: 'Too many requests, please slow down' }, { status: 429 })
+  }
+
   let input: { content: string }
   try {
     input = NoteInputSchema.parse(await request.json())
