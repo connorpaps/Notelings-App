@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "60fps-animation": {
+      "source": "iart-ai/web-animation-skills",
+      "sourceType": "github",
+      "skillPath": "skills/60fps-animation/SKILL.md",
+      "computedHash": "3750e18ec8049d581f94f0f49a5204bc0b3ba2a6f9c5fcc4e3c1b08757143a46"
+    },
+    "d3-viz": {
+      "source": "chrisvoncsefalvay/claude-d3js-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "7bf222fdb6005fc8b802b43b93a5f4db9b40db15ec5c13a646ab5edfa52b94e7"
+    },
     "design-taste-frontend-v1": {
       "source": "leonxlnx/taste-skill",
       "sourceType": "github",

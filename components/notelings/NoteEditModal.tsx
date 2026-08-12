@@ -3,31 +3,14 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { useAgentStore } from '@/components/office/agentStore'
-import { NOTE_CONTENT_MAX } from '@/lib/notes/categorization'
+import { EditNoteSchema, parseTags, validateTags } from '@/lib/notes/noteEdit'
 import { NoteRecordSchema } from '@/lib/notes/notesApi'
 import type { NoteRecord } from '@/lib/notes/types'
 import GlassModal from './GlassModal'
 import { Spinner } from '@/components/ui/spinner'
 
-const EditNoteSchema = z.object({
-  content: z
-    .string()
-    .trim()
-    .min(1, 'Note cannot be empty')
-    .max(NOTE_CONTENT_MAX, `Notes are limited to ${NOTE_CONTENT_MAX} characters`),
-  // Comma-separated input; parsed + validated in the submit handler.
-  tags: z.string(),
-})
 type EditNoteForm = { content: string; tags: string }
-
-const MAX_TAGS = 5
-const MAX_TAG_LENGTH = 40
-
-function parseTags(value: string): string[] {
-  return value.split(',').map((tag) => tag.trim()).filter(Boolean)
-}
 
 type NoteEditModalProps = {
   note: NoteRecord
@@ -47,8 +30,9 @@ export default function NoteEditModal({ note, onClose }: NoteEditModalProps) {
 
   const onSubmit = handleSubmit(async ({ content, tags }) => {
     const tagList = parseTags(tags)
-    if (tagList.length > MAX_TAGS || tagList.some((tag) => tag.length > MAX_TAG_LENGTH)) {
-      toast.error(`Tags: at most ${MAX_TAGS}, each up to ${MAX_TAG_LENGTH} characters.`)
+    const invalid = validateTags(tagList)
+    if (invalid) {
+      toast.error(invalid)
       return
     }
     try {

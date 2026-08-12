@@ -8,6 +8,7 @@ import AgentStatusCard from './AgentStatusCard'
 import KanbanPanel from './KanbanPanel'
 import TerminalDock from './TerminalDock'
 import OfficeViewControls from './OfficeViewControls'
+import KnowledgeGraphOverlay from './KnowledgeGraphOverlay'
 import { useTaskCompletionToasts } from './useTaskCompletionToasts'
 import { useArchiveToasts } from './useArchiveToasts'
 import { useNotesRealtime } from './useNotesRealtime'
@@ -107,6 +108,8 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
           <KanbanPanel className="w-full" />
         </div>
       )}
+      {/* M5: knowledge graph overlay (works even in Hide-UI mode). */}
+      <KnowledgeGraphOverlay />
       {!hidden && <Toaster position="bottom-right" />}
     </>
   )

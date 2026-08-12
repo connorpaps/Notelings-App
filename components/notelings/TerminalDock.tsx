@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Search, Terminal } from 'lucide-react'
+import { Network, Search, Terminal } from 'lucide-react'
+import { useOfficeViewStore } from '@/components/office/officeViewStore'
 import CommandDock from './CommandDock'
 import TerminalLog from './TerminalLog'
 import GlassPanel from './GlassPanel'
@@ -60,6 +61,15 @@ export default function TerminalDock() {
               className="pointer-events-auto flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
             >
               <Search size={14} />
+            </button>
+            <button
+              type="button"
+              aria-label="Open knowledge graph"
+              title="Open knowledge graph"
+              onClick={() => useOfficeViewStore.getState().toggleGraph()}
+              className="pointer-events-auto flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
+            >
+              <Network size={14} />
             </button>
           </div>
           <div className="flex items-center gap-4">

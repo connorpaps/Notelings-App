@@ -1,21 +1,37 @@
 'use client'
 
-import { Eye, EyeOff, Grid3x3 } from 'lucide-react'
+import { Eye, EyeOff, Grid3x3, Network } from 'lucide-react'
 import { useOfficeViewStore } from '@/components/office/officeViewStore'
 
 /**
  * Small always-on view controls, rendered in the overlay header. They stay
  * reachable even when "Hide UI" collapses the rest of the chrome, so the user
- * can always bring the UI back or re-open the Nav Grid Editor.
+ * can always bring the UI back, re-open the Nav Grid Editor, or open the M5
+ * Knowledge Graph.
  */
 export default function OfficeViewControls() {
   const gridEditorOpen = useOfficeViewStore((state) => state.gridEditorOpen)
   const uiHidden = useOfficeViewStore((state) => state.uiHidden)
+  const graphOpen = useOfficeViewStore((state) => state.graphOpen)
   const toggleGridEditor = useOfficeViewStore((state) => state.toggleGridEditor)
   const toggleUiHidden = useOfficeViewStore((state) => state.toggleUiHidden)
+  const toggleGraph = useOfficeViewStore((state) => state.toggleGraph)
 
   return (
     <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-white/5 p-1">
+      <button
+        type="button"
+        onClick={toggleGraph}
+        aria-pressed={graphOpen}
+        aria-label={graphOpen ? 'Close knowledge graph' : 'Show knowledge graph'}
+        title={graphOpen ? 'Close knowledge graph' : 'Show knowledge graph'}
+        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-white/10 active:scale-95 ${
+          graphOpen ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white'
+        }`}
+      >
+        <Network size={13} strokeWidth={2.5} />
+        <span className="hidden sm:inline">{graphOpen ? 'Graph open' : 'Graph'}</span>
+      </button>
       <button
         type="button"
         onClick={toggleGridEditor}

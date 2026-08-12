@@ -10,7 +10,7 @@ The app is **functionally complete** for every planned milestone except one. The
 
 - **Phase 1** (M1–M4) — ✅ complete
 - **Phase 2** (M1–M4) — ✅ complete
-- **Phase 2 M5 (Knowledge Graph)** — ⏭️ not started (the next feature)
+- **Phase 2 M5 (Knowledge Graph)** — ✅ implemented 2026-08-12 (uncommitted, awaiting approval; see §9)
 - **Phase 3** — out of scope (with one item already pulled forward; see §5)
 
 ---
@@ -27,7 +27,7 @@ The app is **functionally complete** for every planned milestone except one. The
 | **P2 · M2** Note management (Edit + agentic Archive) | ✅ | `NoteEditModal`, `enqueueArchive`, `useArchiveToasts` |
 | **P2 · M3** Obsidian-style Tag Browser | ✅ | `TagExplorerModal`, `GET /api/tags` |
 | **P2 · M4** "Ask the Librarian" RAG chat | ✅ | `POST /api/chat`, `useLibrarianChat`, `ChatPanel` |
-| **P2 · M5** Knowledge Graph | ⏭️ Next | Not started |
+| **P2 · M5** Knowledge Graph | ✅ | `KnowledgeGraphOverlay`/`KnowledgeGraphCanvas`/`GraphSidePeek`, `lib/notes/graphData.ts`, `react-force-graph-2d` (frozen d3-force layout), e2e `knowledge-graph.spec.ts` |
 
 **Folded into Phase 2 (2026-08-10, all shipped):** clickable `[n]` citations, deterministic counting (`countIntent.ts`), embedding retrieval for >150 notes, tag filter input.
 

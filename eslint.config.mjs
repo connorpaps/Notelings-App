@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored skill assets are reference material, not app code (the
+    // d3-viz assets ship .jsx templates that trip react-hooks/purity).
+    ".agents/skills/**",
   ]),
 ]);
 
