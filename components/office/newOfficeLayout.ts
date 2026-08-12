@@ -71,7 +71,7 @@ export const NEW_OFFICE_DESTINATION_ANCHOR_CELLS = {
   workBookshelf: [22, 37], // east of the Manager's Office bookshelf
   adminCabinets: [34, 4], // in front of the grey filing cabinets
   hallwayBookshelf: [3, 21], // in front of the IDEAS shelf
-  trashBin: [26, 8], // at the black bin (its cell is itself free)
+  trashBin: [27, 8], // beside the black bin (its own cell is blocked as an obstacle)
   receptionDesk: [32, 18], // in front of the green reception desk
   bigEntrance: [9, 5],
   frontRightDoor: [30, 1],

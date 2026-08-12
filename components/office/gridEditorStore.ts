@@ -3,7 +3,9 @@
 import { create } from 'zustand'
 import type { GridEdit, GridEdits } from './gridEditor'
 
-export const GRID_EDITOR_STORAGE_KEY = 'notelings-grid-editor-v1'
+// v2: bumped after the 2026-08-12 lock-in so the pre-lock-in painted deltas
+// (which are now baked into newOfficeGridData.ts) never re-apply on top.
+export const GRID_EDITOR_STORAGE_KEY = 'notelings-grid-editor-v2'
 
 function loadEdits(): GridEdits {
   if (typeof window === 'undefined') return {}

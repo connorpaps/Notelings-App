@@ -15,23 +15,32 @@ describe('new office grid invariants', () => {
     expect(NEW_OFFICE_BLOCKED_CELLS.size).toBeLessThan(1500) // still mostly open floor
   })
 
-  it('keeps the exterior shell sealed (doors against the real walls stay solid)', () => {
-    // User decision 2026-08-10: the exterior door leaves stay closed — robots
-    // never cross the shell, so the front wall rows 1-2 must be fully blocked.
+  it('keeps the exterior shell sealed (rows 0-1 solid; row 2 door thresholds open)', () => {
+    // Rows 0-1 are the solid exterior wall. Row 2 holds the three front-door
+    // thresholds the user hand-painted open in the 2026-08-12 lock-in; the
+    // rest of row 2 stays wall.
     for (let c = 0; c < NEW_OFFICE_GRID_COLS; c += 1) {
+      expect(NEW_OFFICE_BLOCKED_CELLS.has(`${c},0`), `front wall cell ${c},0`).toBe(true)
       expect(NEW_OFFICE_BLOCKED_CELLS.has(`${c},1`), `front wall cell ${c},1`).toBe(true)
-      expect(NEW_OFFICE_BLOCKED_CELLS.has(`${c},2`), `front wall cell ${c},2`).toBe(true)
+    }
+    const doorThresholds = new Set(['2,2', '3,2', '17,2', '18,2', '28,2', '29,2', '30,2'])
+    for (let c = 0; c < NEW_OFFICE_GRID_COLS; c += 1) {
+      const key = `${c},2`
+      expect(NEW_OFFICE_BLOCKED_CELLS.has(key), `row 2 cell ${key}`).toBe(!doorThresholds.has(key))
     }
   })
 
   it('leaves the glass-room doorways walk-through-able', () => {
-    // The manager's room glass partition (row 29) has two open doorways: the
-    // west door frame (cols 20-24) and the main doorway (cols 35-41).
-    for (const c of [22, 23, 36, 37, 40]) {
+    // The manager's room glass partition (row 29): the west door frame (cols
+    // 20-24) stays open; the main doorway narrowed to cols 36-37 in the
+    // 2026-08-12 lock-in (jambs 35 and 38-41 are now wall).
+    for (const c of [22, 23, 36, 37]) {
       expect(NEW_OFFICE_BLOCKED_CELLS.has(`${c},29`), `doorway cell ${c},29 should be free`).toBe(false)
     }
-    // The partition itself stays wall.
-    expect(NEW_OFFICE_BLOCKED_CELLS.has('27,29')).toBe(true)
+    // The partition itself stays wall, including the narrowed door jambs.
+    for (const c of [27, 35, 38, 40]) {
+      expect(NEW_OFFICE_BLOCKED_CELLS.has(`${c},29`), `wall cell ${c},29 should be blocked`).toBe(true)
+    }
   })
 
   it('spawns all robots on free cells', () => {

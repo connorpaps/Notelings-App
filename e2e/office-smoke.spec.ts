@@ -140,7 +140,8 @@ test('static office diorama preserves the locked baseline with three robots and 
   expect(audit.officeHasCastShadow).toBe(true)
   expect(audit.lockedScenePresent).toBe(false)
   expect(audit.builderScenePresent).toBe(false)
-  expect(audit.gridDebugPresent).toBe(true)
+  // Nav Grid Editor is hidden by default now (toggled from the header controls).
+  expect(audit.gridDebugPresent).toBe(false)
   expect(audit.rendererPixelRatio).toBe(1)
   expect(audit.rendererToneMappingExposure).toBe(1.2)
   expect(audit.ambientIntensity).toBe(0.5)
@@ -207,8 +208,8 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.bodyPosition?.z).toBe(0)
     expect(parts.facePosition?.x).toBeCloseTo(0, 2)
     expect((parts.facePosition?.y ?? 0) - (parts.bodyPosition?.y ?? 0)).toBeCloseTo(0.42, 2)
-    // Robot roots are intentionally scaled to 80% for the larger GLB framing.
-    expect(parts.robotScale).toEqual({ x: 0.8, y: 0.8, z: 0.8 })
+    // Robot roots are intentionally scaled to 72% for the larger GLB framing.
+    expect(parts.robotScale).toEqual({ x: 0.72, y: 0.72, z: 0.72 })
     expect(parts.smoothPath).toBe(false)
     expect(parts.facePosition?.z).toBeGreaterThan(0.34)
     expect(parts.facePosition?.z).toBeCloseTo(0.36, 2)

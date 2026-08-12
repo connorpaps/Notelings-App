@@ -24,8 +24,8 @@ type GridDebugOverlayProps = {
  *
  * Red tiles are the FREE cells of the nav map (baked blocked + manual edits),
  * painted flat on the GLB's real floor surface and clipped to the floor slab's
- * footprint. While ENABLE_GRID_DEBUG is on, the overlay doubles as the Nav
- * Grid Editor: click or drag over the floor to toggle the red square of a
+ * footprint. While the Nav Grid Editor is open (header "Edit nav" toggle), the
+ * overlay doubles as the Nav Grid Editor: click or drag over the floor to toggle the red square of a
  * cell — removing it marks the cell blocked (e.g. a couch the bake missed),
  * adding it marks the cell walkable. Decisions are stored as deltas in the
  * grid editor store (localStorage) and never touch the baked map until the

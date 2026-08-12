@@ -10,5 +10,3 @@ export const ENABLE_OFFICE_BUILDER = false
  */
 export const ENABLE_PATH_PREVIEW = false
 
-/** Keep the active GLB walkable-area view visible while navigation is being debugged. */
-export const ENABLE_GRID_DEBUG = true

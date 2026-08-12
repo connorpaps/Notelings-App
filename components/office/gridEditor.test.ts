@@ -15,8 +15,8 @@ describe('gridEditor walkable collection', () => {
   const cells = collectWalkableCells(NEW_OFFICE_EFFECTIVE_BLOCKED, NEW_OFFICE_GRID_TRANSFORM)
   const cellSet = new Set(cells)
 
-  it('paints exactly the 523 currently-free cells (none clipped by the floor)', () => {
-    expect(cells.length).toBe(523)
+  it('paints exactly the 572 currently-free cells (none clipped by the floor)', () => {
+    expect(cells.length).toBe(572)
     expect(cells.every((key) => !NEW_OFFICE_EFFECTIVE_BLOCKED.has(key))).toBe(true)
   })
 
@@ -33,8 +33,7 @@ describe('gridEditor walkable collection', () => {
 
   it('includes every robot destination staging cell and start cell', () => {
     // The four real delivery destinations + all robot spawns must be walkable.
-    // (Door anchors like bigEntrance are NOT robot destinations and stay
-    // intentionally sealed — exterior doors are solid per the 2026-08-10 decision.)
+    // (Door anchors like bigEntrance are NOT robot destinations.)
     const expected = [
       ...Object.values(TASK_DESTINATIONS),
       TRASH_STAGING_CELL,

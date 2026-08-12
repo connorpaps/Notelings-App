@@ -17,7 +17,7 @@ describe('new-office task destinations', () => {
     expect(TASK_DESTINATIONS.whiteboard).toEqual([22, 37]) // Manager's Bookshelf
     expect(TASK_DESTINATIONS.printer).toEqual([34, 4]) // Filing Cabinets
     expect(TASK_DESTINATIONS.corkboard).toEqual([3, 21]) // Hallway Bookshelf
-    expect(TRASH_STAGING_CELL).toEqual([26, 8])
+    expect(TRASH_STAGING_CELL).toEqual([27, 8])
   })
 
   it('exposes the new descriptive labels', () => {

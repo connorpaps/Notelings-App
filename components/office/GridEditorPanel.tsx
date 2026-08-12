@@ -9,7 +9,8 @@ import { NEW_OFFICE_EFFECTIVE_BLOCKED } from './newOfficeGrid'
 type CopyState = 'idle' | 'copied' | 'failed'
 
 /**
- * Controls for the interactive Nav Grid Editor (shown while ENABLE_GRID_DEBUG).
+ * Controls for the interactive Nav Grid Editor (shown while the header's
+ * "Edit nav" toggle is on).
  * The red squares on the office floor are walkable cells; click/drag to paint
  * or erase them. Edits persist in localStorage; "Copy map" exports the final
  * blocked set as JSON so it can be locked into the nav map

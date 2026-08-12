@@ -8,9 +8,10 @@ export const NEW_OFFICE_GRID_RESOLUTION = 1
 const GRID_OPTS = { cols: NEW_OFFICE_GRID_COLS, rows: NEW_OFFICE_GRID_ROWS }
 
 /**
- * Spawn near the big entrance; green spawns near the front-right door. The
- * fallbacks are the CURRENT resolved free cells (the anchors themselves sit in
- * the sealed exterior wall and are blocked — never fall back to them).
+ * Blue spawns near the big entrance; green spawns near the front-right door.
+ * After the 2026-08-12 lock-in the front-right door threshold (30,2) is free,
+ * so green resolves there directly; blue's anchor (9,5) stays blocked, so it
+ * resolves to the largest connected region (fallback [5,11]).
  */
 export const NEW_OFFICE_AGENT_START_CELLS: Record<'blue' | 'green', GridCell> = {
   blue: findOpenStartCell([9, 5], NEW_OFFICE_BLOCKED_CELLS, GRID_OPTS) ?? [5, 11],

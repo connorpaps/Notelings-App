@@ -21,9 +21,10 @@ import type { AgentState } from './agentState'
 import { createFaceTexture } from './agentFace'
 
 // Sized for the 10 m GLB office (2026-08-10 swap): the baked map owns the
-// physical 0.30 m center clearance; the visible robot is rendered at 80% of
-// the original GLB-swap size so it reads proportionally beside the furniture.
-const ROBOT_VISUAL_SCALE = 0.8
+// physical 0.30 m center clearance; the visible robot is rendered at 72% of
+// the original GLB-swap size (shrunk 10% on 2026-08-12) so it reads
+// proportionally beside the furniture.
+const ROBOT_VISUAL_SCALE = 0.72
 const BODY_RADIUS = 0.3
 // Navigation uses a separately measured grid clearance because the fine grid
 // rasterizes conservative AABBs; the physical capsule is still rendered at
@@ -47,6 +48,10 @@ const FACE_LATERAL_OFFSET = 0
 // Keep the LCD just beyond the capsule's measured front radius. Values below
 // BODY_RADIUS place the plane inside the capsule at this raised Y position.
 const FACE_Z = 0.36
+// The note card was oversized next to the capsule (a clipboard near the torso
+// width), so besides inheriting the robot root's ROBOT_VISUAL_SCALE it also
+// gets its own 10% reduction to read as a hand-held card, not a billboard.
+const NOTE_SCALE = 0.9
 const NOTE_WIDTH = 0.42
 const NOTE_HEIGHT = 0.52
 const NOTE_DEPTH = 0.035
@@ -375,6 +380,7 @@ const AgentRobot = function AgentRobot({
         name="robot-note"
         position={[NOTE_X, NOTE_Y, NOTE_Z]}
         rotation={[0.16, 0, 0.35]}
+        scale={NOTE_SCALE}
         visible={carrying}
         userData={{ notelingsRobotPart: 'note' }}
       >

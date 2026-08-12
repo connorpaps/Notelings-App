@@ -44,8 +44,9 @@ export const TASK_DESTINATION_LABELS: Record<TaskDestination, string> = {
 }
 
 /**
- * Walkable staging cell at the black trash bin (anchor cell (26,8) is itself
- * free): the M2 agentic-delete flow disposes archived notes here.
+ * Walkable staging cell beside the black trash bin: the bin's own cell (26,8)
+ * is blocked (it is a physical obstacle), so the M2 agentic-delete flow stops
+ * one cell east at (27,8) to dispose archived notes.
  */
 export const TRASH_STAGING_CELL: GridCell = staging('trashBin')
 

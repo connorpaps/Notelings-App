@@ -13,7 +13,7 @@ import AgentRobot from './AgentRobot'
 import { useAgentStore } from './agentStore'
 import { useTaskDispatcher } from './useTaskDispatcher'
 import GridDebugOverlay from './GridDebugOverlay'
-import { ENABLE_GRID_DEBUG } from './officeMode'
+import { useOfficeViewStore } from './officeViewStore'
 import type { AgentId } from './agentDestinations'
 
 // Blue/Green take notes; Red is the error sentinel (never dispatched).
@@ -26,6 +26,7 @@ export default function AgentLayer() {
   const effectiveBlocked = NEW_OFFICE_EFFECTIVE_BLOCKED
   const agents = useAgentStore((state) => state.agents)
   const taskQueueLength = useAgentStore((state) => state.taskQueue.length)
+  const gridEditorOpen = useOfficeViewStore((state) => state.gridEditorOpen)
 
   useEffect(() => {
     const runtimeAgents = Object.fromEntries(
@@ -64,7 +65,7 @@ export default function AgentLayer() {
 
   return (
     <>
-      {ENABLE_GRID_DEBUG && <GridDebugOverlay blocked={effectiveBlocked} grid={NEW_OFFICE_GRID_TRANSFORM} />}
+      {gridEditorOpen && <GridDebugOverlay blocked={effectiveBlocked} grid={NEW_OFFICE_GRID_TRANSFORM} />}
       <group name="agent-layer" userData={{ notelingsAgentLayer: true }}>
       {AGENT_IDS.map((agentId) => (
         <AgentRobot

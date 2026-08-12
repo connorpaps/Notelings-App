@@ -1,10 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { ENABLE_GRID_DEBUG, ENABLE_OFFICE_BUILDER } from '@/components/office/officeMode'
+import { ENABLE_OFFICE_BUILDER } from '@/components/office/officeMode'
 import GridEditorPanel from '@/components/office/GridEditorPanel'
 import NotelingsUI from '@/components/notelings/NotelingsUI'
 import BackgroundVideo from '@/components/notelings/BackgroundVideo'
+import { useOfficeViewStore } from '@/components/office/officeViewStore'
 
 // WebGL scene must not be SSR'd (three needs browser APIs)
 const OfficeCanvas = dynamic(() => import('@/components/office/OfficeCanvas'), {
@@ -26,6 +27,8 @@ const OfficeBuilderApp = ENABLE_OFFICE_BUILDER
 // Static Skybridge frame (z-0) → transparent WebGL office (z-10) → glass
 // UI overlay (z-20). The office stays the colored centerpiece above the frame.
 export default function Home() {
+  const gridEditorOpen = useOfficeViewStore((state) => state.gridEditorOpen)
+
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-black">
       <BackgroundVideo />
@@ -33,8 +36,8 @@ export default function Home() {
         {OfficeBuilderApp ? <OfficeBuilderApp /> : <OfficeCanvas />}
       </div>
       <NotelingsUI enabled={!ENABLE_OFFICE_BUILDER} />
-      {/* Debug-only Nav Grid Editor (manual walkable-area painting + lock-in export). */}
-      {ENABLE_GRID_DEBUG && !ENABLE_OFFICE_BUILDER && <GridEditorPanel />}
+      {/* Nav Grid Editor — hidden by default, toggled from the header controls. */}
+      {!ENABLE_OFFICE_BUILDER && gridEditorOpen && <GridEditorPanel />}
     </main>
   )
 }
