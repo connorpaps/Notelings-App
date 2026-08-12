@@ -1,3 +1,8 @@
+> ⚠️ **STATUS — PARTIALLY OUTDATED (2026-08-12).** This documents the *legacy office* render profile. The active GLB office (swapped 2026-08-10) changed the framing:
+> - Camera zoom **38 → 86** and target **`[0, 1.5, 0]` → `[0, 1, 0]`** (position `[24,22,24]`, near/far unchanged).
+> - Robots render at **`ROBOT_VISUAL_SCALE = 0.72`** (was 0.8); the carried note card has its own `NOTE_SCALE = 0.9`.
+> - The SSAO/Bloom/ToneMapping chain, 4096² shadows, DPR 1, and `frameloop="always"` below are unchanged and still correct.
+
 # Office Post-Processing Configuration
 
 **Current baseline:** Locked Milestone 1 high-quality single-scene rendering with final brightness polish, now hosting the Milestone 3 autonomous two-agent runtime

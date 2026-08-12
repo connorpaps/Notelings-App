@@ -1,3 +1,5 @@
+> ⚠️ **STATUS — MOSTLY CURRENT, ONE STALE SECTION (2026-08-12).** Written from the built Bloom world; still accurate except the **"Task queue"** bullet under "Components": that right-rail panel was replaced by the **Spatial Board Kanban** in Phase 2 M1. (The header also gained small "Edit nav" / "Hide UI" view controls in 2026-08-12.)
+
 # DESIGN.md — Notelings (Bloom liquid-glass world with static Skybridge frame)
 
 Written from the built world after the M4.2 reskin (2026-08-09). Replaces the pre-reskin colorful gradient-card overlay language; the 3D office visual contract is deliberately unchanged.

@@ -1,3 +1,8 @@
+> ⚠️ **STATUS — PARTIALLY OUTDATED (2026-08-12).** Some facts below predate the GLB office swap (2026-08-10) and this session's nav-map lock-in:
+> - **Destinations:** user-facing labels are now **Manager's Bookshelf** (Work), **Filing Cabinets** (Admin), **Hallway Bookshelf** (Uncategorized). The "Work Whiteboard / Printer / Corkboard" labels below are the *internal keys* that still exist in code (`TASK_DESTINATIONS`).
+> - **Trash staging cell:** now **`[27,8]`** (the bin's own cell `[26,8]` is blocked). The `[29,24]` below is the *legacy office's* trash cell.
+> - The **"Agentic Archive"** bullet below still cites `[29,24]` — the current cell is `[27,8]`.
+
 # Notelings — Domain Glossary
 
 A shared vocabulary for the "Second Brain" note-organizer product. Terminology only; see `MASTER_SPEC_FINAL.md` for the spec and `knowledge.md` for implementation details.

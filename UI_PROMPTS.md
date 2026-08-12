@@ -1,3 +1,10 @@
+> ⚠️ **STATUS — PARTIALLY SUPERSEDED (2026-08-12).** This file documents the *original* M4 MotionSites UI. The shipped app was later reskinned to the **Bloom liquid-glass world** (see `DESIGN.md`, `PRODUCT.md`, `knowledge.md`). What changed:
+> - **Fonts:** `Inter`/`Outfit` → **Poppins** + **Source Serif 4**.
+> - **Task queue panel** (`TaskQueuePanel`) → replaced by the **Spatial Board Kanban** (Phase 2 M1).
+> - **Agent cards** → reskinned to grayscale glass with small robot-color identity dots (the exact gradients below are historical only).
+> - **Welcome screen** → rewritten as the Bloom hero ("Spatial Second *Brain*").
+> The pointer-events contract below (`absolute inset-0 z-* pointer-events-none` + `pointer-events-auto` on interactives) is **still correct and still applies**.
+
 # UI Implementation Prompts (Based on MotionSites.ai)
 
 **INSTRUCTIONS FOR AI:**

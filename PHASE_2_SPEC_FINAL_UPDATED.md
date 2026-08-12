@@ -1,3 +1,5 @@
+> ⚠️ **STATUS — §4 UPDATED (2026-08-12).** One item listed under "Phase 3 (Future Scope — DO NOT BUILD NOW)" has since been built at the user's request: **"3D Engine Overhaul"** (GLB office) shipped on 2026-08-10 — the active office is `public/models/3D_Note_Office_2/3d_note_office.glb`. The remaining Phase 3 items (Obsidian integration, rigged animations, physical interactions) are still out of scope. §1b M1–M4 status is current.
+
 # TITLE: MASTER SPEC - Phase 2 & Beyond: Obsidian Integration & Polish
 
 ## 1. Phase 2 Overview

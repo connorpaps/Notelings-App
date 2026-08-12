@@ -1,3 +1,8 @@
+> ⚠️ **STATUS — PARTIALLY SUPERSEDED (2026-08-12).** Still the architectural source of truth, but two sections are stale:
+> - **§3 Asset pipeline** — the office is no longer the `.obj` voxel pack; it is the **GLB** `public/models/3D_Note_Office_2/3d_note_office.glb` (swapped 2026-08-10 — a Phase-3 "3D Engine Overhaul" pulled forward at the user's request). The legacy `.obj` assembly is preserved in `VoxelOffice_Legacy.tsx`.
+> - **§9 Roadmap** — Milestones 1–4 are **complete**; Phase 2 (see `PHASE_2_SPEC_FINAL_UPDATED.md`) M1–M4 are complete and M5 (Knowledge Graph) is next.
+> §5 schema, §6 edge cases, and §7 non-goals still hold (see `CURRENT_STATE.md` for the one §6 nuance: the pathfinding "emergency reset" has no "Lounge"/teleport).
+
 # MASTER SPEC: Spatial "Second Brain" Agent Organizer (FINAL)
 
 ***ATTENTION AI CODING AGENT (GPT-5.6 / CLAUDE / ETC):*** 
