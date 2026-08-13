@@ -19,7 +19,12 @@ export default defineConfig({
     // The e2e baseline samples pixels from the WebGL canvas (corner-alpha +
     // readPixels), which needs preserveDrawingBuffer. Normal runs leave it
     // off for GPU memory; only the Playwright server turns it on.
-    env: { NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER: '1' },
+    env: {
+      NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER: '1',
+      // Test-only auth bypass. The client and server both guard this with
+      // NODE_ENV !== 'production'; it must never be set on a deployment.
+      NEXT_PUBLIC_NOTELINGS_E2E_AUTH_BYPASS: '1',
+    },
   },
   projects: [
     {

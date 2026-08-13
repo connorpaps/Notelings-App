@@ -272,6 +272,56 @@ test('static office diorama preserves the locked baseline with three robots and 
   await page.screenshot({ path: 'test-results/office-m4-baseline.png', fullPage: true, animations: 'disabled' })
 })
 
+test('AI-off capture uses optional tags and the Manual/Needs sorting state', async ({ page }) => {
+  test.setTimeout(90_000)
+  type ManualBody = { content?: string; category?: string; tags?: string[]; submission_id?: string }
+  let manualBody: ManualBody | null = null
+  let categorizeCalls = 0
+
+  await page.route('**/api/categorize', (route) => {
+    categorizeCalls += 1
+    return route.abort()
+  })
+  await page.route('**/api/notes', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: [] })
+    const body = route.request().postDataJSON() as ManualBody
+    manualBody = body
+    return route.fulfill({ json: { id: 'note-e2e-manual', category: 'Manual', tags: body.tags ?? [], degraded: false } })
+  })
+  await page.route('**/api/notes/**', (route) => route.fulfill({ json: { ok: true } }))
+
+  await page.goto('/')
+  await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
+  await page.getByRole('button', { name: 'Initialize Agents' }).click()
+
+  await page.getByRole('button', { name: 'Turn AI off for manual capture' }).click()
+  await expect(page.getByRole('button', { name: 'Turn AI on' })).toBeVisible()
+  await expect(page.locator('#manual-category')).toHaveCount(0)
+  await expect(page.getByLabel('Manual tags (optional)')).toBeVisible()
+
+  await page.getByLabel('Manual tags (optional)').fill('Grocery')
+  await page.getByRole('textbox', { name: 'Type a new note' }).fill('buy groceries')
+  await page.getByRole('button', { name: 'Submit note' }).click()
+
+  await expect(page.getByText('Manual note saved — agent dispatched to Needs sorting.')).toBeVisible({ timeout: 15_000 })
+  await expect.poll(() => manualBody).toMatchObject({
+    content: 'buy groceries',
+    tags: ['Grocery'],
+    submission_id: expect.any(String),
+  })
+  const capturedManualBody = manualBody as ManualBody | null
+  expect(capturedManualBody?.category).toBeUndefined()
+  expect(categorizeCalls).toBe(0)
+
+  await page.waitForFunction(() => {
+    const runtime = (window as unknown as {
+      __NOTELINGS_AGENTS__?: { agents: Record<string, { currentTask?: { destination: string; category: string } | null }> }
+    }).__NOTELINGS_AGENTS__
+    const assigned = Object.values(runtime?.agents ?? {}).find((agent) => agent.currentTask !== null)
+    return assigned?.currentTask?.destination === 'corkboard' && assigned.currentTask.category === 'Manual'
+  }, { timeout: 15_000, polling: 100 })
+})
+
 test('Milestone 4 dispatches categorized notes to two robots and completes them', async ({ page }) => {
   test.setTimeout(90_000)
   const errors: string[] = []

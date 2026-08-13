@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useAgentStore } from '@/components/office/agentStore'
@@ -8,12 +8,12 @@ import { useOfficeViewStore } from '@/components/office/officeViewStore'
 import { buildGraphData } from '@/lib/notes/graphData'
 import KnowledgeGraphCanvas from './KnowledgeGraphCanvas'
 import GraphSidePeek from './GraphSidePeek'
+import { useFocusTrap } from './useFocusTrap'
 
 /**
- * M5 Knowledge Graph overlay. Full-screen scrim at z-40 (below GlassModal's
- * z-50), dimming — but not hiding — the live R3F office. Plain `bg-black/60`
- * scrim, NO full-screen backdrop-blur: the office animates behind it and a
- * full-screen backdrop-filter would re-blur every frame (60fps skill).
+ * M5 Knowledge Graph overlay. A transparent full-screen layer at z-40 (below
+ * GlassModal's z-50) keeps the office visible while the bounded graph surface
+ * provides the local translucent blur and neural-glass treatment.
  */
 export default function KnowledgeGraphOverlay() {
   const graphOpen = useOfficeViewStore((state) => state.graphOpen)
@@ -26,6 +26,8 @@ export default function KnowledgeGraphOverlay() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [focusedTag, setFocusedTag] = useState<string | null>(null)
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const titleId = useId()
+  const dialogRef = useFocusTrap<HTMLDivElement>({ enabled: graphOpen })
 
   // Clear transient state at close time (no setState inside effects).
   const handleClose = useCallback(() => {
@@ -78,15 +80,17 @@ export default function KnowledgeGraphOverlay() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="pointer-events-auto fixed inset-0 z-40 bg-black/60"
+          ref={dialogRef}
+          className="pointer-events-auto fixed inset-0 z-40 isolate"
           role="dialog"
           aria-modal="true"
-          aria-label="Knowledge graph"
+          aria-labelledby={titleId}
+          tabIndex={-1}
         >
-          <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-4 md:p-6">
+          <div className="relative z-20 flex items-center justify-between gap-3 p-4 md:p-6">
             <div className="flex items-center gap-3">
               <div className="liquid-glass flex items-center gap-3 rounded-full px-4 py-2">
-                <p className="text-sm font-medium tracking-tight text-white">
+                <p id={titleId} className="text-sm font-medium tracking-tight text-white">
                   Knowledge <em className="font-serif font-normal italic text-white/80">Graph</em>
                 </p>
                 <span className="hidden text-[11px] text-white/50 sm:inline">
@@ -117,22 +121,27 @@ export default function KnowledgeGraphOverlay() {
             </button>
           </div>
 
-          {graphData.nodes.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="liquid-glass rounded-2xl px-6 py-8 text-sm text-white/40">
-                No notes yet — submit a note to grow your brain.
-              </p>
-            </div>
-          ) : (
-            <KnowledgeGraphCanvas
-              graphData={graphData}
-              hoveredId={hoveredId}
-              focusedTag={focusedTag}
-              onNodeHover={setHoveredId}
-              onNodeClick={handleNodeClick}
-              onBackgroundClick={handleBackgroundClick}
-            />
-          )}
+          <div
+            data-knowledge-graph-surface
+            className="absolute inset-x-4 bottom-4 top-[4.75rem] z-10 overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-md md:bottom-8 md:left-[22rem] md:right-[22rem] md:top-24"
+          >
+            {graphData.nodes.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <p className="liquid-glass rounded-2xl px-6 py-8 text-sm text-white/40">
+                  No notes yet — submit a note to grow your brain.
+                </p>
+              </div>
+            ) : (
+              <KnowledgeGraphCanvas
+                graphData={graphData}
+                hoveredId={hoveredId}
+                focusedTag={focusedTag}
+                onNodeHover={setHoveredId}
+                onNodeClick={handleNodeClick}
+                onBackgroundClick={handleBackgroundClick}
+              />
+            )}
+          </div>
 
           <GraphSidePeek noteId={selectedNoteId} onClose={() => setSelectedNoteId(null)} />
         </motion.div>

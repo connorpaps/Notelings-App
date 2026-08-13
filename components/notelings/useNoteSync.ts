@@ -7,12 +7,12 @@ import type { NoteStatus } from '@/lib/notes/types'
 
 /**
  * Phase 2 M1 core-loop sync: the store owns robot lifecycle; this hook pushes
- * the transitions to the DB through the server route (service role):
+ * the transitions to the DB through the authenticated owner-scoped server route:
  *   robot dispatched (walking + note task)  → in_transit
  *   delivery completed (completions log)     → filed
  *   archive disposal completed (archive log) → archived
- * Fire-and-forget: failures are logged to the terminal, never thrown, so an
- * offline moment can never break the 3D loop.
+ * Failures are logged to the terminal, never thrown, so an offline moment can
+ * never break the 3D loop; cleanup cancels delayed status timers on unmount.
  */
 async function patchStatus(noteId: string, status: NoteStatus): Promise<void> {
   const res = await fetch(`/api/notes/${noteId}`, {
@@ -38,7 +38,8 @@ export function useNoteSync() {
   const inTransitTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
 
   useEffect(() => {
-    return useAgentStore.subscribe((state) => {
+    const timers = inTransitTimers.current
+    const unsubscribe = useAgentStore.subscribe((state) => {
       // Robot woke up for a note task → In Transit (after the Pending beat).
       for (const agent of Object.values(state.agents)) {
         const task = agent.currentTask
@@ -93,5 +94,11 @@ export function useNoteSync() {
         }
       }
     })
+
+    return () => {
+      unsubscribe()
+      for (const timer of timers.values()) clearTimeout(timer)
+      timers.clear()
+    }
   }, [])
 }

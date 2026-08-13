@@ -6,6 +6,7 @@ export const CATEGORY_GRAPH_COLOR: Record<NoteCategory, string> = {
   Work: '#2fa8e0',
   Admin: '#43c98b',
   Uncategorized: '#ef4444',
+  Manual: '#d6b36a',
 }
 
 export type GraphNode = {

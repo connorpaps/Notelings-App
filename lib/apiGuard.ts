@@ -1,14 +1,15 @@
 /**
- * Lightweight request hardening for the unauthenticated API routes.
+ * Lightweight request hardening for the authenticated API routes.
  *
- * The app is a single-user MVP with no authentication (ADR-0001), so the API
- * routes are public. Two cheap, defense-in-depth guards reduce casual abuse
- * without introducing real auth:
+ * Authentication and RLS are the real boundary. These origin checks remain
+ * defense in depth, with a strict variant for cookie-authenticated mutations
+ * to reduce CSRF risk.
  *
- *  - `isSameOrigin` rejects browser requests whose `Origin` header does not
- *    match the request's own `Host` (blocks cross-site pages from driving the
- *    routes). Requests with no `Origin` (curl, server-to-server) are allowed —
- *    this is an anti-cross-site guard, not an auth boundary.
+ *  - `isSameOrigin` rejects a supplied cross-origin `Origin`; missing Origin is
+ *    allowed for read routes and non-browser tooling.
+ *  - `isStrictSameOrigin` requires a valid same-origin Origin, or a present,
+ *    allow-listed Referer. Requests with neither are rejected for unsafe
+ *    cookie-authenticated mutations.
  *
  *  - `rateLimit` is an in-memory sliding-window limiter keyed by client IP +
  *    scope. It is intended to protect LLM spend (Gemini) on /api/chat and
@@ -21,8 +22,37 @@
  * is taken from `x-forwarded-for`, which is ONLY trustworthy when a proxy
  * (Vercel, etc.) overwrites it; on a raw Node server an attacker can spoof the
  * header to rotate buckets. The `Origin` guard is similarly client-controlled.
- * Real auth is out of scope per MASTER_SPEC_FINAL.md §7.
  */
+
+export const MAX_JSON_BODY_BYTES = 64 * 1024
+
+export class RequestBodyError extends Error {
+  constructor(
+    message: string,
+    readonly status: 400 | 413,
+  ) {
+    super(message)
+    this.name = 'RequestBodyError'
+  }
+}
+
+/** Read JSON with a byte cap before schema validation or provider work. */
+export async function readJsonBody(request: Request): Promise<unknown> {
+  const declaredLength = Number(request.headers.get('content-length') ?? '')
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+    throw new RequestBodyError('Request body is too large', 413)
+  }
+
+  const raw = await request.text()
+  if (new TextEncoder().encode(raw).byteLength > MAX_JSON_BODY_BYTES) {
+    throw new RequestBodyError('Request body is too large', 413)
+  }
+  try {
+    return JSON.parse(raw) as unknown
+  } catch {
+    throw new RequestBodyError('Invalid JSON body', 400)
+  }
+}
 
 export type RateLimitOptions = {
   /** Sliding window length in milliseconds. */
@@ -48,6 +78,20 @@ export const CHAT_RATE_LIMIT: Required<Omit<RateLimitOptions, 'scope'>> = {
   max: 20,
 }
 
+/** Brute-force throttles for the password auth endpoints (per 60s window). */
+export const AUTH_LOGIN_RATE_LIMIT: Required<Omit<RateLimitOptions, 'scope'>> = {
+  windowMs: 60_000,
+  max: 10,
+}
+export const AUTH_REGISTER_RATE_LIMIT: Required<Omit<RateLimitOptions, 'scope'>> = {
+  windowMs: 60_000,
+  max: 5,
+}
+export const AUTH_DEMO_RATE_LIMIT: Required<Omit<RateLimitOptions, 'scope'>> = {
+  windowMs: 60_000,
+  max: 10,
+}
+
 /** In-memory buckets: `scope:ip` → sorted timestamps. */
 const buckets = new Map<string, number[]>()
 
@@ -70,21 +114,33 @@ function clientIp(request: Request): string {
  * sent to. Missing/invalid origins are treated as non-browser callers and
  * allowed.
  */
-export function isSameOrigin(request: Request): boolean {
-  const origin = request.headers.get('origin')
-  if (!origin) return true
+function matchesRequestOrigin(request: Request, value: string): boolean {
   const host = request.headers.get('host')
-  if (!host) return true
+  if (!host) return false
   try {
-    const parsed = new URL(origin)
+    const parsed = new URL(value)
     // Match host AND scheme. Behind a proxy the request scheme arrives via
-    // x-forwarded-proto; without it, fall back to the origin's own scheme so
-    // local dev (no proxy header) still behaves correctly.
+    // x-forwarded-proto; without it, fall back to the supplied URL scheme in
+    // local development.
     const proto = request.headers.get('x-forwarded-proto') ?? parsed.protocol.replace(':', '')
     return parsed.host === host && parsed.protocol === `${proto}:`
   } catch {
     return false
   }
+}
+
+export function isSameOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  if (!origin) return true
+  return matchesRequestOrigin(request, origin)
+}
+
+/** Strict CSRF guard for cookie-authenticated POST/PATCH/DELETE requests. */
+export function isStrictSameOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  if (origin) return matchesRequestOrigin(request, origin)
+  const referer = request.headers.get('referer')
+  return Boolean(referer && matchesRequestOrigin(request, referer))
 }
 
 /** Drops stale/oldest buckets when the tracked set exceeds the cap. */

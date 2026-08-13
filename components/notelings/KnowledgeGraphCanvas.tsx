@@ -9,11 +9,14 @@ import { CATEGORY_GRAPH_COLOR, type GraphData, type GraphNode } from '@/lib/note
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false })
 
 const HUB_FONT = '"Poppins", sans-serif'
-/** Opacity of everything NOT connected to the hovered/focused node (10%). */
+/** Opacity of everything NOT connected to an explicitly focused tag (10%). */
 const DIMMED_ALPHA = 0.1
 const EDGE_COLOR = 'rgba(255,255,255,0.1)'
 const EDGE_DIMMED = 'rgba(255,255,255,0.012)'
 const MAX_LABEL = 18
+const NOTE_RADIUS = 4.5
+const NOTE_HOVER_RADIUS = 7
+const NOTE_HIT_RADIUS = 14
 
 function truncateLabel(label: string, max: number): string {
   return label.length > max ? `${label.slice(0, max - 1)}…` : label
@@ -73,8 +76,8 @@ export default function KnowledgeGraphCanvas({
     return () => ro.disconnect()
   }, [])
 
-  // Bidirectional adjacency for hover-focus dimming (d3-viz: prepare derived
-  // data before rendering).
+  // Bidirectional adjacency for explicit tag-focus dimming (d3-viz: prepare
+  // derived data before rendering).
   const adjacency = useMemo(() => {
     const map = new Map<string, Set<string>>()
     for (const link of graphData.links) {
@@ -86,7 +89,9 @@ export default function KnowledgeGraphCanvas({
     return map
   }, [graphData])
 
-  const highlightId = hoveredId ?? focusedTag
+  // Hover is a local affordance only. Graph-wide dimming is reserved for an
+  // explicit tag-focus click, so pointer movement never makes the graph flash.
+  const highlightId = focusedTag
 
   // Position snapshot taken inside nodeCanvasObject (the lib clones nodes into
   // its own state, so our prop objects never receive x/y; drawNode sees them).
@@ -126,22 +131,25 @@ export default function KnowledgeGraphCanvas({
       ctx.fillText(label, node.x, node.y)
       return
     }
-    // Note satellite: dim gray dot; hovered one glows in its category color.
-    if (n.id === hoveredId && n.category) {
-      ctx.fillStyle = CATEGORY_GRAPH_COLOR[n.category]
+    // Note satellite: category-colored cores are easier to scan and select.
+    // Focus mode may still dim unrelated notes, but hover never changes the
+    // rest of the graph's opacity.
+    const noteColor = n.category ? CATEGORY_GRAPH_COLOR[n.category] : '#a7a7a7'
+    const hovered = n.id === hoveredId
+    ctx.save()
+    if (hovered) {
+      ctx.globalAlpha = active ? 0.2 : 0.06
+      ctx.fillStyle = noteColor
       ctx.beginPath()
-      ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI)
-      ctx.fill()
-      ctx.fillStyle = 'rgba(255,255,255,0.25)'
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, 8, 0, 2 * Math.PI)
-      ctx.fill()
-    } else {
-      ctx.fillStyle = active ? '#888' : `rgba(136,136,136,${DIMMED_ALPHA})`
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, 2.4, 0, 2 * Math.PI)
+      ctx.arc(node.x, node.y, NOTE_HOVER_RADIUS + 6, 0, 2 * Math.PI)
       ctx.fill()
     }
+    ctx.globalAlpha = active ? 1 : DIMMED_ALPHA
+    ctx.fillStyle = noteColor
+    ctx.beginPath()
+    ctx.arc(node.x, node.y, hovered ? NOTE_HOVER_RADIUS : NOTE_RADIUS, 0, 2 * Math.PI)
+    ctx.fill()
+    ctx.restore()
   }
 
   const paintPointerArea = (node: NodeObject, color: string, ctx: CanvasRenderingContext2D) => {
@@ -153,10 +161,10 @@ export default function KnowledgeGraphCanvas({
       const label = truncateLabel(n.name ?? '', MAX_LABEL)
       ctx.font = `${fontSize}px ${HUB_FONT}`
       const w = ctx.measureText(label).width
-      ctx.fillRect(node.x - w / 2 - 8, node.y - fontSize / 2 - 6, w + 16, fontSize + 12)
+      ctx.fillRect(node.x - w / 2 - 12, node.y - fontSize / 2 - 10, w + 24, fontSize + 20)
     } else {
       ctx.beginPath()
-      ctx.arc(node.x, node.y, 7, 0, 2 * Math.PI)
+      ctx.arc(node.x, node.y, NOTE_HIT_RADIUS, 0, 2 * Math.PI)
       ctx.fill()
     }
   }
@@ -187,13 +195,16 @@ export default function KnowledgeGraphCanvas({
           .filter(([id]) => live.has(id))
           .map(([id, p]) => ({ id, x: p.x, y: p.y }))
       },
-      // Screen coords of a node (canvas is full-viewport inside the overlay).
+      // Screen coords of a node, including the bounded graph surface's
+      // viewport offset so external callers can click the returned point.
       nodeScreenPosition(id: string) {
         const pos = positionsRef.current.get(id)
         const g = graphRef.current
-        if (!g?.graph2ScreenCoords || !pos) return null
+        const surface = containerRef.current
+        if (!g?.graph2ScreenCoords || !pos || !surface) return null
         const p = g.graph2ScreenCoords(pos.x, pos.y)
-        return { x: p.x, y: p.y }
+        const rect = surface.getBoundingClientRect()
+        return { x: p.x + rect.left, y: p.y + rect.top }
       },
     }
     ;(window as unknown as Record<string, unknown>).__NOTELINGS_GRAPH__ = api
@@ -203,7 +214,7 @@ export default function KnowledgeGraphCanvas({
   }, [])
 
   return (
-    <div ref={containerRef} className="absolute inset-0">
+    <div ref={containerRef} className="absolute inset-0 z-10">
       {size.width > 0 && size.height > 0 && (
         <ForceGraph2D
           ref={graphRef}
@@ -218,7 +229,8 @@ export default function KnowledgeGraphCanvas({
           nodeCanvasObject={drawNode}
           nodePointerAreaPaint={paintPointerArea}
           linkColor={(link) => {
-            // Connected edges stay visible; everything else fades to ~1%.
+            // Connected edges stay visible during explicit tag focus;
+            // otherwise all edges keep the same calm baseline opacity.
             if (!highlightId) return EDGE_COLOR
             const source = typeof link.source === 'string' ? link.source : (link.source as NodeObject | undefined)?.id
             const target = typeof link.target === 'string' ? link.target : (link.target as NodeObject | undefined)?.id

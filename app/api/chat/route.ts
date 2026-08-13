@@ -9,8 +9,9 @@ import { retrieveRelevantNotes } from '@/lib/notes/embeddingRetrieval'
 import { createUiMessageStreamResponse } from '@/lib/notes/uiMessageStream'
 import { NotesListSchema } from '@/lib/notes/notesApi'
 import type { NoteRecord } from '@/lib/notes/types'
-import { createServerSupabase } from '@/lib/supabase/server'
-import { CHAT_RATE_LIMIT, isSameOrigin, rateLimit } from '@/lib/apiGuard'
+import { getAuthenticatedContext } from '@/lib/supabase/auth'
+import { CHAT_RATE_LIMIT, isStrictSameOrigin, readJsonBody, RequestBodyError, rateLimit } from '@/lib/apiGuard'
+import { logApiFailure, observeApiRoute } from '@/lib/observability'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -33,18 +34,27 @@ const COUNT_CITATION_CAP = 12
  *  - Archived notes are retired from the brain and excluded.
  */
 export async function POST(request: Request) {
-  if (!isSameOrigin(request)) {
+  return observeApiRoute(request, 'chat', async ({ requestId }) => {
+  if (!isStrictSameOrigin(request)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   if (!rateLimit(request, { ...CHAT_RATE_LIMIT, scope: 'chat' })) {
-    return NextResponse.json({ error: 'Too many requests, please slow down' }, { status: 429 })
+    return NextResponse.json(
+      { error: 'Too many requests, please slow down' },
+      { status: 429, headers: { 'Retry-After': '60' } },
+    )
   }
+
+  const auth = await getAuthenticatedContext()
+  if (!auth) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
   let input: ChatRequest
   try {
-    input = ChatRequestSchema.parse(await request.json())
-  } catch {
-    return NextResponse.json({ error: 'Invalid chat request' }, { status: 400 })
+    input = ChatRequestSchema.parse(await readJsonBody(request))
+  } catch (error) {
+    const status = error instanceof RequestBodyError ? error.status : 400
+    const message = error instanceof RequestBodyError ? error.message : 'Invalid chat request'
+    return NextResponse.json({ error: message }, { status })
   }
 
   const messages = normalizeChatMessages(input.messages).slice(-CHAT_HISTORY_LIMIT)
@@ -55,19 +65,20 @@ export async function POST(request: Request) {
 
   let allNotes: NoteRecord[]
   try {
-    const { data, error } = await createServerSupabase()
+    const { data, error } = await auth.supabase
       .from('notes')
       .select('id, content, category, tags, status, created_at')
       .neq('status', 'archived')
       // Same ordering the client uses for its citation index (id tiebreak).
       .order('created_at', { ascending: false })
       .order('id', { ascending: true })
+      .limit(500)
     if (error) throw new Error(error.message)
     const parsed = NotesListSchema.safeParse(data)
     if (!parsed.success) throw new Error('Invalid notes payload')
     allNotes = parsed.data
   } catch (error) {
-    console.error('Librarian: could not load notes:', error)
+    logApiFailure('chat', request, error, requestId)
     return NextResponse.json({ error: 'Could not load notes' }, { status: 500 })
   }
 
@@ -100,7 +111,7 @@ export async function POST(request: Request) {
     try {
       contextNotes = await retrieveRelevantNotes(allNotes, lastUser.content, CHAT_RETRIEVAL_K)
     } catch (error) {
-      console.error('Librarian: embedding retrieval failed, falling back to newest notes:', error)
+      logApiFailure('chat', request, error, requestId)
       contextNotes = allNotes.slice(0, CHAT_NOTE_CONTEXT_LIMIT)
     }
   }
@@ -115,4 +126,5 @@ export async function POST(request: Request) {
   })
 
   return result.toUIMessageStreamResponse()
+  })
 }

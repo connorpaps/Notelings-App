@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useFocusTrap } from './useFocusTrap'
 
 type GlassModalProps = {
   open: boolean
@@ -15,6 +16,9 @@ type GlassModalProps = {
 
 /** Bloom liquid-glass modal: backdrop fade + scale-in, ESC/backdrop close. */
 export default function GlassModal({ open, onClose, title, children, size = 'default' }: GlassModalProps) {
+  const titleId = useId()
+  const dialogRef = useFocusTrap<HTMLDivElement>({ enabled: open })
+
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
@@ -41,13 +45,15 @@ export default function GlassModal({ open, onClose, title, children, size = 'def
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label={title}
+            aria-labelledby={titleId}
+            tabIndex={-1}
             className={`liquid-glass-strong ${size === 'wide' ? 'w-[min(92vw,880px)]' : 'w-[min(92vw,540px)]'} rounded-[2rem] p-7`}
           >
             <div className="flex items-center justify-between gap-4">
-              <h3 className="text-lg font-medium tracking-tight text-white">{title}</h3>
+              <h3 id={titleId} className="text-lg font-medium tracking-tight text-white">{title}</h3>
               <button
                 type="button"
                 aria-label="Close dialog"

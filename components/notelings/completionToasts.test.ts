@@ -42,6 +42,9 @@ describe('completion toast helpers', () => {
     expect(completionToastMessage(completion({ agentId: 'red', category: 'Uncategorized' }))).toBe(
       'Success: Red Agent filed your note in Uncategorized.',
     )
+    expect(completionToastMessage(completion({ category: 'Manual' }))).toBe(
+      'Success: Blue Agent filed your note in Needs sorting.',
+    )
   })
 
   it('formats the archive message with the agent name', () => {

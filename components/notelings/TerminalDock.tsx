@@ -10,6 +10,7 @@ import GlassPanel from './GlassPanel'
 import TagExplorerModal from './TagExplorerModal'
 import ChatPanel from './ChatPanel'
 import { useLibrarianChat } from './useLibrarianChat'
+import { useAuthSession } from './useAuthSession'
 
 type DockMode = 'note' | 'chat'
 
@@ -23,6 +24,8 @@ export default function TerminalDock() {
   const [logOpen, setLogOpen] = useState(false)
   const [tagExplorerOpen, setTagExplorerOpen] = useState(false)
   const [mode, setMode] = useState<DockMode>('note')
+  const [aiEnabled, setAiEnabled] = useState(true)
+  const { authenticated } = useAuthSession()
   // Mounted at the dock level so the conversation survives mode toggling.
   const chat = useLibrarianChat()
 
@@ -46,17 +49,36 @@ export default function TerminalDock() {
               <button
                 type="button"
                 aria-pressed={mode === 'chat'}
+                disabled={!aiEnabled || !authenticated}
                 onClick={() => setMode('chat')}
-                className={`pointer-events-auto rounded-full px-3 py-1 text-[11px] transition-transform duration-200 hover:scale-105 active:scale-95 ${
+                title={aiEnabled ? 'Ask the Librarian' : 'Turn AI on to use chat'}
+                className={`pointer-events-auto rounded-full px-3 py-1 text-[11px] transition-transform duration-200 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 ${
                   mode === 'chat' ? 'bg-white/20 text-white' : 'text-white/50'
                 }`}
               >
                 Ask AI
               </button>
+              <button
+                type="button"
+                aria-pressed={aiEnabled}
+                aria-label={aiEnabled ? 'Turn AI off for manual capture' : 'Turn AI on'}
+                title={aiEnabled ? 'AI on — note text may be sent to Gemini' : 'AI off — manual tags only'}
+                onClick={() => {
+                  if (aiEnabled) chat.stop()
+                  setAiEnabled((enabled) => !enabled)
+                  setMode('note')
+                }}
+                className={`pointer-events-auto rounded-full px-2.5 py-1 text-[11px] transition-transform duration-200 hover:scale-105 active:scale-95 ${
+                  aiEnabled ? 'bg-white/10 text-white/60' : 'bg-white/20 text-white'
+                }`}
+              >
+                {aiEnabled ? 'AI on' : 'Manual'}
+              </button>
             </div>
             <button
               type="button"
               aria-label="Explore tags"
+              disabled={!authenticated}
               onClick={() => setTagExplorerOpen(true)}
               className="pointer-events-auto flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
             >
@@ -73,7 +95,7 @@ export default function TerminalDock() {
             </button>
           </div>
           <div className="flex items-center gap-4">
-            <CommandDock embedded mode={mode} onAsk={(content) => chat.sendMessage(content)} />
+            <CommandDock embedded mode={mode} aiEnabled={aiEnabled} disabled={!authenticated} onAsk={(content) => chat.sendMessage(content)} />
             <div className="hidden h-10 w-px bg-white/10 md:block" />
             <button
               type="button"

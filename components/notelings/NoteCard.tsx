@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { Archive, Pencil } from 'lucide-react'
 import { timeAgo } from '@/lib/notes/kanban'
-import type { NoteRecord } from '@/lib/notes/types'
+import { noteCategoryLabel, type NoteRecord } from '@/lib/notes/types'
 
 type NoteCardProps = {
   note: NoteRecord
@@ -33,7 +33,7 @@ export default function NoteCard({ note, archiving = false, onEdit, onArchive }:
         <span aria-hidden className={`mt-1 size-1.5 shrink-0 rounded-full ${STATUS_DOT[note.status]}`} />
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/65">{note.category}</span>
+        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/65">{noteCategoryLabel(note.category)}</span>
         {note.tags.slice(0, 3).map((tag) => (
           <span key={tag} className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-white/45">
             #{tag}

@@ -9,7 +9,7 @@ import {
   type AgentId,
   type TaskDestination,
 } from './agentDestinations'
-import type { NoteCategory, NoteRecord } from '../../lib/notes/types'
+import { noteCategoryLabel, type NoteCategory, type NoteRecord } from '../../lib/notes/types'
 import type { GridCell } from './pathfinding'
 import { categoryToDestination } from '../../lib/notes/categorization'
 import { appendLog, truncateContent, type TerminalLog } from '../../lib/notes/terminalLogs'
@@ -327,7 +327,7 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           },
         ],
         terminalLogs: appendLog(state.terminalLogs, {
-          message: `${AGENT_DISPLAY_NAMES[agentId]} filed "${truncateContent(task.content)}" in ${task.category}.`,
+          message: `${AGENT_DISPLAY_NAMES[agentId]} filed "${truncateContent(task.content)}" in ${noteCategoryLabel(task.category)}.`,
           level: 'success',
         }),
       }

@@ -70,6 +70,7 @@ describe('buildGraphData', () => {
       Work: '#2fa8e0',
       Admin: '#43c98b',
       Uncategorized: '#ef4444',
+      Manual: '#d6b36a',
     })
   })
 })

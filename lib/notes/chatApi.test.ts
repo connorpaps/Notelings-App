@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ChatRequestSchema, normalizeChatMessages } from './chatApi'
+import { CHAT_MAX_MESSAGES, CHAT_MAX_MESSAGE_CHARS, ChatRequestSchema, normalizeChatMessages } from './chatApi'
 
 describe('ChatRequestSchema', () => {
   it('accepts a plain user message', () => {
@@ -7,9 +7,11 @@ describe('ChatRequestSchema', () => {
     expect(parsed.success).toBe(true)
   })
 
-  it('rejects empty message lists and unknown roles', () => {
+  it('rejects empty message lists, unknown roles, and oversized history', () => {
     expect(ChatRequestSchema.safeParse({ messages: [] }).success).toBe(false)
     expect(ChatRequestSchema.safeParse({ messages: [{ role: 'admin', content: 'x' }] }).success).toBe(false)
+    expect(ChatRequestSchema.safeParse({ messages: Array.from({ length: CHAT_MAX_MESSAGES + 1 }, () => ({ role: 'user', content: 'x' })) }).success).toBe(false)
+    expect(ChatRequestSchema.safeParse({ messages: [{ role: 'user', content: 'x'.repeat(CHAT_MAX_MESSAGE_CHARS + 1) }] }).success).toBe(false)
   })
 })
 

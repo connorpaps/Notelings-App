@@ -1,19 +1,23 @@
 import { z } from 'zod'
 
 /** M4: client-safe chat schemas shared by the /api/chat route and useChat. */
+export const CHAT_MAX_MESSAGES = 100
+export const CHAT_MAX_MESSAGE_CHARS = 8_000
+export const CHAT_MAX_PARTS = 32
+
 export const ChatRequestSchema = z.object({
-  // No hard max: useChat sends the FULL history each request, so a max here
-  // would 400 once a conversation outgrows it. The route prunes to the last
-  // CHAT_HISTORY_LIMIT messages instead.
+  // The client may resend history, but the request itself is still bounded.
+  // The route prunes the accepted history to its context window afterward.
   messages: z
     .array(
       z.object({
         role: z.enum(['user', 'assistant', 'system']),
-        content: z.string().optional(),
-        parts: z.array(z.unknown()).optional(),
+        content: z.string().max(CHAT_MAX_MESSAGE_CHARS).optional(),
+        parts: z.array(z.unknown()).max(CHAT_MAX_PARTS).optional(),
       }),
     )
-    .min(1),
+    .min(1)
+    .max(CHAT_MAX_MESSAGES),
 })
 export type ChatRequest = z.infer<typeof ChatRequestSchema>
 

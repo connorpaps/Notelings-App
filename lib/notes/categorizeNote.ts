@@ -1,13 +1,13 @@
 import { generateObject } from 'ai'
 import { google } from '@ai-sdk/google'
 import { CategorizationSchema } from './categorization'
-import type { NoteCategory } from './types'
+import type { AiNoteCategory } from './categorization'
 
 // NOTE: server-only — this module imports the AI SDK and must never be
 // imported from client components.
 export const LLM_TIMEOUT_MS = 10_000
 
-export type CategorizeNoteResult = { category: NoteCategory; tags: string[] }
+export type CategorizeNoteResult = { category: AiNoteCategory; tags: string[] }
 
 const SYSTEM_PROMPT =
   'You are the categorizer for a "Second Brain" note app. Classify the note into exactly one ' +

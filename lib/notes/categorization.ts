@@ -10,18 +10,29 @@ export const NoteInputSchema = z.object({
     .trim()
     .min(1, 'Note cannot be empty')
     .max(NOTE_CONTENT_MAX, `Notes are limited to ${NOTE_CONTENT_MAX} characters`),
+  submission_id: z.string().uuid().optional(),
 })
 export type NoteInput = z.infer<typeof NoteInputSchema>
 
-/** Strict schema forced on the LLM by generateObject (MASTER_SPEC_FINAL §5). */
-export const NoteCategorySchema = z.enum(['Work', 'Admin', 'Uncategorized'])
+/** Persisted category values, including the explicit no-AI capture state. */
+export const NoteCategorySchema = z.enum(['Work', 'Admin', 'Uncategorized', 'Manual'])
+
+/** Strict schema forced on Gemini; Manual is never an AI output. */
+export const AiNoteCategorySchema = z.enum(['Work', 'Admin', 'Uncategorized'])
+export type AiNoteCategory = z.infer<typeof AiNoteCategorySchema>
 
 export const CategorizationSchema = z.object({
-  category: NoteCategorySchema,
+  category: AiNoteCategorySchema,
   tags: z.array(z.string().min(1).max(40)).max(5),
 })
 
-/** Shape returned by POST /api/categorize. */
+/** Manual/no-AI capture input. The server assigns category=Manual. */
+export const ManualNoteInputSchema = NoteInputSchema.extend({
+  tags: z.array(z.string().trim().min(1).max(40)).max(5).default([]),
+}).strict()
+export type ManualNoteInput = z.infer<typeof ManualNoteInputSchema>
+
+/** Shape returned by POST /api/categorize and manual POST /api/notes. */
 export const CategorizeResponseSchema = z.object({
   id: z.string(),
   category: NoteCategorySchema,
@@ -35,6 +46,7 @@ export const CATEGORY_TO_DESTINATION: Record<NoteCategory, TaskDestination> = {
   Work: 'whiteboard',
   Admin: 'printer',
   Uncategorized: 'corkboard',
+  Manual: 'corkboard',
 }
 
 export function categoryToDestination(category: NoteCategory): TaskDestination {

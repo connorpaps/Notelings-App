@@ -1,5 +1,6 @@
 import type { TaskCompletion } from '@/components/office/agentStore'
 import type { AgentId } from '@/components/office/agentDestinations'
+import { noteCategoryLabel } from '@/lib/notes/types'
 
 /**
  * Pure presentation helpers for the physical-delivery success toast. Kept out
@@ -22,7 +23,7 @@ export function collectNewCompletions(
 
 export function completionToastMessage(completion: TaskCompletion): string {
   const agentName = AGENT_DISPLAY_NAMES[completion.agentId] ?? completion.agentId
-  return `Success: ${agentName} filed your note in ${completion.category}.`
+  return `Success: ${agentName} filed your note in ${noteCategoryLabel(completion.category)}.`
 }
 
 /** M2: the agentic-delete confirmation, fired once the note reaches the trash. */

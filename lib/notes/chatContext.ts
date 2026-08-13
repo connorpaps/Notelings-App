@@ -1,4 +1,4 @@
-import type { NoteRecord } from './types'
+import { noteCategoryLabel, type NoteRecord } from './types'
 
 /**
  * M4 "Ask the Librarian" — strict grounding contract (PHASE_2_SPEC_FINAL_UPDATED
@@ -47,7 +47,7 @@ export function buildNotesContext(
   if (active.length === 0) return '<notes>\n(no notes)\n</notes>'
   const lines = active.map((note) => {
     const n = numberById.get(note.id)
-    return `[${n ?? '?'}] (${note.category}, ${createdLabel(note.created_at)}, tags: ${note.tags.join(', ') || 'none'}) ${note.content}`
+    return `[${n ?? '?'}] (${noteCategoryLabel(note.category)}, ${createdLabel(note.created_at)}, tags: ${note.tags.join(', ') || 'none'}) ${note.content}`
   })
   return `<notes>\n${lines.join('\n')}\n</notes>`
 }

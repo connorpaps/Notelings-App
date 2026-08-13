@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,7 +10,7 @@ import { useAgentStore } from '@/components/office/agentStore'
 import { timeAgo } from '@/lib/notes/kanban'
 import { EditNoteSchema, parseTags, validateTags } from '@/lib/notes/noteEdit'
 import { NoteRecordSchema } from '@/lib/notes/notesApi'
-import type { NoteRecord } from '@/lib/notes/types'
+import { noteCategoryLabel, type NoteRecord } from '@/lib/notes/types'
 import { Spinner } from '@/components/ui/spinner'
 
 const STATUS_DOT: Record<NoteRecord['status'], string> = {
@@ -59,7 +59,7 @@ export default function GraphSidePeek({ noteId, onClose }: GraphSidePeekProps) {
           className="liquid-glass-strong pointer-events-auto fixed inset-y-0 right-0 z-50 w-[min(92vw,400px)]"
           role="dialog"
           aria-modal="false"
-          aria-label="Note side panel"
+          aria-labelledby={`graph-note-title-${note.id}`}
         >
           {/* Keyed by note id: switching notes remounts the body, so the edit
               form + editing flag reset naturally (no setState-in-effect). */}
@@ -83,6 +83,11 @@ function SidePeekBody({ note, onClose }: SidePeekBodyProps) {
   const archivingNoteIds = useAgentStore((state) => state.archivingNoteIds)
 
   const [editing, setEditing] = useState(false)
+  const closeRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    closeRef.current?.focus()
+  }, [note.id])
   const archiving = archivingNoteIds.includes(note.id)
   // Archived notes are read-only here (same gate as NoteCard).
   const canManage = note.status !== 'archived'
@@ -134,14 +139,18 @@ function SidePeekBody({ note, onClose }: SidePeekBodyProps) {
   return (
     <div className="flex h-full flex-col p-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+        <div>
+          <h2 id={`graph-note-title-${note.id}`} className="sr-only">Note side panel</h2>
+          <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-medium text-white/70">
-            {note.category}
+            {noteCategoryLabel(note.category)}
           </span>
           <span aria-hidden className={`size-1.5 rounded-full ${STATUS_DOT[note.status]}`} />
-          <span className="text-[10px] text-white/35">{timeAgo(note.created_at)}</span>
+            <span className="text-[10px] text-white/35">{timeAgo(note.created_at)}</span>
+          </div>
         </div>
         <button
+          ref={closeRef}
           type="button"
           aria-label="Close note side panel"
           onClick={onClose}

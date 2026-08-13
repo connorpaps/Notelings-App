@@ -4,8 +4,20 @@
  * without dragging the renderer into the API bundle.
  */
 
-/** The three LLM-assigned buckets (MASTER_SPEC_FINAL §5). */
-export type NoteCategory = 'Work' | 'Admin' | 'Uncategorized'
+/** Persisted note classification plus the explicit no-AI capture state. */
+export type NoteCategory = 'Work' | 'Admin' | 'Uncategorized' | 'Manual'
+
+/** User-facing labels for persisted category values. */
+export const NOTE_CATEGORY_LABELS: Record<NoteCategory, string> = {
+  Work: 'Work',
+  Admin: 'Admin',
+  Uncategorized: 'Uncategorized',
+  Manual: 'Needs sorting',
+}
+
+export function noteCategoryLabel(category: NoteCategory): string {
+  return NOTE_CATEGORY_LABELS[category]
+}
 
 /**
  * Robot delivery targets in the locked office. The union lives here (light)

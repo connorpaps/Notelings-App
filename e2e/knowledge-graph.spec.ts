@@ -45,6 +45,28 @@ async function pickNoteNode(page: Page): Promise<{ x: number; y: number }> {
   throw new Error('no clickable note node within 25s')
 }
 
+async function waitForStableNodePositions(page: Page): Promise<Array<{ id: string; x: number; y: number }>> {
+  const deadline = Date.now() + 25_000
+  let previous = ''
+  let stableReads = 0
+  while (Date.now() < deadline) {
+    const positions = await page.evaluate(() => {
+      const handle = (window as unknown as { __NOTELINGS_GRAPH__?: { nodePositions(): Array<{ id: string; x: number; y: number }> } }).__NOTELINGS_GRAPH__
+      return handle?.nodePositions() ?? []
+    })
+    const serialized = JSON.stringify(positions)
+    if (positions.length > 0 && serialized === previous) {
+      stableReads += 1
+      if (stableReads >= 5) return positions
+    } else {
+      stableReads = 0
+    }
+    previous = serialized
+    await page.waitForTimeout(250)
+  }
+  throw new Error('graph layout did not settle within 25s')
+}
+
 test('Milestone 5 knowledge graph: bipartite hubs, frozen layout, side-peek edit + archive', async ({ page }) => {
   test.setTimeout(90_000)
   const errors: string[] = []
@@ -83,6 +105,26 @@ test('Milestone 5 knowledge graph: bipartite hubs, frozen layout, side-peek edit
   await page.getByRole('button', { name: 'Open knowledge graph' }).click()
   const overlay = page.getByRole('dialog', { name: 'Knowledge graph' })
   await expect(overlay).toBeVisible({ timeout: 15_000 })
+  const surface = page.locator('[data-knowledge-graph-surface]')
+  await expect(surface).toBeVisible()
+  await expect(surface).toHaveClass(/bg-black\/25/)
+  await expect(surface).toHaveClass(/backdrop-blur-md/)
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('[data-knowledge-graph-surface]')!).backdropFilter))
+    .toMatch(/blur/)
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('[role="dialog"][aria-labelledby]')!).backdropFilter))
+    .toBe('none')
+
+  // The overlay close control must sit above the bounded graph surface.
+  // Exercise it once before continuing so a covered X cannot regress silently.
+  await overlay.getByRole('button', { name: 'Close knowledge graph' }).click()
+  await expect(overlay).toHaveCount(0)
+  await page.getByRole('button', { name: 'Open knowledge graph' }).click()
+  await expect(overlay).toBeVisible({ timeout: 10_000 })
+  await expect(surface).toBeVisible()
+  await expect(surface).toHaveClass(/bg-black\/25/)
+  await expect(surface).toHaveClass(/backdrop-blur-md/)
 
   // Bipartite counts: archived note excluded; 4 hubs + 4 satellites; 5 edges.
   await expect
@@ -106,12 +148,11 @@ test('Milestone 5 knowledge graph: bipartite hubs, frozen layout, side-peek edit
     )
     .toBeGreaterThan(0)
 
-  // The layout is FROZEN: two samples 700ms apart are identical (the d3-force
-  // simulation ran its warmupTicks and stopped — zero background CPU).
-  const sample = () => page.evaluate(() => (window as unknown as { __NOTELINGS_GRAPH__?: { nodePositions(): Array<{ id: string; x: number; y: number }> } }).__NOTELINGS_GRAPH__?.nodePositions() ?? [])
-  const before = await sample()
+  // The layout is FROZEN: wait for the warmup window to settle, then sample
+  // again after 700ms (the d3-force simulation must stop with zero tick loop).
+  const before = await waitForStableNodePositions(page)
   await page.waitForTimeout(700)
-  const after = await sample()
+  const after = await waitForStableNodePositions(page)
   expect(after).toEqual(before)
 
   // Click a note dot → the side-peek slides open (read view).
@@ -144,8 +185,8 @@ test('Milestone 5 knowledge graph: bipartite hubs, frozen layout, side-peek edit
   await expect(page.locator('[data-sonner-toast] [data-title]', { hasText: 'Archiving…' })).toBeVisible({ timeout: 10_000 })
   await expect(panel).toHaveCount(0)
 
-  // Escape closes the overlay.
-  await page.keyboard.press('Escape')
+  // The visible X closes the overlay as well as Esc.
+  await overlay.getByRole('button', { name: 'Close knowledge graph' }).click()
   await expect(overlay).toHaveCount(0)
 
   expect(errors).toEqual([])

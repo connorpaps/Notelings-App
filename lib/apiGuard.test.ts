@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { isSameOrigin, rateLimit, resetRateLimits } from './apiGuard'
+import { isSameOrigin, isStrictSameOrigin, rateLimit, readJsonBody, RequestBodyError, resetRateLimits } from './apiGuard'
 
 function makeRequest(headers: Record<string, string> = {}): Request {
   return new Request('http://localhost:3000/api/chat', { headers })
 }
 
 describe('isSameOrigin', () => {
-  it('allows requests with no Origin header (non-browser callers)', () => {
+  it('allows requests with no Origin header for read/non-browser callers', () => {
     expect(isSameOrigin(makeRequest())).toBe(true)
   })
 
@@ -40,6 +40,41 @@ describe('isSameOrigin', () => {
         makeRequest({ origin: 'https://localhost:3000', host: 'localhost:3000', 'x-forwarded-proto': 'https' }),
       ),
     ).toBe(true)
+  })
+})
+
+describe('isStrictSameOrigin', () => {
+  it('rejects mutation requests without Origin or Referer', () => {
+    expect(isStrictSameOrigin(makeRequest())).toBe(false)
+  })
+
+  it('accepts a same-origin Referer when Origin is absent', () => {
+    expect(
+      isStrictSameOrigin(makeRequest({ referer: 'http://localhost:3000/workspace' , host: 'localhost:3000' })),
+    ).toBe(true)
+  })
+
+  it('rejects a cross-origin Referer', () => {
+    expect(
+      isStrictSameOrigin(makeRequest({ referer: 'https://evil.example/form', host: 'localhost:3000' })),
+    ).toBe(false)
+  })
+})
+
+describe('readJsonBody', () => {
+  it('parses a small JSON body', async () => {
+    await expect(readJsonBody(new Request('http://localhost', { body: '{"ok":true}', method: 'POST' }))).resolves.toEqual({ ok: true })
+  })
+
+  it('rejects malformed and oversized bodies before route work', async () => {
+    await expect(readJsonBody(new Request('http://localhost', { body: 'not-json', method: 'POST' }))).rejects.toMatchObject({
+      status: 400,
+    })
+    const error = await readJsonBody(
+      new Request('http://localhost', { body: 'x'.repeat(64 * 1024 + 1), method: 'POST' }),
+    ).catch((value: unknown) => value)
+    expect(error).toBeInstanceOf(RequestBodyError)
+    expect((error as RequestBodyError).status).toBe(413)
   })
 })
 

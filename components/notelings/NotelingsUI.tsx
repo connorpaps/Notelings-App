@@ -1,14 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { LayoutGrid } from 'lucide-react'
+import { Eye, LayoutGrid } from 'lucide-react'
+import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import WelcomeScreen from './WelcomeScreen'
 import AgentStatusCard from './AgentStatusCard'
 import KanbanPanel from './KanbanPanel'
 import TerminalDock from './TerminalDock'
 import OfficeViewControls from './OfficeViewControls'
+import AuthControls from './AuthControls'
 import KnowledgeGraphOverlay from './KnowledgeGraphOverlay'
+import { useAuthSession } from './useAuthSession'
 import { useTaskCompletionToasts } from './useTaskCompletionToasts'
 import { useArchiveToasts } from './useArchiveToasts'
 import { useNotesRealtime } from './useNotesRealtime'
@@ -28,8 +31,28 @@ type NotelingsUIProps = { enabled?: boolean }
  * dismissed.
  */
 export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
-  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+  const [gateDismissed, setGateDismissed] = useState(false)
   const [kanbanOpen, setKanbanOpen] = useState(false)
+  const { authenticated, loading, user, refresh } = useAuthSession()
+  // The gate is the signed-out entry surface AND the signed-in "ready" card:
+  // it always shows with no session, and stays until dismissed for signed-in
+  // users (who land on "Private workspace ready → Initialize Agents").
+  const showGate = !loading && (!authenticated || !gateDismissed)
+  const isDemo = Boolean(user?.user_metadata?.is_demo)
+
+  const enterWorkspace = () => setGateDismissed(true)
+  // Demo mode is a real authenticated session on the shared demo account, so
+  // it exercises the same note/chat/realtime stack as a private workspace.
+  const enterDemo = async () => {
+    try {
+      const res = await fetch('/api/auth/demo', { method: 'POST' })
+      if (!res.ok) throw new Error('demo unavailable')
+      await refresh()
+      setGateDismissed(true)
+    } catch {
+      toast.error('Demo workspace is unavailable right now.')
+    }
+  }
   // The header's "Hide UI" collapses the chrome to just the view controls so
   // the office can be viewed (or the nav grid painted) on its own.
   const hidden = useOfficeViewStore((state) => state.uiHidden)
@@ -49,7 +72,9 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
 
   return (
     <>
-      {!hidden && !welcomeDismissed && <WelcomeScreen onInitialize={() => setWelcomeDismissed(true)} />}
+      {!hidden && showGate && (
+        <WelcomeScreen onInitialize={enterWorkspace} onBrowseDemo={() => void enterDemo()} />
+      )}
       <div className="absolute inset-0 z-20 pointer-events-none flex flex-col p-6 md:p-10">
         <header className="flex items-center justify-between">
           {hidden ? (
@@ -74,6 +99,13 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
                 <LayoutGrid size={16} />
               </button>
             )}
+            {!hidden && isDemo && (
+              <div className="liquid-glass hidden items-center gap-2 rounded-full px-3 py-2 text-[11px] text-cyan-100/90 sm:flex" title="Shared demo workspace">
+                <Eye size={13} className="text-cyan-200/80" />
+                Demo workspace
+              </div>
+            )}
+            {!hidden && <AuthControls />}
             {!hidden && (
               <div className="liquid-glass flex items-center gap-2.5 rounded-full px-4 py-2 text-xs text-white/70">
                 <span className="relative flex size-1.5">

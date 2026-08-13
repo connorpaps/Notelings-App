@@ -45,7 +45,7 @@ bash scripts/dev-server.sh stop    # shut it down
 
 Open <http://localhost:3000>.
 
-The 3D office and UI work without credentials. Credentials are required only when submitting a real note through `/api/categorize`.
+The 3D office and UI render without credentials. Saving and changing notes requires a session: sign in or create an account with a username (or email) and password, or enter the shared demo workspace with one click. AI features are provider-backed and must be disclosed; AI-off capture is tags-only and routes notes to a visible Needs sorting holding area without calling Gemini. Uncategorized is reserved for AI classification fallback. Full offline-first capture is not yet supported.
 
 ## Validation
 

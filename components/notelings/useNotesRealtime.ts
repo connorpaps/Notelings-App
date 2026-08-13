@@ -5,18 +5,23 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import { useAgentStore } from '@/components/office/agentStore'
 import { createBrowserSupabase } from '@/lib/supabase/client'
 import { NoteRecordSchema, NotesListSchema } from '@/lib/notes/notesApi'
+import { useAuthSession } from './useAuthSession'
 
 /**
  * Phase 2 M1: mirrors the Supabase `notes` table into the store.
- * 1. One-time fetch via the server route (service role).
- * 2. Live `postgres_changes` subscription (anon key, READ ONLY).
+ * 1. One-time fetch via the authenticated owner-scoped server route.
+ * 2. Live `postgres_changes` subscription using the authenticated browser session
+ *    and owner-scoped Realtime/RLS. Signed-out users do not open a channel.
  *
  * CRITICAL (PHASE_2_SPEC §5): the effect returns a cleanup that calls
  * `supabase.removeChannel(channel)`. Without it, React StrictMode's double
  * mount creates zombie channels that leak sockets.
  */
 export function useNotesRealtime() {
+  const { authenticated, loading } = useAuthSession()
+
   useEffect(() => {
+    if (loading || !authenticated) return undefined
     let disposed = false
 
     fetch('/api/notes')
@@ -83,5 +88,5 @@ export function useNotesRealtime() {
       disposed = true
       if (channel && supabase) void supabase.removeChannel(channel)
     }
-  }, [])
+  }, [authenticated, loading])
 }
