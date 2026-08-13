@@ -47,6 +47,15 @@ Open <http://localhost:3000>.
 
 The 3D office and UI render without credentials. Saving and changing notes requires a session: sign in or create an account with a username (or email) and password, or enter the shared demo workspace with one click. AI features are provider-backed and must be disclosed; AI-off capture is tags-only and routes notes to a visible Needs sorting holding area without calling Gemini. Uncategorized is reserved for AI classification fallback. Full offline-first capture is not yet supported.
 
+## Deployment tracks
+
+Notelings uses separate deployments for its two goals:
+
+- **Portfolio demo:** a separate Vercel + Supabase project with sanitized seed data, ephemeral visitor writes, and a hard-capped/demo-safe AI policy.
+- **Private workspace:** an authenticated Vercel + Supabase project with owner-scoped RLS and private notes.
+
+Do not point a public demo at the private Supabase project. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the environment matrix, migration rehearsal, reset, smoke, backup, and rollback runbook.
+
 ## Validation
 
 ```bash
