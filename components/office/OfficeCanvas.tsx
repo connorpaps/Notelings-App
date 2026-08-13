@@ -1,17 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import * as THREE from 'three'
 import { Canvas } from '@react-three/fiber'
 import { Bloom, EffectComposer, SSAO, ToneMapping } from '@react-three/postprocessing'
 import NewOfficeScene from './NewOfficeScene'
+import {
+  getBrowserRenderCapabilities,
+  OFFICE_RENDER_PROFILES,
+  resolveOfficeRenderQuality,
+  type OfficeRenderProfile,
+} from './renderProfile'
 
-const SHADOW_MAP_SIZE = 4096
-const TONE_MAPPING_EXPOSURE = 1.2
-const BLOOM_PROPS = {
-  luminanceThreshold: 1,
-  intensity: 0.2,
-} as const
-const SHADOW_CASCADE = 30
 const CAMERA_POSITION: [number, number, number] = [24, 22, 24]
 // Re-framed for the 10 m GLB office (2026-08-10 swap): zoom raised so the
 // smaller floor fills the frame like the legacy 21.6×16.8 m office did.
@@ -22,46 +22,42 @@ const CAMERA_ZOOM = 86
 const CAMERA_NEAR = -100
 const CAMERA_FAR = 300
 
-const SSAO_PROPS = {
-  radius: 2.4,
-  intensity: 2,
-  samples: 32,
-  rings: 4,
-  bias: 0.3,
-  luminanceInfluence: 0.65,
-} as const
+// Keep the high profile exported as the approved desktop reference. Runtime
+// QA exposes the selected profile, which may be balanced on constrained devices.
+export const OFFICE_RENDER_PROFILE = OFFICE_RENDER_PROFILES.high
 
-// The composer owns the final tone-mapping pass. Keep its installed default
-// here because the explicit ACES override washed out the approved color palette.
-// M4.2 reskin: the opaque teal scene background was removed so the looping
-// video behind the transparent canvas shows through around the office.
-
-export const OFFICE_RENDER_PROFILE = {
-  frameloop: 'always' as const,
-  shadows: true as const,
-  shadowMapSize: [SHADOW_MAP_SIZE, SHADOW_MAP_SIZE] as [number, number],
-  postprocessing: true as const,
-  toneMappingMode: null,
-  toneMappingExposure: TONE_MAPPING_EXPOSURE,
-  bloom: { luminanceThreshold: BLOOM_PROPS.luminanceThreshold, intensity: BLOOM_PROPS.intensity },
-  ssao: { samples: SSAO_PROPS.samples, rings: SSAO_PROPS.rings, intensity: SSAO_PROPS.intensity },
-} as const
+// High quality is the approved desktop visual baseline. The balanced profile is
+// selected only for coarse-pointer/low-capability devices or an explicit local
+// override. Both profiles cap DPR at 1 because the composer multiplies pixel cost.
 
 type OfficeCanvasProps = {
   onPointerMissed?: () => void
 }
 
+type CameraProfile = {
+  position: [number, number, number]
+  target: [number, number, number]
+  zoom: number
+  near: number
+  far: number
+  controls: false
+  frameloop: 'always'
+}
+
 export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
+  const [renderQuality] = useState(() => resolveOfficeRenderQuality(
+    getBrowserRenderCapabilities(),
+    process.env.NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY as 'high' | 'balanced' | 'auto' | undefined,
+  ))
+  const renderProfile: OfficeRenderProfile = OFFICE_RENDER_PROFILES[renderQuality]
+
   return (
     <Canvas
       orthographic
       camera={{ position: CAMERA_POSITION, zoom: CAMERA_ZOOM, near: CAMERA_NEAR, far: CAMERA_FAR }}
-      shadows="soft"
-      // Cap the backbuffer at CSS resolution: on Retina displays this halves
-      // the pixels processed by the transparent canvas and its composer passes
-      // while preserving the scene's geometry, lighting, and texture quality.
-      dpr={[1, 2]}
-      frameloop="always"
+      shadows={renderProfile.shadows ? 'soft' : false}
+      dpr={renderProfile.dpr}
+      frameloop={renderProfile.frameloop}
       gl={{
         antialias: true,
         alpha: true,
@@ -71,7 +67,7 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
         preserveDrawingBuffer: process.env.NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER === '1',
         powerPreference: 'high-performance',
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: TONE_MAPPING_EXPOSURE,
+        toneMappingExposure: renderProfile.toneMappingExposure,
       }}
       onCreated={({ camera, scene, gl }) => {
         camera.lookAt(...CAMERA_TARGET)
@@ -80,41 +76,21 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
             __NOTELINGS_SCENE__: typeof scene
             __NOTELINGS_CAMERA__: typeof camera
             __NOTELINGS_RENDERER__: typeof gl
-            __NOTELINGS_CAMERA_PROFILE__: {
-              position: [number, number, number]
-              target: [number, number, number]
-              zoom: number
-              near: number
-              far: number
-              controls: false
-              frameloop: 'always'
-            }
-            __NOTELINGS_RENDER_PROFILE__: typeof OFFICE_RENDER_PROFILE
+            __NOTELINGS_CAMERA_PROFILE__: CameraProfile
+            __NOTELINGS_RENDER_PROFILE__: OfficeRenderProfile
           }).__NOTELINGS_SCENE__ = scene
           ;(window as unknown as { __NOTELINGS_CAMERA__: typeof camera }).__NOTELINGS_CAMERA__ = camera
           ;(window as unknown as { __NOTELINGS_RENDERER__: typeof gl }).__NOTELINGS_RENDERER__ = gl
-          ;(window as unknown as {
-            __NOTELINGS_CAMERA_PROFILE__: {
-              position: [number, number, number]
-              target: [number, number, number]
-              zoom: number
-              near: number
-              far: number
-              controls: false
-              frameloop: 'always'
-            }
-          }).__NOTELINGS_CAMERA_PROFILE__ = {
+          ;(window as unknown as { __NOTELINGS_CAMERA_PROFILE__: CameraProfile }).__NOTELINGS_CAMERA_PROFILE__ = {
             position: [...CAMERA_POSITION],
             target: [...CAMERA_TARGET],
             zoom: CAMERA_ZOOM,
             near: CAMERA_NEAR,
             far: CAMERA_FAR,
             controls: false,
-            frameloop: 'always',
+            frameloop: renderProfile.frameloop,
           }
-          ;(window as unknown as {
-            __NOTELINGS_RENDER_PROFILE__: typeof OFFICE_RENDER_PROFILE
-          }).__NOTELINGS_RENDER_PROFILE__ = OFFICE_RENDER_PROFILE
+          ;(window as unknown as { __NOTELINGS_RENDER_PROFILE__: OfficeRenderProfile }).__NOTELINGS_RENDER_PROFILE__ = renderProfile
         }
       }}
       style={{ width: '100%', height: '100%' }}
@@ -130,20 +106,20 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
         shadow-bias={-0.0002}
         shadow-normalBias={0.02}
         shadow-radius={4}
-        shadow-mapSize-width={SHADOW_MAP_SIZE}
-        shadow-mapSize-height={SHADOW_MAP_SIZE}
-        shadow-camera-left={-SHADOW_CASCADE}
-        shadow-camera-right={SHADOW_CASCADE}
-        shadow-camera-top={SHADOW_CASCADE}
-        shadow-camera-bottom={-SHADOW_CASCADE}
+        shadow-mapSize-width={renderProfile.shadowMapSize[0]}
+        shadow-mapSize-height={renderProfile.shadowMapSize[1]}
+        shadow-camera-left={-renderProfile.shadowCascade}
+        shadow-camera-right={renderProfile.shadowCascade}
+        shadow-camera-top={renderProfile.shadowCascade}
+        shadow-camera-bottom={-renderProfile.shadowCascade}
         shadow-camera-near={1}
         shadow-camera-far={70}
       />
       <hemisphereLight name="office-fill" args={['#d8eeee', '#34504f', 0.32]} />
       <NewOfficeScene />
       <EffectComposer enableNormalPass>
-        <SSAO {...SSAO_PROPS} />
-        <Bloom {...BLOOM_PROPS} />
+        <SSAO {...renderProfile.ssao} />
+        <Bloom {...renderProfile.bloom} />
         <ToneMapping />
       </EffectComposer>
     </Canvas>

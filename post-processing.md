@@ -1,7 +1,9 @@
-> ⚠️ **STATUS — PARTIALLY OUTDATED (2026-08-12).** This documents the *legacy office* render profile. The active GLB office (swapped 2026-08-10) changed the framing:
-> - Camera zoom **38 → 86** and target **`[0, 1.5, 0]` → `[0, 1, 0]`** (position `[24,22,24]`, near/far unchanged).
-> - Robots render at **`ROBOT_VISUAL_SCALE = 0.72`** (was 0.8); the carried note card has its own `NOTE_SCALE = 0.9`.
-> - The SSAO/Bloom/ToneMapping chain, 4096² shadows, DPR 1, and `frameloop="always"` below are unchanged and still correct.
+> **STATUS — UPDATED 2026-08-13.** This document now records the active GLB office and the measured first-pass renderer profiles:
+> - Camera position `[24,22,24]`, target `[0,1,0]`, zoom `86`, near/far `-100 / 300`.
+> - Robots render at `ROBOT_VISUAL_SCALE = 0.72`; the carried note card has `NOTE_SCALE = 0.9`.
+> - High quality preserves 4096² shadows, ±30 shadow cascade, SSAO `32 / 4`, Bloom, and exposure `1.2`.
+> - Balanced quality is selected for constrained devices or an explicit override: 2048² shadows, ±14 cascade, SSAO `16 / 2`, same Bloom/exposure.
+> - Both profiles cap WebGL DPR at `1`; normal runs disable `preserveDrawingBuffer`, while Playwright enables it for pixel assertions.
 
 # Office Post-Processing Configuration
 
@@ -11,12 +13,12 @@ This document records the post-processing effects and related renderer settings 
 
 ## 1. EffectComposer
 
-`OfficeCanvas` uses the following composer:
+`OfficeCanvas` uses the following composer, with SSAO/Bloom props supplied by the selected high or balanced profile:
 
 ```tsx
 <EffectComposer enableNormalPass>
-  <SSAO {...SSAO_PROPS} />
-  <Bloom luminanceThreshold={1.0} intensity={0.2} />
+  <SSAO {...renderProfile.ssao} />
+  <Bloom {...renderProfile.bloom} />
   <ToneMapping />
 </EffectComposer>
 ```
@@ -111,7 +113,8 @@ These are not post-processing effects, but they substantially influence the fina
 - Shadow radius: `4`
 - Shadow bias: `-0.0002`
 - Shadow normal bias: `0.02`
-- Shadow camera bounds: `[-30, 30]` on left/right/top/bottom
+- High shadow camera bounds: `[-30, 30]` on left/right/top/bottom
+- Balanced shadow camera bounds: `[-14, 14]` on left/right/top/bottom
 - Shadow camera near plane: `1`
 - Shadow camera far plane: `70`
 
@@ -135,20 +138,20 @@ These are not post-processing effects, but they substantially influence the fina
 
 - Orthographic camera
 - Camera position: `[24, 22, 24]`
-- Camera zoom: `38`
+- Camera zoom: `86`
 - Camera near/far: `-100 / 300`
 - Device pixel ratio: `dpr={1}` — caps the WebGL backbuffer at CSS resolution to avoid doubling all transparent canvas/composer pixel work on Retina displays while preserving scene geometry and lighting.
 - Frameloop: `"always"` — autonomous Blue and Green agents wander and execute tasks continuously
 - WebGL antialiasing: enabled
 - Alpha channel: enabled (`gl.alpha: true`) so the static Skybridge frame shows through around the office.
-- `preserveDrawingBuffer`: enabled
+- `preserveDrawingBuffer`: disabled in normal runs; enabled only by Playwright’s `NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER=1` web-server environment
 - WebGL power preference: `"high-performance"`
 - Scene background: none; the WebGL canvas is transparent and the static Skybridge frame layer provides the page background.
 - Renderer tone-mapping exposure: `1.2`
 - Camera controls: **removed**; the office is a fixed static diorama
 - Fixed camera position: `[24, 22, 24]`
-- Fixed camera target: `[0, 1.5, 0]`
-- Fixed camera zoom: `38`
+- Fixed camera target: `[0, 1, 0]`
+- Fixed camera zoom: `86`
 - Fixed camera near/far: `-100 / 300`
 - Always rendering: Milestone 3 intentionally keeps the R3F loop running because two autonomous agents can wander, preempt wandering for queued work, and complete tasks independently. The renderer now caps DPR at `1` to reduce Retina pixel cost; camera, lighting, shadows, and post-processing remain unchanged.
 - Agent animation: `AgentRobot` owns per-frame Three.js position/path refs, while Zustand owns task intent and lifecycle. The shared Canvas is never toggled back to demand by an individual robot, so one agent cannot freeze another mid-route.
@@ -188,15 +191,21 @@ The office is now intended to be viewed as one fixed static diorama. Users canno
 The current app does **not** include:
 
 - A graphics-acceleration toggle
-- Renderer-tier detection
 - A separate software-rendering scene
 - `PerformanceMonitor`
-- Adaptive DPR logic
-- Dynamic SSAO quality tiers
-- Canvas remounting based on renderer capability
+- Idle demand-rendering suspension
+- GLB geometry merging/instancing
+- Dynamic shadow-caster classification
 - The development builder in the default app path
 - Builder localStorage hydration or writes in the default app path
 
+The current app **does** include:
+
+- `components/office/renderProfile.ts` with high/balanced renderer tiers.
+- Capability resolution using coarse pointer, logical cores, and optional device memory.
+- An explicit `NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY=high|balanced|auto` local/test override.
+- DPR 1 in both tiers, with balanced 2048² shadows/±14 cascade and SSAO 16/2.
+
 The development builder remains in the codebase behind the source-controlled `ENABLE_OFFICE_BUILDER` flag, currently `false`, so it can be reactivated later without being mounted during normal static-diorama use.
 
-This configuration is the restored pre-FPS visual baseline. Future performance experiments should preserve the scene composition and document any changes separately.
+The high profile is the preserved visual baseline with the measured DPR cap. Future performance experiments should preserve the scene composition, compare against the artifacts under `docs/.performance-artifacts/`, and document each accepted or rejected change separately.

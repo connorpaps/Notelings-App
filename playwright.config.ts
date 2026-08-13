@@ -21,6 +21,7 @@ export default defineConfig({
     // off for GPU memory; only the Playwright server turns it on.
     env: {
       NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER: '1',
+      NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY: process.env.NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY ?? 'high',
       // Test-only auth bypass. The client and server both guard this with
       // NODE_ENV !== 'production'; it must never be set on a deployment.
       NEXT_PUBLIC_NOTELINGS_E2E_AUTH_BYPASS: '1',
@@ -29,7 +30,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testMatch: /(office-smoke|tag-explorer|librarian-chat|knowledge-graph)\.spec\.ts/,
+      testMatch: /(office-smoke|tag-explorer|librarian-chat|knowledge-graph|performance-renderer)\.spec\.ts/,
       use: { browserName: 'chromium', launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader'] } },
     },
   ],

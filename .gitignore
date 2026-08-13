@@ -28,6 +28,9 @@ docs/activity-watch.log
 # Local machine marker (hostname of the last machine the repo was used on)
 docs/.last-machine
 
+# Performance comparison artifacts (generated locally; never commit)
+docs/.performance-artifacts/
+
 # Dev-server launcher state (scripts/dev-server.sh)
 docs/.dev-server.log
 docs/.dev-server.pid

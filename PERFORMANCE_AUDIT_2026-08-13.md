@@ -18,6 +18,18 @@ The primary issue is not polygon count. It is the combination of:
 
 The Knowledge Graph is **not currently the highest-impact bottleneck** at the tested note count.
 
+## First-pass implementation result — 2026-08-13
+
+The first renderer pass was implemented and evaluated against the unchanged source baseline.
+
+- The high desktop profile now caps WebGL at `dpr={1}`. At 1440×900 with device scale factor 2, the backbuffer changed from `2880×1800` to `1440×900` and headed FPS improved from approximately **35.6 to 80.9** in matched local samples. The DPR-1 sample stayed effectively flat (**78.6 → 78.8 FPS**, p95 **18.2 ms → 18.2 ms**), confirming that the improvement came from avoiding Retina pixel multiplication rather than changing scene work.
+- The constrained-device balanced profile uses DPR 1, 2048² shadows over a ±14 cascade, and SSAO `16 / 2`, while preserving Bloom, exposure `1.2`, alpha compositing, camera, GLB, and robot/UI composition. A 390×844 / device scale 3 headed sample used a `390×844` backbuffer instead of the baseline `780×1688` and measured **115.8 FPS** versus **108.5 FPS** in the base high profile.
+- High-profile renderer work remained approximately **2,127 calls and 371k triangles per frame**, with the same 717 meshes, 675 shadow casters, 703 geometries, and 52 runtime textures. This pass did not optimize GLB draw-call count.
+- Fixed-state screenshot comparisons between high and balanced profiles showed low image deltas: approximately **0.63–0.88 mean absolute channel error** and **1.05–1.29% changed canvas pixels** for desktop delivery/idle and mobile idle captures; full-page mobile changed-pixel ratio was **2.17%**. Canvas transparency remained unchanged in all captures. No material visual regression was detected by the image comparison.
+- Persistent comparison artifacts are stored locally under ignored `docs/.performance-artifacts/`; Playwright’s disposable `test-results/` directory is not used for cross-run baselines.
+
+The first pass therefore retains the DPR cap and balanced profile. Idle rendering, shadow-caster classification, post-processing resolution experiments, GLB merging/instancing, and broad UI compositor tuning remain later measured phases.
+
 ---
 
 ## Measurement setup
@@ -47,15 +59,17 @@ The same 1440×900 viewport was measured at two device scale factors:
 | 1 | 1440×900 | ~60.3 FPS | ~16.8 ms | 29/181 |
 | 2 | 2880×1800 | ~28.3 FPS | ~50 ms | 84/85 |
 
-The current Canvas configuration is:
+The pre-pass Canvas configuration was:
 
 ```tsx
 dpr={[1, 2]}
 ```
 
+The implemented high and balanced profiles now both use `dpr={1}`.
+
 At DPR 2, the renderer processes approximately **four times as many pixels**. Those pixels are consumed not only by the base scene but also by transparent compositing, SSAO, Bloom, tone mapping, and UI overlap.
 
-**Finding:** The comment in `components/office/OfficeCanvas.tsx` describes a CSS-resolution cap, but the source permits DPR 2. The current `post-processing.md` and older handoff notes claim the app uses `dpr={1}`; that documentation is stale relative to the source.
+**Finding before the pass:** The comment in `components/office/OfficeCanvas.tsx` described a CSS-resolution cap, but the source permitted DPR 2. The renderer now enforces the cap through `components/office/renderProfile.ts`; the remaining profile/documentation contract is covered by unit and Playwright tests.
 
 **Confidence:** Very high.
 

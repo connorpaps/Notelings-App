@@ -153,7 +153,19 @@ test('static office diorama preserves the locked baseline with three robots and 
   expect(audit.builderStorage).toBe('preexisting-builder-snapshot')
   expect(audit.builderExportStorage).toBe('preexisting-builder-export')
   expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1, 0], zoom: 86, near: -100, far: 300, controls: false, frameloop: 'always' })
-  expect(audit.renderProfile).toEqual({ frameloop: 'always', shadows: true, shadowMapSize: [4096, 4096], postprocessing: true, toneMappingMode: null, toneMappingExposure: 1.2, bloom: { luminanceThreshold: 1, intensity: 0.2 }, ssao: { samples: 32, rings: 4, intensity: 2 } })
+  expect(audit.renderProfile).toEqual({
+    quality: 'high',
+    dpr: 1,
+    frameloop: 'always',
+    shadows: true,
+    shadowMapSize: [4096, 4096],
+    shadowCascade: 30,
+    postprocessing: true,
+    toneMappingMode: null,
+    toneMappingExposure: 1.2,
+    bloom: { luminanceThreshold: 1, intensity: 0.2 },
+    ssao: { radius: 2.4, intensity: 2, samples: 32, rings: 4, bias: 0.3, luminanceInfluence: 0.65 },
+  })
 
   const runtime = await page.evaluate(() => {
     const agents = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { id: string; status: string }> } }).__NOTELINGS_AGENTS__
