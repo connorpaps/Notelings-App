@@ -12,6 +12,7 @@ import type { NoteRecord } from '@/lib/notes/types'
 import { getAuthenticatedContext } from '@/lib/supabase/auth'
 import { CHAT_RATE_LIMIT, isStrictSameOrigin, readJsonBody, RequestBodyError, rateLimit } from '@/lib/apiGuard'
 import { logApiFailure, observeApiRoute } from '@/lib/observability'
+import { reserveDemoAiUsage } from '@/lib/ai/demoUsage'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -101,6 +102,13 @@ export async function POST(request: Request) {
       answer = `${matches.length} of your notes match "${countTopic}": ${cites}${extra}.`
     }
     return createUiMessageStreamResponse(answer)
+  }
+
+  const aiBudgetAvailable = await reserveDemoAiUsage('chat')
+  if (!aiBudgetAvailable) {
+    return createUiMessageStreamResponse(
+      'The demo AI limit has been reached for today. You can still capture notes manually, and the demo will reset its sample workspace separately.',
+    )
   }
 
   // LLM path: all notes if within the context limit, else embedding retrieval.

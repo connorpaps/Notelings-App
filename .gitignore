@@ -12,6 +12,8 @@ tsconfig.tsbuildinfo
 .env
 .env.local
 .env*.local
+# Accidental local scratch file created while preparing demo settings
+Untitled
 
 # Logs
 npm-debug.log*

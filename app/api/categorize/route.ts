@@ -5,6 +5,7 @@ import { categorizeNote } from '@/lib/notes/categorizeNote'
 import { getAuthenticatedContext } from '@/lib/supabase/auth'
 import { CATEGORIZE_RATE_LIMIT, isStrictSameOrigin, readJsonBody, RequestBodyError, rateLimit } from '@/lib/apiGuard'
 import { logApiFailure, observeApiRoute } from '@/lib/observability'
+import { reserveDemoAiUsage } from '@/lib/ai/demoUsage'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -46,7 +47,9 @@ export async function POST(request: Request) {
   let category: 'Work' | 'Admin' | 'Uncategorized' = 'Uncategorized'
   let tags: string[] = []
   let degraded = false
+  const aiBudgetAvailable = await reserveDemoAiUsage('categorize')
   try {
+    if (!aiBudgetAvailable) throw new Error('Demo AI budget exhausted')
     const result = await categorizeNote(input.content)
     category = result.category
     tags = result.tags

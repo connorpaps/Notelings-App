@@ -11,6 +11,8 @@
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 
+const envFile = process.env.NOTELINGS_ENV_FILE || '.env.local'
+
 function parseEnv(text) {
   return Object.fromEntries(text.split(/\r?\n/).flatMap((line) => {
     const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(line)
@@ -18,7 +20,10 @@ function parseEnv(text) {
   }))
 }
 
-const env = parseEnv(readFileSync('.env.local', 'utf8'))
+const env = {
+  ...parseEnv(readFileSync(envFile, 'utf8')),
+  ...(process.env.NOTELINGS_DEMO_RESET_CONFIRM ? { NOTELINGS_DEMO_RESET_CONFIRM: process.env.NOTELINGS_DEMO_RESET_CONFIRM } : {}),
+}
 const url = env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 const expectedProjectRef = env.NOTELINGS_DEMO_PROJECT_REF
@@ -100,6 +105,8 @@ const seedNotes = [
   },
 ].map((note) => ({ ...note, user_id: demo.id }))
 
+const { error: usageDeleteError } = await admin.from('demo_ai_usage_daily').delete().not('usage_date', 'is', null)
+if (usageDeleteError) throw usageDeleteError
 const { error: deleteError } = await admin.from('notes').delete().not('id', 'is', null)
 if (deleteError) throw deleteError
 const { error: insertError } = await admin.from('notes').insert(seedNotes)

@@ -1,5 +1,9 @@
 # Notelings Deployment Runbook
 
+Use the single consolidated user checklist first: [`DEMO_DEPLOYMENT_REMAINING_STEPS.md`](DEMO_DEPLOYMENT_REMAINING_STEPS.md).
+
+The older setup reference remains here: [`DEPLOYMENT_SETUP_CHECKLIST.md`](DEPLOYMENT_SETUP_CHECKLIST.md).
+
 ## Release strategy
 
 Notelings has two intentionally separate release tracks:
@@ -100,8 +104,8 @@ The demo may accept visitor notes to demonstrate the full interaction, but write
 - Demo rows exist only in the demo Supabase project.
 - A scheduled/manual reset restores the sanitized seed.
 - Demo reset may delete all visitor-created rows; the UI must disclose this.
-- Demo AI calls use a separate hard quota and never retrieve private-project data.
-- If the demo quota/provider is unavailable, deterministic fallback behavior keeps the showcase usable.
+- Demo AI calls use a separate hard quota and never retrieve private-project data: 12 categorization calls/day and 6 chat calls/day for the shared demo account.
+- If the demo quota/provider is unavailable, deterministic fallback behavior keeps the showcase usable; manual/no-AI capture remains available.
 - The demo must not expose service-role credentials or allow a browser-provided project/tenant selector.
 
 ## Backup and recovery

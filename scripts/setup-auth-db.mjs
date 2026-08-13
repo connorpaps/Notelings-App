@@ -15,8 +15,10 @@
  *   - registers usernames for both accounts
  *
  * SQL runs through the Supabase Management API when SUPABASE_ACCESS_TOKEN is
- * present in .env.local; otherwise a combined SQL file is written for the
- * Dashboard SQL editor. Never commit .env.local or the generated SQL file.
+ * present in the selected local env file; otherwise a combined SQL file is
+ * written for the Dashboard SQL editor. Never commit an env file or the
+ * generated SQL file. Use NOTELINGS_ENV_FILE=.env.demo.local for isolated demo
+ * setup so the private .env.local is never targeted accidentally.
  */
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
@@ -25,7 +27,8 @@ import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const envPath = path.join(root, '.env.local')
+const envFile = process.env.NOTELINGS_ENV_FILE || '.env.local'
+const envPath = path.resolve(root, envFile)
 
 function parseEnv(text) {
   const out = {}
@@ -37,7 +40,7 @@ function parseEnv(text) {
 }
 
 if (!existsSync(envPath)) {
-  console.error('✗ .env.local not found. Copy .env.example to .env.local first.')
+  console.error(`✗ ${envFile} not found. Copy .env.example to ${envFile} first.`)
   process.exit(1)
 }
 
@@ -50,14 +53,21 @@ const demoEmail = (env.NOTELINGS_DEMO_EMAIL || 'demo@notelings.local').toLowerCa
 const demoUsername = 'demo'
 
 if (!url || !serviceKey) {
-  console.error('✗ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
+  console.error(`✗ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in ${envFile}`)
   process.exit(1)
 }
 
 const projectRef = new URL(url).hostname.split('.')[0]
+const configuredDemoRef = env.NOTELINGS_DEMO_PROJECT_REF
+if (configuredDemoRef && configuredDemoRef !== projectRef) {
+  console.error(`✗ Refusing setup: URL project ref ${projectRef} does not match NOTELINGS_DEMO_PROJECT_REF ${configuredDemoRef}`)
+  process.exit(1)
+}
+const isDemoSetup = Boolean(configuredDemoRef)
 const admin = createClient(url, serviceKey, { auth: { persistSession: false } })
 
 const readMigration = (file) => readFileSync(path.join(root, 'supabase', 'migrations', file), 'utf8')
+const readSchema = () => readFileSync(path.join(root, 'supabase', 'schema.sql'), 'utf8')
 
 const SQL_STEPS = [
   { name: 'ownership columns', sql: readMigration('20260812_auth_ownership.sql') },
@@ -69,6 +79,7 @@ const SQL_STEPS = [
   { name: 'usernames table', sql: readMigration('20260813_username_password_auth.sql') },
   { name: 'manual capture category', sql: readMigration('20260813_manual_capture_category.sql') },
 ]
+if (isDemoSetup) SQL_STEPS.push({ name: 'demo AI usage budget', sql: readMigration('20260813_demo_ai_usage.sql') })
 
 async function runSql(query) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
@@ -76,9 +87,34 @@ async function runSql(query) {
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
   })
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`SQL step failed (HTTP ${res.status}): ${body.slice(0, 500)}`)
+  const body = await res.text()
+  let parsed = null
+  try {
+    parsed = body ? JSON.parse(body) : null
+  } catch {
+    parsed = null
+  }
+  if (!res.ok) throw new Error(`SQL step failed (HTTP ${res.status}): ${body.slice(0, 500)}`)
+  return parsed
+}
+
+async function ensureDemoBaseSchema() {
+  if (!isDemoSetup) return
+  const result = await runSql("select to_regclass('public.notes') as notes_table;")
+  const rows = Array.isArray(result) ? result : Array.isArray(result?.result) ? result.result : []
+  if (rows[0]?.notes_table) return
+  process.stdout.write('· demo base schema... ')
+  try {
+    await runSql(readSchema())
+    await runSql(`
+      grant usage on schema public to authenticated, service_role;
+      grant select, insert, update, delete on public.notes to authenticated, service_role;
+      grant usage, select on all sequences in schema public to authenticated, service_role;
+    `)
+    console.log('ok')
+  } catch (error) {
+    console.log('FAILED')
+    throw error
   }
 }
 
@@ -99,7 +135,7 @@ function writeDashboardSql() {
   const combined = SQL_STEPS.map((step) => `-- ===== ${step.name} =====\n${step.sql}`).join('\n\n')
   const out = path.join(root, 'supabase', '_apply_auth_setup_pending.sql')
   writeFileSync(out, combined, 'utf8')
-  console.log(`\nNo SUPABASE_ACCESS_TOKEN in .env.local — wrote ${out}\n` +
+  console.log(`\nNo SUPABASE_ACCESS_TOKEN in ${envFile} — wrote ${out}\n` +
     'Open your Supabase project → SQL Editor → paste that file and run it, then run this script again with SUPABASE_ACCESS_TOKEN for the account setup.\n')
 }
 
@@ -141,15 +177,14 @@ function ensureEnvVar(key, value) {
   if (env[key]) return env[key]
   const line = `${key}=${value}`
   appendFileSync(envPath, `\n${line}\n`)
-  console.log(`· added ${key} to .env.local`)
+  env[key] = value
+  console.log(`· added ${key} to ${envFile}`)
   return value
 }
 
 async function main() {
-  const demoPassword = ensureEnvVar('NOTELINGS_DEMO_PASSWORD', randomBytes(18).toString('base64url'))
-  ensureEnvVar('NOTELINGS_DEMO_EMAIL', demoEmail)
-
   if (accessToken) {
+    await ensureDemoBaseSchema()
     await applyViaManagementApi()
   } else {
     writeDashboardSql()
@@ -157,7 +192,18 @@ async function main() {
     process.exit(2)
   }
 
+  if (isDemoSetup) {
+    await runSql(`
+      grant usage on schema public to authenticated, service_role;
+      grant select, insert, update, delete on public.notes to authenticated, service_role;
+      grant select, insert, update, delete on public.usernames to authenticated, service_role;
+      grant usage, select on all sequences in schema public to authenticated, service_role;
+    `)
+  }
+
   // Account setup — requires the usernames table + notes.user_id to exist.
+  const demoPassword = ensureEnvVar('NOTELINGS_DEMO_PASSWORD', randomBytes(18).toString('base64url'))
+  ensureEnvVar('NOTELINGS_DEMO_EMAIL', demoEmail)
   const ownerUsername = ownerEmail.split('@')[0]
   const resetOwnerPassword = process.argv.includes('--reset-owner-password')
   const ownerPassword = resetOwnerPassword ? randomBytes(12).toString('base64url') : null
@@ -177,7 +223,8 @@ async function main() {
   console.log('  (Change it anytime in Supabase Dashboard → Authentication → Users → reset password.)')
   console.log('\n  ⚠ This password was generated for you and printed only once — change it soon')
   console.log('  (Supabase Dashboard → Authentication → Users → edit → reset password).')
-  console.log(`\nDemo workspace (shared):\n  username: ${demoUsername}\n  email:    ${demoEmail}\n  password: stored in .env.local (NOTELINGS_DEMO_PASSWORD)\n`)
+  console.log(`\nDemo workspace (shared):\n  username: ${demoUsername}\n  email:    ${demoEmail}\n  password: stored in ${envFile} (NOTELINGS_DEMO_PASSWORD)\n`)
+  console.log(`Using local env file: ${envFile}`)
   console.log('You can now sign in on http://localhost:3000 with the username + password above,')
   console.log('or click "Enter demo workspace" to use the shared demo account.')
 }
