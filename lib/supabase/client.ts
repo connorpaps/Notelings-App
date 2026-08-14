@@ -35,3 +35,12 @@ export function createBrowserSupabase(mode: AppMode = browserMode()): SupabaseCl
   browserClients.set(mode, client)
   return client
 }
+
+/**
+ * Drop a client after a server-side auth mutation. The next read must parse
+ * the freshly written mode-specific cookie instead of reusing a pre-auth
+ * client/session snapshot.
+ */
+export function resetBrowserSupabase(mode: AppMode = browserMode()): void {
+  browserClients.delete(mode)
+}
