@@ -30,9 +30,9 @@ export default function TerminalDock() {
   const chat = useLibrarianChat()
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6 md:pt-6 md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <div className="notelings-terminal-dock pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6 md:pt-6 md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <AnimatePresence>{mode === 'chat' && <ChatPanel chat={chat} />}</AnimatePresence>
-      <GlassPanel strong glow className="w-[min(960px,calc(100vw-2rem))] rounded-[2rem]">
+      <GlassPanel strong glow className="notelings-terminal-panel w-[min(960px,calc(100vw-2rem))] rounded-[2rem]">
         <div className="flex flex-col gap-3 p-3 md:p-4">
           <div className="flex items-center justify-between gap-3">
             <div role="group" aria-label="Dock mode" className="flex gap-1 rounded-full bg-white/10 p-1">

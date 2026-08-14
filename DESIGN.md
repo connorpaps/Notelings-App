@@ -23,7 +23,7 @@ Written from the light visual pass on 2026-08-14. The previous Bloom liquid-glas
 - `.liquid-glass` — white translucent cards, 14px blur, visible neutral border, soft shadow, and inset highlight.
 - `.liquid-glass-strong` — more opaque white panels, 28px blur, deeper shadow, and stronger inset highlight for the dock, CTA, welcome panel, and side rails.
 - `.glass-glow-ring` — restrained neutral rotating edge highlight.
-- `.glass-glow-halo` — soft white halo behind glass panels.
+- `.glass-glow-halo` — restrained soft white halo behind glass panels; opacity and blur are deliberately capped so white controls do not wash out the office.
 
 ## Layering
 Light paper background → transparent WebGL office (`z-10`) → light glass UI (`z-20`) → welcome/dock (`z-30`) → graph/modal surfaces above. The WebGL canvas remains alpha-enabled and the office remains unmodified.
@@ -40,7 +40,7 @@ Light paper background → transparent WebGL office (`z-10`) → light glass UI 
 Keep the existing hover scale, glow ring, error pulse, queue transitions, focus traps, and reduced-motion behavior. Framer Motion surfaces explicitly collapse positional/scale/looping animation when `prefers-reduced-motion` is enabled; state changes remain visible. No scene or movement changes are part of this visual pass.
 
 ## Responsive
-Preserve the current right-rail/mobile bottom-sheet breakpoints, dock sizing, and hidden UI/nav controls. Bottom surfaces include safe-area padding and short-height scroll bounds; action buttons preserve compact icon visuals while exposing roughly 40px touch targets. The board currently loads the newest 500 notes and states that boundary explicitly until cursor history pagination is added.
+The office remains the stage while chrome reflows around it. At wide desktop widths, agent cards occupy a compact left lane and the Spatial Board is a bounded right rail; at tablet widths the board becomes an explicit toggle/bottom sheet rather than competing with the office; on mobile the agent cards become a horizontally scrollable compact row. Short desktop heights compress card padding, board density, and terminal-log height before allowing vertical collisions. The dock uses a narrower desktop width and capped event-log height, while bottom surfaces include safe-area padding. Action buttons preserve compact icon visuals while exposing roughly 40px touch targets. The board currently loads the newest 500 notes and states that boundary explicitly until cursor history pagination is added.
 
 ## Preserved boundary
 R3F scene content, robots, pathfinding, Zustand, Supabase, unit/E2E contracts, accessible names, toast copy, pointer-events layering, and the transparent canvas contract remain unchanged.

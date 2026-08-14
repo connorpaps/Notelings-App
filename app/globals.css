@@ -162,8 +162,8 @@ body {
     -webkit-backdrop-filter: blur(14px);
     border: 1px solid var(--world-border);
     box-shadow:
-      0 12px 32px rgba(32, 48, 52, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+      0 10px 28px rgba(32, 48, 52, 0.065),
+      inset 0 1px 0 rgba(255, 255, 255, 0.88);
   }
   .liquid-glass::before {
     content: '';
@@ -197,8 +197,8 @@ body {
     -webkit-backdrop-filter: blur(28px);
     border: 1px solid var(--world-border);
     box-shadow:
-      0 18px 48px rgba(32, 48, 52, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.98);
+      0 16px 40px rgba(32, 48, 52, 0.085),
+      inset 0 1px 0 rgba(255, 255, 255, 0.94);
   }
   .liquid-glass-strong::before {
     content: '';
@@ -230,15 +230,15 @@ body {
     background: conic-gradient(
       from var(--glass-glow-angle),
       transparent 0deg,
-      rgba(255, 255, 255, 0.55) 24deg,
-      rgba(255, 255, 255, 0.06) 70deg,
+      rgba(255, 255, 255, 0.34) 24deg,
+      rgba(255, 255, 255, 0.035) 70deg,
       transparent 120deg
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
-    animation: glass-glow-spin 8s linear infinite;
+    animation: glass-glow-spin 12s linear infinite;
     pointer-events: none;
   }
 
@@ -246,8 +246,9 @@ body {
   .glass-glow-halo {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.72);
-    filter: blur(32px);
+    background: rgba(255, 255, 255, 0.42);
+    filter: blur(24px);
+    opacity: 0.52;
     pointer-events: none;
   }
 }
@@ -392,6 +393,221 @@ body {
 .light-world [class~="text-cyan-100/90"] { color: #0e7490 !important; }
 .light-world [class~="text-cyan-200/80"] { color: #0e7490 !important; }
 .light-world [class~="bg-cyan-300/15"] { background-color: rgb(14 116 144 / 0.1) !important; }
+
+/*
+ * Responsive composition
+ * ----------------------
+ * The office is a stage, not a background texture. These rules keep the
+ * control surfaces in predictable lanes and compress chrome before allowing
+ * it to collide with the diorama. Height breakpoints matter here: a 16:9
+ * desktop and a short laptop can have the same width but very different
+ * usable stage area.
+ */
+.notelings-ui-shell {
+  --notelings-shell-gutter: clamp(1rem, 2.8vw, 2.5rem);
+  padding: var(--notelings-shell-gutter);
+}
+
+.notelings-board-panel {
+  width: clamp(22rem, 30vw, 30rem) !important;
+  max-height: calc(100dvh - 10rem);
+}
+
+.notelings-board-panel > .liquid-glass {
+  max-height: inherit;
+  overflow: hidden;
+}
+
+.notelings-board-panel-content {
+  min-height: 0;
+}
+
+@media (min-width: 1280px) {
+  .notelings-ui-content {
+    gap: clamp(1rem, 2vw, 2rem);
+  }
+
+  .notelings-agent-card {
+    width: clamp(14rem, 18vw, 17.5rem) !important;
+  }
+
+  .notelings-agent-card-content {
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  .notelings-terminal-panel {
+    width: min(860px, calc(100vw - 2rem)) !important;
+  }
+
+  .notelings-terminal-panel > .liquid-glass > div {
+    gap: 0.625rem;
+    padding: 0.75rem;
+  }
+
+  .notelings-terminal-panel .terminal-log-scroll {
+    max-height: 5rem;
+    line-height: 1.5;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .notelings-ui-shell {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .notelings-header {
+    gap: 0.75rem;
+  }
+
+  .notelings-header-actions {
+    gap: 0.5rem;
+  }
+
+  .notelings-ui-content {
+    margin-top: 1.25rem;
+  }
+
+  .notelings-agent-stack {
+    gap: 0.75rem;
+  }
+
+  .notelings-agent-card {
+    width: clamp(13rem, 25vw, 16rem) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .notelings-ui-shell {
+    padding: 1rem;
+  }
+
+  .notelings-header {
+    align-items: flex-start;
+  }
+
+  .notelings-header-actions {
+    max-width: 72%;
+    gap: 0.25rem;
+  }
+
+  .notelings-online-pill {
+    gap: 0.375rem;
+    padding-inline: 0.625rem;
+  }
+
+  .notelings-online-label {
+    display: none;
+  }
+
+  .notelings-ui-content {
+    margin-top: 1rem;
+  }
+
+  .notelings-agent-stack {
+    flex-direction: row;
+    width: 100%;
+    max-width: 100%;
+    gap: 0.625rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+  }
+
+  .notelings-agent-stack::-webkit-scrollbar {
+    display: none;
+  }
+
+  .notelings-agent-card {
+    min-width: min(15rem, calc(100vw - 2rem));
+    width: min(15rem, calc(100vw - 2rem)) !important;
+    border-radius: 1.5rem;
+  }
+
+  .notelings-agent-card-content {
+    gap: 0.75rem;
+    padding: 1rem 1.125rem;
+  }
+
+  .notelings-terminal-panel {
+    width: min(100%, calc(100vw - 2rem)) !important;
+    border-radius: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 820px) {
+  .notelings-ui-shell {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .notelings-ui-content {
+    margin-top: 1rem;
+  }
+
+  .notelings-agent-stack {
+    gap: 0.75rem;
+  }
+
+  .notelings-agent-card {
+    width: clamp(13rem, 18vw, 15rem) !important;
+    border-radius: 1.5rem;
+  }
+
+  .notelings-agent-card-content {
+    gap: 0.5rem;
+    padding: 0.875rem 1.125rem;
+  }
+
+  .notelings-agent-card {
+    height: 146px;
+  }
+
+  .notelings-agent-card-content .size-10 {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .notelings-board-panel {
+    width: clamp(20rem, 30vw, 26rem) !important;
+    max-height: calc(100dvh - 8rem);
+  }
+
+  .notelings-board-panel-content {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .notelings-board-panel-content .terminal-log-scroll {
+    max-height: 30vh;
+  }
+
+  .notelings-terminal-dock {
+    padding-top: 0.5rem;
+  }
+
+  .notelings-terminal-panel {
+    width: min(840px, calc(100vw - 2rem)) !important;
+    border-radius: 1.5rem;
+  }
+
+  .notelings-terminal-panel > .liquid-glass > div {
+    gap: 0.5rem;
+    padding: 0.625rem;
+  }
+
+  .notelings-terminal-panel .terminal-log-scroll {
+    max-height: 4.5rem;
+    line-height: 1.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notelings-agent-card,
+  .notelings-terminal-panel {
+    transition: none;
+  }
+}
 
 /* Deliberately dark alert/code surfaces retain white text for contrast. */
 .light-world [class~="bg-black/70"][class~="text-white/70"],

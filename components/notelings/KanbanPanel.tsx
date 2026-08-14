@@ -40,8 +40,8 @@ export default function KanbanPanel({ className = '' }: KanbanPanelProps) {
   }
 
   return (
-    <GlassPanel glow className={`pointer-events-auto w-[min(660px,46vw)] rounded-[2rem] ${className}`}>
-      <div className="flex flex-col gap-4 p-6">
+    <GlassPanel glow className={`notelings-board-panel pointer-events-auto w-[min(660px,46vw)] rounded-[2rem] ${className}`}>
+      <div className="notelings-board-panel-content flex flex-col gap-4 p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium tracking-tight text-white">
             Spatial <em className="font-serif font-normal italic text-white/80">Board</em>

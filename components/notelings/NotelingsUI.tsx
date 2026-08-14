@@ -93,8 +93,8 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
       {!hidden && showGate && (
         <WelcomeScreen onInitialize={enterWorkspace} onBrowseDemo={() => void enterDemo()} />
       )}
-      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col p-6 md:p-10">
-        <header className="flex items-center justify-between">
+      <div className="notelings-ui-shell absolute inset-0 z-20 pointer-events-none flex flex-col p-6 md:p-10">
+        <header className="notelings-header flex items-center justify-between gap-4">
           {hidden ? (
             // Keep the header row so the view controls stay pinned top-right.
             <span aria-hidden />
@@ -105,14 +105,14 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
               <span className="hidden font-serif text-[15px] italic text-white/50 md:inline">second brain</span>
             </div>
           )}
-          <div className="flex items-center gap-3">
+          <div className="notelings-header-actions flex flex-wrap items-center justify-end gap-3">
             {!hidden && (
               <button
                 type="button"
                 aria-label="Open task board"
                 aria-expanded={kanbanOpen}
                 onClick={() => setKanbanOpen((open) => !open)}
-                className="pointer-events-auto flex size-10 min-h-10 min-w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-105 active:scale-95 lg:hidden"
+                className="pointer-events-auto flex size-10 min-h-10 min-w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-105 active:scale-95 xl:hidden"
               >
                 <LayoutGrid size={16} />
               </button>
@@ -125,12 +125,12 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
             )}
             {!hidden && <AuthControls />}
             {!hidden && (
-              <div className="liquid-glass flex items-center gap-2.5 rounded-full px-4 py-2 text-xs text-white/70">
+              <div className="notelings-online-pill liquid-glass flex items-center gap-2.5 rounded-full px-4 py-2 text-xs text-white/70">
                 <span className="relative flex size-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 opacity-60 motion-reduce:animate-none" />
                   <span className="relative inline-flex size-1.5 rounded-full bg-white" />
                 </span>
-                {online} agents online
+                <span className="notelings-online-count">{online}</span><span className="notelings-online-label"> agents online</span>
               </div>
             )}
             <OfficeViewControls />
@@ -138,14 +138,14 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
         </header>
 
         {!hidden && (
-          <div className="mt-8 flex flex-1 items-start justify-between gap-6">
-            <div className="flex flex-col gap-6">
+          <div className="notelings-ui-content mt-8 flex min-h-0 flex-1 items-start justify-between gap-6">
+            <div className="notelings-agent-stack flex flex-col gap-6">
               <AgentStatusCard id="blue" />
               <AgentStatusCard id="green" />
               <AgentStatusCard id="red" />
             </div>
             {/* Desktop: the board is a persistent right rail. */}
-            <div className="hidden lg:block">
+            <div className="notelings-board-rail hidden xl:block">
               <KanbanPanel />
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
       {!hidden && <TerminalDock />}
       {/* Mobile: the board opens as a bottom sheet above the terminal. */}
       {!hidden && kanbanOpen && (
-        <div className="absolute inset-x-3 bottom-[calc(11rem+env(safe-area-inset-bottom))] z-40 lg:hidden">
+        <div className="absolute inset-x-3 bottom-[calc(11rem+env(safe-area-inset-bottom))] z-40 xl:hidden">
           <KanbanPanel className="w-full" />
         </div>
       )}

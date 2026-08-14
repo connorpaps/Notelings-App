@@ -24,7 +24,7 @@ export default function KanbanColumn({ title, hint, notes, archivingIds, onEdit,
   const reduceMotion = useReducedMotion() ?? false
 
   return (
-    <section aria-label={`${title} column`} className="flex min-w-[150px] flex-1 flex-col gap-2.5">
+    <section aria-label={`${title} column`} className="notelings-board-column flex min-w-[120px] flex-1 flex-col gap-2.5">
       <div className="flex items-center gap-2">
         <span aria-hidden className={`size-1.5 rounded-full ${COLUMN_DOT[title] ?? 'bg-white/40'}`} />
         <h3 className="text-xs font-medium uppercase tracking-[0.18em] text-white/60">{title}</h3>

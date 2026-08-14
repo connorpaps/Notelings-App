@@ -38,9 +38,9 @@ export default function AgentStatusCard({ id }: { id: AgentId }) {
   const card = (
     <GlassPanel
       glow
-      className="pointer-events-auto w-[260px] rounded-[2rem] transition-transform duration-300 hover:scale-[1.02] md:w-[300px]"
+      className="notelings-agent-card pointer-events-auto w-[260px] rounded-[2rem] transition-transform duration-300 hover:scale-[1.02] md:w-[300px]"
     >
-      <div className="flex flex-col gap-6 p-7">
+      <div className="notelings-agent-card-content flex flex-col gap-6 p-7">
         <div className="flex items-start justify-between">
           <div className="flex size-10 items-center justify-center rounded-full bg-white/10">
             <Icon size={18} strokeWidth={2.5} style={{ color }} />
