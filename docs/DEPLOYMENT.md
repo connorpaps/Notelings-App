@@ -99,6 +99,18 @@ For the private project and demo project separately:
 - Confirm streaming route limits for `/api/chat` and execution limits for categorization.
 - Record the deployed commit SHA and keep the current demo-only deployment URL for rollback until unified routing is verified.
 
+## Automated production deployment
+
+Pushes to `main` run the full validation job first. If it passes, `.github/workflows/ci.yml` deploys the prebuilt artifact to Vercel automatically. Configure these one-time GitHub repository secrets; never commit their values:
+
+```text
+VERCEL_TOKEN
+VERCEL_ORG_ID
+VERCEL_PROJECT_ID
+```
+
+`VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` come from the linked Vercel project metadata. The workflow pulls the Production environment from Vercel, builds once, and deploys with `--prebuilt`, preventing a second unmanaged build. If Vercel Git integration remains enabled, disable duplicate Production deployments or choose one deployment owner.
+
 ## Demo write policy
 
 The demo may accept visitor notes to demonstrate the full interaction, but writes are ephemeral:

@@ -10,7 +10,7 @@ Notelings turns note capture into a calm, watchable workflow: type a thought, le
 [![React Three Fiber](https://img.shields.io/badge/React%20Three%20Fiber-9.7-20232A?logo=three.js&logoColor=white)](https://r3f.docs.pmnd.rs/)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth%20%2B%20Realtime-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 
-**[Open the live demo](https://notelings-portfolio-demo.vercel.app/)** · **[Explore the repository](https://github.com/connorpaps/Notelings-App)**
+**[Open the live app](https://notelings-portfolio.vercel.app/)** · **[Explore the repository](https://github.com/connorpaps/Notelings-App)**
 
 > Notelings is a portfolio project and private-workspace prototype. The public demo uses an isolated Supabase project, fictional seed data, resettable visitor writes, and a capped AI budget.
 

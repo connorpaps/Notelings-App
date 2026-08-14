@@ -10,7 +10,7 @@ One Vercel project
 └── /demo   → isolated demo Supabase project
 ```
 
-The current `notelings-portfolio-demo.vercel.app` deployment remains a rollback copy until the unified version is verified.
+The current production app is `https://notelings-portfolio.vercel.app/`; the older `notelings-portfolio-demo.vercel.app` hostname may remain as a rollback alias until it is retired.
 
 ## Already completed
 

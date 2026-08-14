@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { createBrowserSupabase, resetBrowserSupabase } from '@/lib/supabase/client'
-import { browserMode } from '@/lib/deployment/mode'
+import { createBrowserSupabase } from '@/lib/supabase/client'
+import { browserApiPath } from '@/lib/deployment/mode'
 import { useAuthSessionStore } from '@/lib/auth/sessionStore'
 
 const E2E_AUTH_BYPASS =
@@ -63,10 +63,13 @@ export function useAuthSession() {
   const refresh = useCallback(async (): Promise<boolean> => {
     if (E2E_AUTH_BYPASS) return true
     try {
-      const mode = browserMode()
-      resetBrowserSupabase(mode)
-      const { data } = await createBrowserSupabase(mode).auth.getUser()
-      const nextUser = data.user ?? null
+      const response = await fetch(browserApiPath('/auth/session'), { cache: 'no-store' })
+      if (!response.ok) {
+        setStoreUser(null)
+        return false
+      }
+      const payload = (await response.json()) as { user?: ReturnType<typeof useAuthSessionStore.getState>['user'] }
+      const nextUser = payload.user ?? null
       setStoreUser(nextUser)
       return Boolean(nextUser)
     } catch {
