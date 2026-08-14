@@ -5,6 +5,7 @@ import { isValidUsername, normalizeEmail, normalizeUsername } from '@/lib/auth/c
 import { AUTH_REGISTER_RATE_LIMIT, isStrictSameOrigin, rateLimit, readJsonBody, RequestBodyError } from '@/lib/apiGuard'
 import { observeApiRoute } from '@/lib/observability'
 import { createServerSupabase, createUserSupabase } from '@/lib/supabase/server'
+import { modeFromRequest } from '@/lib/deployment/serverConfig'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -46,7 +47,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Use only letters, numbers, dashes, and underscores.' }, { status: 400 })
     }
 
-    const admin = createServerSupabase()
+    const mode = modeFromRequest(request)
+    const admin = createServerSupabase(mode)
 
     // Username availability (unique lower index is the final authority).
     const { data: taken } = await admin.from('usernames').select('user_id').eq('username', username).maybeSingle()
@@ -74,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     // Auto sign-in: establish the session cookies immediately.
-    const supabase = await createUserSupabase()
+    const supabase = await createUserSupabase(mode)
     const { error: sessionError } = await supabase.auth.signInWithPassword({ email, password })
     if (sessionError) {
       // Account exists; the user can sign in from the login form.

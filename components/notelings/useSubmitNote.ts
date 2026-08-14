@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { CategorizeResponseSchema, categoryToDestination } from '@/lib/notes/categorization'
 import type { NoteCategory } from '@/lib/notes/types'
 import { useAgentStore } from '@/components/office/agentStore'
+import { browserApiPath } from '@/lib/deployment/mode'
 
 type SubmitNoteInput = string | {
   content: string
@@ -24,7 +25,7 @@ export function useSubmitNote() {
     const content = typeof input === 'string' ? input : input.content
     const aiEnabled = typeof input === 'string' ? true : input.aiEnabled ?? true
     const manualTags = typeof input === 'string' ? undefined : input.tags
-    const endpoint = aiEnabled ? '/api/categorize' : '/api/notes'
+    const endpoint = browserApiPath(aiEnabled ? '/categorize' : '/notes')
     const submissionId = crypto.randomUUID()
     const enqueue = useAgentStore.getState().enqueueTask
     const signalError = useAgentStore.getState().signalError

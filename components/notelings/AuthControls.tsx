@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { LogIn, LogOut, ShieldCheck, Sparkles, UserPlus, X } from 'lucide-react'
+import { browserApiPath } from '@/lib/deployment/mode'
 import GlassPanel from './GlassPanel'
 import { useAuthSession } from './useAuthSession'
 
@@ -40,11 +41,11 @@ export default function AuthControls({ placement = 'header', onContinue }: AuthC
     setError(null)
   }
 
-  const runAuth = async (path: '/api/auth/login' | '/api/auth/register', body: unknown) => {
+  const runAuth = async (path: '/auth/login' | '/auth/register', body: unknown) => {
     setBusy(true)
     resetFeedback()
     try {
-      const res = await fetch(path, {
+      const res = await fetch(browserApiPath(path), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -74,19 +75,19 @@ export default function AuthControls({ placement = 'header', onContinue }: AuthC
       setError('Enter your username or email and password.')
       return
     }
-    void runAuth('/api/auth/login', { identifier: identifier.trim(), password })
+    void runAuth('/auth/login', { identifier: identifier.trim(), password })
   }
 
   const signUp = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     resetFeedback()
-    void runAuth('/api/auth/register', { username, email, password })
+    void runAuth('/auth/register', { username, email, password })
   }
 
   const signOut = async () => {
     resetFeedback()
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      await fetch(browserApiPath('/auth/logout'), { method: 'POST' })
     } catch {
       // The server route is the source of truth; a failed request still
       // re-reads the session below so the UI cannot show a stale signed-in.

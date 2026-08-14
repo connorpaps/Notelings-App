@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   if (!isSameOrigin(request)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const auth = await getAuthenticatedContext()
+  const auth = await getAuthenticatedContext(request)
   if (!auth) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
   const { data, error } = await auth.supabase.from('notes').select('tags').neq('status', 'archived').limit(500)

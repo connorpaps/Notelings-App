@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createServerSupabase } from '@/lib/supabase/server'
+import type { AppMode } from '@/lib/deployment/mode'
 import { isEmailLike, isValidUsername, normalizeEmail, normalizeUsername } from './credentials'
 
 /**
@@ -11,13 +12,13 @@ import { isEmailLike, isValidUsername, normalizeEmail, normalizeUsername } from 
  * Returns null when the identifier cannot be resolved — the caller must reply
  * with the same generic error used for a wrong password (no enumeration).
  */
-export async function resolveEmailForLogin(identifier: string): Promise<string | null> {
+export async function resolveEmailForLogin(identifier: string, mode: AppMode = 'private'): Promise<string | null> {
   if (isEmailLike(identifier)) return normalizeEmail(identifier)
 
   const username = normalizeUsername(identifier)
   if (!isValidUsername(username)) return null
 
-  const admin = createServerSupabase()
+  const admin = createServerSupabase(mode)
   const { data } = await admin.from('usernames').select('user_id').eq('username', username).maybeSingle()
   if (!data?.user_id) return null
 

@@ -47,6 +47,7 @@ describe('notes route authentication boundary', () => {
     mockedGetAuthenticatedContext.mockResolvedValue({
       user: { id: 'user-1' } as never,
       supabase: supabase as never,
+      mode: 'private',
     })
 
     const response = await POST(request({ content: 'private thought', tags: ['personal'] }))
@@ -61,7 +62,7 @@ describe('notes route authentication boundary', () => {
   })
 
   it('rejects a client-supplied category so the server owns Manual state', async () => {
-    mockedGetAuthenticatedContext.mockResolvedValue({ user: { id: 'user-1' } as never, supabase: {} as never })
+    mockedGetAuthenticatedContext.mockResolvedValue({ user: { id: 'user-1' } as never, supabase: {} as never, mode: 'private' })
     const response = await POST(request({ content: 'private thought', category: 'Work', tags: [] }))
     expect(response.status).toBe(400)
   })

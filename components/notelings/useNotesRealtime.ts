@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js'
 import { useAgentStore } from '@/components/office/agentStore'
 import { createBrowserSupabase } from '@/lib/supabase/client'
+import { browserApiPath } from '@/lib/deployment/mode'
 import { NoteRecordSchema, NotesListSchema } from '@/lib/notes/notesApi'
 import { useAuthSession } from './useAuthSession'
 
@@ -24,9 +25,9 @@ export function useNotesRealtime() {
     if (loading || !authenticated) return undefined
     let disposed = false
 
-    fetch('/api/notes')
+    fetch(browserApiPath('/notes'))
       .then((res) => {
-        if (!res.ok) throw new Error(`GET /api/notes ${res.status}`)
+        if (!res.ok) throw new Error(`GET notes API ${res.status}`)
         return res.json() as Promise<unknown>
       })
       .then((json) => {

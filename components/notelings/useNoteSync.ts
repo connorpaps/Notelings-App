@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useAgentStore } from '@/components/office/agentStore'
 import { collectNewCompletions } from './completionToasts'
 import type { NoteStatus } from '@/lib/notes/types'
+import { browserApiPath } from '@/lib/deployment/mode'
 
 /**
  * Phase 2 M1 core-loop sync: the store owns robot lifecycle; this hook pushes
@@ -15,7 +16,7 @@ import type { NoteStatus } from '@/lib/notes/types'
  * never break the 3D loop; cleanup cancels delayed status timers on unmount.
  */
 async function patchStatus(noteId: string, status: NoteStatus): Promise<void> {
-  const res = await fetch(`/api/notes/${noteId}`, {
+  const res = await fetch(browserApiPath(`/notes/${noteId}`), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),

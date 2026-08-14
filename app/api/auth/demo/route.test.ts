@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { POST } from './route'
 import { createUserSupabase } from '@/lib/supabase/server'
+import { APP_MODE_HEADER } from '@/lib/deployment/mode'
 
 vi.mock('server-only', () => ({}))
 
@@ -26,7 +27,7 @@ const mockedCreateUserSupabase = vi.mocked(createUserSupabase)
 function request(): Request {
   return new Request('http://localhost:3000/api/auth/demo', {
     method: 'POST',
-    headers: { origin: 'http://localhost:3000', host: 'localhost:3000' },
+    headers: { origin: 'http://localhost:3000', host: 'localhost:3000', [APP_MODE_HEADER]: 'demo' },
   })
 }
 

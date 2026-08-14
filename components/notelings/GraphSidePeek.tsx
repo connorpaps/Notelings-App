@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Archive, Check, Pencil, X } from 'lucide-react'
+import { browserApiPath } from '@/lib/deployment/mode'
 import { toast } from 'sonner'
 import { useAgentStore } from '@/components/office/agentStore'
 import { timeAgo } from '@/lib/notes/kanban'
@@ -110,7 +111,7 @@ function SidePeekBody({ note, onClose }: SidePeekBodyProps) {
       return
     }
     try {
-      const res = await fetch(`/api/notes/${note.id}`, {
+      const res = await fetch(browserApiPath(`/notes/${note.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, tags: tagList }),

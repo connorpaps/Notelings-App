@@ -6,50 +6,52 @@ The older setup reference remains here: [`DEPLOYMENT_SETUP_CHECKLIST.md`](DEPLOY
 
 ## Release strategy
 
-Notelings has two intentionally separate release tracks:
+Notelings uses one Vercel project with two trusted paths:
 
-| Track | Vercel | Supabase | Data | AI |
-| --- | --- | --- | --- | --- |
-| Portfolio demo | Public demo project | Separate demo project | Fictional seed data; visitor writes are ephemeral/resettable | Strictly budgeted Gemini only when configured; deterministic fallback when unavailable |
-| Private workspace | Private product project | Private owner-scoped project | Authenticated private notes | Disclosed Gemini processing plus manual/no-AI capture |
+| Path | Supabase | Data | AI |
+| --- | --- | --- | --- |
+| `/` | Private owner-scoped project | Authenticated private notes | Disclosed Gemini processing plus manual/no-AI capture |
+| `/demo` | Separate demo project | Fictional seed data; visitor writes are ephemeral/resettable | Strictly budgeted Gemini with deterministic fallback |
 
-A domain alias alone is not isolation. The demo must use different Supabase URLs, anon keys, service-role keys, database rows, and environment variables from the private workspace.
+One Vercel project is not one data boundary: the server must select different Supabase URLs, anon keys, service-role keys, auth cookies, and rows based on the trusted path. A browser-provided mode/project selector is never sufficient.
 
 ## Environment contract
 
-### Private workspace
+### One Vercel project
 
-Set in the Vercel **Production** environment only:
+Set both project configurations in the same Vercel Production/Preview environment:
 
 ```text
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
+PRIVATE_SUPABASE_URL
+PRIVATE_SUPABASE_ANON_KEY
+PRIVATE_SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_PRIVATE_SUPABASE_URL
+NEXT_PUBLIC_PRIVATE_SUPABASE_ANON_KEY
+
+DEMO_SUPABASE_URL=https://aczmwzeupytsfdcwmofz.supabase.co
+DEMO_SUPABASE_ANON_KEY
+DEMO_SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_DEMO_SUPABASE_URL
+NEXT_PUBLIC_DEMO_SUPABASE_ANON_KEY
+NOTELINGS_DEMO_EMAIL=demo@notelings.local
+NOTELINGS_DEMO_PASSWORD
+
 GOOGLE_GENERATIVE_AI_API_KEY
 NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY=auto
 ```
 
-The private workspace does not need demo credentials.
+The server uses `PRIVATE_*` for `/` and `DEMO_*` for `/demo`. Only the `NEXT_PUBLIC_*` anon values reach the browser; service-role keys remain server-only. During migration, the old private `NEXT_PUBLIC_SUPABASE_*` names may remain as a private-mode fallback, never as demo configuration.
 
-### Portfolio demo
+When Gemini is not configured or the demo quota is exhausted, `/demo` uses deterministic/degraded behavior rather than failing the showcase. Do not promise a permanent vendor free tier; enforce the application-level 12 categorization/day and 6 chat/day demo ceiling.
 
-Set in the separate demo Vercel project:
+### Local-only reset variables
 
 ```text
-NEXT_PUBLIC_SUPABASE_URL       # demo Supabase project only
-NEXT_PUBLIC_SUPABASE_ANON_KEY  # demo Supabase project only
-SUPABASE_SERVICE_ROLE_KEY      # demo project service role only
-GOOGLE_GENERATIVE_AI_API_KEY   # optional; hard quota required when set
-NOTELINGS_DEMO_EMAIL
-NOTELINGS_DEMO_PASSWORD
-NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY=auto
-
-# Local reset script only; never set the confirmation in Vercel.
-NOTELINGS_DEMO_PROJECT_REF
+NOTELINGS_DEMO_PROJECT_REF=aczmwzeupytsfdcwmofz
 NOTELINGS_DEMO_RESET_CONFIRM=RESET_DEMO
 ```
 
-When Gemini is not configured or the demo quota is exhausted, the demo must use deterministic seeded/mock behavior rather than failing the showcase. Do not promise that a vendor free tier is permanent; enforce an application-level demo ceiling anyway.
+Never set the reset confirmation in Vercel.
 
 ### Never deploy
 
@@ -81,21 +83,21 @@ The demo reset is a destructive operation against the demo project only. Run `no
 
 For the private project and demo project separately:
 
-- Set the Supabase Site URL to the correct Vercel deployment.
-- Add only the correct production and approved preview callback URLs.
-- Verify `/auth/callback` accepts only allow-listed redirects.
-- Test sign-in, sign-out, expired sessions, and demo entry separately.
-- Never point a public demo redirect at the private deployment.
+- Set each Supabase Site URL to the same Vercel origin.
+- Allow the private callback at `/auth/callback` and the demo callback at `/demo/auth/callback` if callback auth is enabled.
+- Verify `/` uses private mode and `/demo` uses demo mode after sign-in, sign-out, and session refresh.
+- Use separate mode-specific Auth cookie names.
+- Never trust an arbitrary `next`, mode, project, or tenant value from the browser.
 
 ## Vercel configuration
 
-- Connect each Vercel project to the same repository but different environment variables.
+- Connect one Vercel project to the repository and configure both Supabase environments above.
 - Use Node 22 and the committed npm lockfile.
 - Use the normal Next.js build command: `npm run build`.
-- Keep Preview isolated from private production data unless a specific preview project is configured.
+- Treat `/` Preview as private only when its private project is explicitly approved; otherwise use a sanitized private test project.
 - Enable HTTPS before enabling production HSTS behavior.
 - Confirm streaming route limits for `/api/chat` and execution limits for categorization.
-- Record the deployed commit SHA and previous Vercel deployment URL for rollback.
+- Record the deployed commit SHA and keep the current demo-only deployment URL for rollback until unified routing is verified.
 
 ## Demo write policy
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
+import { browserApiPath } from '@/lib/deployment/mode'
 import { useAgentStore } from '@/components/office/agentStore'
 import { collectUniqueTags, notesWithTag, tagCounts } from '@/lib/notes/tags'
 import GlassModal from './GlassModal'
@@ -35,7 +36,7 @@ export default function TagExplorerModal({ open, onClose }: TagExplorerModalProp
   useEffect(() => {
     if (!open || loadState !== 'idle') return
     let cancelled = false
-    fetch('/api/tags')
+    fetch(browserApiPath('/tags'))
       .then((res) => {
         if (!res.ok) throw new Error(`tags ${res.status}`)
         return res.json() as Promise<{ tags: string[] }>

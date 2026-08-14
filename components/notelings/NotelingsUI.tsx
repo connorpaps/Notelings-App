@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Eye, LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
@@ -18,6 +19,7 @@ import { useNotesRealtime } from './useNotesRealtime'
 import { useNoteSync } from './useNoteSync'
 import { useAgentStore } from '@/components/office/agentStore'
 import { useOfficeViewStore } from '@/components/office/officeViewStore'
+import { browserApiPath, browserMode } from '@/lib/deployment/mode'
 
 type NotelingsUIProps = { enabled?: boolean }
 
@@ -33,6 +35,7 @@ type NotelingsUIProps = { enabled?: boolean }
 export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const [gateDismissed, setGateDismissed] = useState(false)
   const [kanbanOpen, setKanbanOpen] = useState(false)
+  const router = useRouter()
   const { authenticated, loading, user, refresh } = useAuthSession()
   // The gate is the signed-out entry surface AND the signed-in "ready" card:
   // it always shows with no session, and stays until dismissed for signed-in
@@ -41,11 +44,15 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const isDemo = Boolean(user?.user_metadata?.is_demo)
 
   const enterWorkspace = () => setGateDismissed(true)
-  // Demo mode is a real authenticated session on the shared demo account, so
-  // it exercises the same note/chat/realtime stack as a private workspace.
+  // The root link navigates into the trusted demo path first. Only once the
+  // browser is on /demo does this request establish a demo Supabase session.
   const enterDemo = async () => {
+    if (browserMode() !== 'demo') {
+      router.push('/demo')
+      return
+    }
     try {
-      const res = await fetch('/api/auth/demo', { method: 'POST' })
+      const res = await fetch(browserApiPath('/auth/demo'), { method: 'POST' })
       if (!res.ok) throw new Error('demo unavailable')
       await refresh()
       setGateDismissed(true)

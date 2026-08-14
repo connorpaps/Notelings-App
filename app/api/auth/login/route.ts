@@ -4,6 +4,7 @@ import { resolveEmailForLogin } from '@/lib/auth/resolve'
 import { AUTH_LOGIN_RATE_LIMIT, isStrictSameOrigin, rateLimit, readJsonBody, RequestBodyError } from '@/lib/apiGuard'
 import { observeApiRoute } from '@/lib/observability'
 import { createUserSupabase } from '@/lib/supabase/server'
+import { modeFromRequest } from '@/lib/deployment/serverConfig'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -38,13 +39,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Enter your username or email and password.' }, { status: 400 })
     }
 
-    const email = await resolveEmailForLogin(identifier)
+    const mode = modeFromRequest(request)
+    const email = await resolveEmailForLogin(identifier, mode)
     if (!email) {
       // Unknown identifier — same message as a wrong password.
       return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 })
     }
 
-    const supabase = await createUserSupabase()
+    const supabase = await createUserSupabase(mode)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       return NextResponse.json({ error: 'Invalid username or password.' }, { status: 401 })

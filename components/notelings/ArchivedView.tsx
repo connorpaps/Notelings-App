@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ArrowLeft, Trash2 } from 'lucide-react'
+import { browserApiPath } from '@/lib/deployment/mode'
 import { toast } from 'sonner'
 import { useAgentStore } from '@/components/office/agentStore'
 import { NoteRecordSchema } from '@/lib/notes/notesApi'
@@ -23,7 +24,7 @@ export default function ArchivedView({ notes, onBack }: ArchivedViewProps) {
 
   const restore = async (note: NoteRecord) => {
     try {
-      const res = await fetch(`/api/notes/${note.id}`, {
+      const res = await fetch(browserApiPath(`/notes/${note.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'filed' }),
@@ -42,7 +43,7 @@ export default function ArchivedView({ notes, onBack }: ArchivedViewProps) {
 
   const deleteForever = async (note: NoteRecord) => {
     try {
-      const res = await fetch(`/api/notes/${note.id}`, { method: 'DELETE' })
+      const res = await fetch(browserApiPath(`/notes/${note.id}`), { method: 'DELETE' })
       if (!res.ok) throw new Error('Delete failed')
       removeNote(note.id)
       logTerminal(`Note deleted forever: "${note.content.slice(0, 24)}"`)

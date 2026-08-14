@@ -30,7 +30,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testMatch: /(office-smoke|tag-explorer|librarian-chat|knowledge-graph|performance-renderer)\.spec\.ts/,
+      testMatch: /(office-smoke|tag-explorer|librarian-chat|knowledge-graph|performance-renderer|unified-deployment)\.spec\.ts/,
       use: { browserName: 'chromium', launchOptions: { args: ['--use-gl=angle', '--use-angle=swiftshader'] } },
     },
   ],

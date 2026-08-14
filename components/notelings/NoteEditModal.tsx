@@ -3,6 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { browserApiPath } from '@/lib/deployment/mode'
 import { useAgentStore } from '@/components/office/agentStore'
 import { EditNoteSchema, parseTags, validateTags } from '@/lib/notes/noteEdit'
 import { NoteRecordSchema } from '@/lib/notes/notesApi'
@@ -36,7 +37,7 @@ export default function NoteEditModal({ note, onClose }: NoteEditModalProps) {
       return
     }
     try {
-      const res = await fetch(`/api/notes/${note.id}`, {
+      const res = await fetch(browserApiPath(`/notes/${note.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, tags: tagList }),

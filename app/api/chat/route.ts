@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const auth = await getAuthenticatedContext()
+  const auth = await getAuthenticatedContext(request)
   if (!auth) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
   let input: ChatRequest
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
     return createUiMessageStreamResponse(answer)
   }
 
-  const aiBudgetAvailable = await reserveDemoAiUsage('chat')
+  const aiBudgetAvailable = await reserveDemoAiUsage('chat', auth.mode)
   if (!aiBudgetAvailable) {
     return createUiMessageStreamResponse(
       'The demo AI limit has been reached for today. You can still capture notes manually, and the demo will reset its sample workspace separately.',

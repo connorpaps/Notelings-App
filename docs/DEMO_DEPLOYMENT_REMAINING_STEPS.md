@@ -1,190 +1,129 @@
-# Notelings Demo Deployment — Everything Remaining
+# Notelings Unified Deployment — Remaining Steps
 
-This is the single checklist to use from now on.
+This is the only checklist to use now.
 
-## The goal
+## Final architecture
 
-Create a public portfolio demo that:
+```text
+One Vercel project
+├── /       → private Supabase project
+└── /demo   → isolated demo Supabase project
+```
 
-- Uses fictional demo data only.
-- Cannot see your private workspace.
-- Allows temporary visitor notes.
-- Can use Gemini with a small safety limit.
-- Can be reset to clean sample data.
-
----
+The current `notelings-portfolio-demo.vercel.app` deployment remains a rollback copy until the unified version is verified.
 
 ## Already completed
 
-You do **not** need to repeat these steps:
-
-- Demo Supabase project created.
-- Demo Supabase project URL:
+- Private Supabase project exists and is protected by Auth/RLS.
+- Demo Supabase project exists:
 
   ```text
   https://aczmwzeupytsfdcwmofz.supabase.co
   ```
 
-- Demo Supabase project ID:
+- Demo database has fictional seed data and a shared demo account.
+- Demo AI limits are implemented: 12 categorization calls/day and 6 chat calls/day.
+- One Vercel project exists.
+- Separate Gemini key was created.
+- Unified `/demo` routing code is implemented and locally tested; it is awaiting the push and Vercel environment migration.
 
-  ```text
-  aczmwzeupytsfdcwmofz
-  ```
+## What you need to do in Vercel
 
-- Demo Supabase publishable key obtained.
-- Demo Supabase secret key obtained.
-- Demo Vercel project created.
-- Demo Vercel URL:
+After the unified code is deployed, the one Vercel project needs both sets of Supabase values.
 
-  ```text
-  https://notelings-portfolio-demo.vercel.app
-  ```
+### Private project values
 
-- No custom domain is needed right now.
-- Separate demo/private project setup chosen.
-- Separate Gemini key created for the demo.
-
----
-
-# The only things you need to do now
-
-## 1. Create one local demo settings file
-
-In the main Notelings project folder, create a file named exactly:
+Use the values from your existing private `.env.local`:
 
 ```text
-.env.demo.local
+PRIVATE_SUPABASE_URL
+PRIVATE_SUPABASE_ANON_KEY
+PRIVATE_SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_PRIVATE_SUPABASE_URL
+NEXT_PUBLIC_PRIVATE_SUPABASE_ANON_KEY
 ```
 
-Paste this into it:
+### Demo project values
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://aczmwzeupytsfdcwmofz.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_demo_publishable_key
-SUPABASE_SERVICE_ROLE_KEY=your_demo_secret_key
-SUPABASE_ACCESS_TOKEN=your_temporary_supabase_token
+Use the demo project values you saved:
 
-NOTELINGS_OWNER_EMAIL=demo-owner@notelings.local
+```text
+DEMO_SUPABASE_URL=https://aczmwzeupytsfdcwmofz.supabase.co
+DEMO_SUPABASE_ANON_KEY
+DEMO_SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_DEMO_SUPABASE_URL=https://aczmwzeupytsfdcwmofz.supabase.co
+NEXT_PUBLIC_DEMO_SUPABASE_ANON_KEY
+```
+
+### Shared demo settings
+
+```text
 NOTELINGS_DEMO_EMAIL=demo@notelings.local
-NOTELINGS_DEMO_PROJECT_REF=aczmwzeupytsfdcwmofz
+NOTELINGS_DEMO_PASSWORD=copy from your local demo settings file
+GOOGLE_GENERATIVE_AI_API_KEY=your separate demo Gemini key
+NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY=auto
 ```
 
-Replace only these three placeholders:
+Set these for **Production and Preview**.
 
-- `your_demo_publishable_key` = your demo `sb_publishable_...` key.
-- `your_demo_secret_key` = your demo `sb_secret_...` key.
-- `your_temporary_supabase_token` = your temporary token beginning with `sbp_`.
+Important:
 
-Do not send the file or its contents to Buffy.
+- Service-role keys stay server-side.
+- Never add `SUPABASE_ACCESS_TOKEN` to Vercel.
+- Never add `NEXT_PUBLIC_NOTELINGS_E2E_AUTH_BYPASS` to Vercel.
+- Never send keys or passwords in chat.
 
-Do not put `SUPABASE_ACCESS_TOKEN` in Vercel.
+## What Buffy handles
 
----
-
-## 2. Put the Gemini key in Vercel
-
-Only do this if you have not already done it.
-
-1. Open the Vercel project.
-2. Go to **Settings**.
-3. Go to **Environment Variables**.
-4. Add this variable name:
-
-   ```text
-   GOOGLE_GENERATIVE_AI_API_KEY
-   ```
-
-5. Paste your separate demo Gemini key as the value.
-6. Select **Production and Preview**.
-7. Save it.
-
-Do not send the Gemini key to Buffy.
-
-Do not enable billing just to continue. If Google requires billing, stop and tell Buffy.
-
----
-
-## 3. Tell Buffy only this
-
-After the local file is saved, send:
-
-```text
-demo env ready
-```
-
-Do not send keys, passwords, tokens, screenshots of keys, or the `.env.demo.local` file.
-
----
-
-# What Buffy will do after that
+Buffy has handled the local implementation and validation. The remaining live work is the Vercel environment migration and deployed smoke test.
 
 Buffy will:
 
-1. Verify the local file without printing any secrets.
-2. Apply the demo database setup to the demo project only.
-3. Create the demo login account.
-4. Add fictional sample notes.
-5. Add the clean demo reset/seed behavior.
-6. Add the small Gemini usage limit and fallback behavior: 12 categorization calls/day and 6 chat calls/day for the shared demo.
-7. Tell you to remove the temporary Supabase token locally after verification.
-8. Verify the demo cannot see private data.
-9. Configure and test the Supabase login redirect.
-10. Run the production health, security, WebGL, auth, capture, AI, and mobile checks.
-11. Tell you exactly what values still need to be added to Vercel.
-12. Compare the deployed visuals against the current local app.
+1. Finish and test trusted `/demo` routing.
+2. Ensure root requests use only private Supabase.
+3. Ensure `/demo` requests use only demo Supabase.
+4. Keep private and demo Auth cookies separate.
+5. Test forged mode/header attempts.
+6. Test private and demo capture, chat, Realtime, graph, and archive behavior.
+7. Run the full local test/build/E2E suite.
+8. Push the unified code.
+9. Test the deployed Vercel version.
+10. Compare root and `/demo` visuals.
 
----
+## What you do after Buffy says the unified code is ready
 
-# One later action you may need to take
+1. Add the private and demo variables above to the one Vercel project.
+2. Redeploy the latest commit if Vercel does not deploy it automatically.
+3. Open:
 
-After Buffy creates the demo account, Buffy will tell you to remove the temporary `SUPABASE_ACCESS_TOKEN` line from `.env.demo.local` and add these two values to Vercel:
+   ```text
+   https://your-vercel-url.vercel.app/
+   ```
 
-```text
-NOTELINGS_DEMO_EMAIL
-NOTELINGS_DEMO_PASSWORD
-```
+   This must be the private app.
 
-The email will normally be:
+4. Open:
 
-```text
-demo@notelings.local
-```
+   ```text
+   https://your-vercel-url.vercel.app/demo
+   ```
 
-The password will be generated for the demo. Do not send the password in chat. Paste it directly into Vercel when instructed.
+   This must be the demo app.
 
-Then you will click **Redeploy** in Vercel.
+5. Tell Buffy only:
 
-You do not need to create the demo account yourself.
+   ```text
+   unified deployment ready
+   ```
 
----
+## Do not do these things
 
-# You do not need to do these things
-
+- Do not create another Vercel project.
+- Do not create another Supabase project.
+- Do not rename the current demo URL before unified routing is verified.
 - Do not run SQL manually.
-- Do not create the demo user manually.
+- Do not create the demo account manually.
 - Do not copy private notes into the demo project.
-- Do not change the private Supabase project.
-- Do not add the temporary Supabase token to Vercel.
-- Do not send any secret keys or passwords in chat.
-- Do not buy a custom domain yet.
-- Do not create another Vercel or Supabase project.
-- Do not enable unlimited Gemini usage.
-- Do not change application code yourself.
-
----
-
-# Final launch order
-
-```text
-Create .env.demo.local              ← you
-Add Gemini key to Vercel             ← you, if not already done
-Send “demo env ready”                ← you
-Database/account/seed setup          ← Buffy
-Small AI limit + fallback            ← Buffy
-Add demo password to Vercel          ← you, when instructed
-Redeploy                             ← you, when instructed
-Production/security/visual testing   ← Buffy
-Portfolio demo launch                ← after testing passes
-```
-
-Once step 1 is complete, there should be no additional setup checklist. Any remaining work after that is either handled by Buffy or will be presented as one clearly labeled Vercel action.
+- Do not put service-role keys in browser-visible variables.
+- Do not put the temporary Supabase token in Vercel.
+- Do not delete the current demo deployment until rollback testing passes.

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const auth = await getAuthenticatedContext()
+  const auth = await getAuthenticatedContext(request)
   if (!auth) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
   let input: NoteInput
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   let category: 'Work' | 'Admin' | 'Uncategorized' = 'Uncategorized'
   let tags: string[] = []
   let degraded = false
-  const aiBudgetAvailable = await reserveDemoAiUsage('categorize')
+  const aiBudgetAvailable = await reserveDemoAiUsage('categorize', auth.mode)
   try {
     if (!aiBudgetAvailable) throw new Error('Demo AI budget exhausted')
     const result = await categorizeNote(input.content)

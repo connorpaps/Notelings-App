@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { AUTH_DEMO_RATE_LIMIT, isStrictSameOrigin, rateLimit } from '@/lib/apiGuard'
 import { observeApiRoute } from '@/lib/observability'
 import { createUserSupabase } from '@/lib/supabase/server'
+import { modeFromRequest } from '@/lib/deployment/serverConfig'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -17,6 +18,8 @@ export async function POST(request: Request) {
     if (!isStrictSameOrigin(request)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+    const mode = modeFromRequest(request)
+    if (mode !== 'demo') return NextResponse.json({ error: 'Not found' }, { status: 404 })
     if (!rateLimit(request, { ...AUTH_DEMO_RATE_LIMIT, scope: 'auth.demo' })) {
       return NextResponse.json(
         { error: 'Too many demo entries. Try again in a minute.' },
@@ -30,7 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Demo workspace is not configured on this deployment.' }, { status: 503 })
     }
 
-    const supabase = await createUserSupabase()
+    const supabase = await createUserSupabase(mode)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       return NextResponse.json({ error: 'Demo workspace is unavailable right now.' }, { status: 503 })

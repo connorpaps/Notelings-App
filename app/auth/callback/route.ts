@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createUserSupabase } from '@/lib/supabase/server'
+import { modeFromRequest } from '@/lib/deployment/serverConfig'
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
@@ -8,7 +9,7 @@ export async function GET(request: Request) {
   const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : '/'
 
   if (code) {
-    const supabase = await createUserSupabase()
+    const supabase = await createUserSupabase(modeFromRequest(request))
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (error) {
       return NextResponse.redirect(new URL('/?auth=error', url.origin))

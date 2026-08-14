@@ -15,7 +15,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!isStrictSameOrigin(request)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const auth = await getAuthenticatedContext()
+  const auth = await getAuthenticatedContext(request)
   if (!auth) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
   const { id } = await context.params
@@ -48,7 +48,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   if (!isStrictSameOrigin(request)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const auth = await getAuthenticatedContext()
+  const auth = await getAuthenticatedContext(request)
   if (!auth) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
   const { id } = await context.params

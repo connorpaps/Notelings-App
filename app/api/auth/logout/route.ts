@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { isStrictSameOrigin } from '@/lib/apiGuard'
 import { observeApiRoute } from '@/lib/observability'
 import { createUserSupabase } from '@/lib/supabase/server'
+import { modeFromRequest } from '@/lib/deployment/serverConfig'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
     if (!isStrictSameOrigin(request)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    const supabase = await createUserSupabase()
+    const supabase = await createUserSupabase(modeFromRequest(request))
     await supabase.auth.signOut()
     return NextResponse.json({ ok: true })
   })

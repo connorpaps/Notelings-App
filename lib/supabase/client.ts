@@ -2,24 +2,36 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { authCookieNameForMode, browserMode, type AppMode } from '@/lib/deployment/mode'
 
-let browserClient: SupabaseClient | null = null
+const browserClients = new Map<AppMode, SupabaseClient>()
+
+function browserConfig(mode: AppMode): { url: string; anonKey: string } {
+  if (mode === 'demo') {
+    const url = process.env.NEXT_PUBLIC_DEMO_SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_DEMO_SUPABASE_ANON_KEY
+    if (!url || !anonKey) throw new Error('Missing NEXT_PUBLIC_DEMO_SUPABASE_URL or NEXT_PUBLIC_DEMO_SUPABASE_ANON_KEY')
+    return { url, anonKey }
+  }
+
+  const url = process.env.NEXT_PUBLIC_PRIVATE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_PRIVATE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !anonKey) throw new Error('Missing private Supabase browser environment variables')
+  return { url, anonKey }
+}
 
 /**
- * Browser client for Auth and owner-scoped Realtime. Uses @supabase/ssr's
- * cookie-backed storage so the browser session matches the server session
- * established by the auth routes (no localStorage/session split-brain):
- * after POST /api/auth/login|register|demo writes the session cookies, the
- * client's getUser() sees the same session. Database writes still go through
- * authenticated server routes and RLS remains the source of truth.
+ * Browser client for Auth and owner-scoped Realtime. The singleton is keyed by
+ * path-derived mode so a demo tab can never reuse the private Supabase client.
  */
-export function createBrowserSupabase(): SupabaseClient {
-  if (browserClient) return browserClient
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!supabaseUrl || !anonKey) {
-    throw new Error('Missing Supabase browser environment variables')
-  }
-  browserClient = createBrowserClient(supabaseUrl, anonKey)
-  return browserClient
+export function createBrowserSupabase(mode: AppMode = browserMode()): SupabaseClient {
+  const existing = browserClients.get(mode)
+  if (existing) return existing
+
+  const config = browserConfig(mode)
+  const client = createBrowserClient(config.url, config.anonKey, {
+    cookieOptions: { name: authCookieNameForMode(mode) },
+  })
+  browserClients.set(mode, client)
+  return client
 }

@@ -1,6 +1,8 @@
-# Notelings Deployment Checklist — ELI5 Version
+# Notelings Deployment Checklist — Superseded Reference
 
-This is the simple version.
+> Use [`DEMO_DEPLOYMENT_REMAINING_STEPS.md`](DEMO_DEPLOYMENT_REMAINING_STEPS.md) instead. The final architecture is one Vercel project with private root mode and isolated `/demo` mode; the instructions below describe the earlier demo-only setup.
+
+This file is retained only as historical reference.
 
 ## What we are building
 
