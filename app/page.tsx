@@ -30,7 +30,7 @@ export default function Home() {
   const gridEditorOpen = useOfficeViewStore((state) => state.gridEditorOpen)
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-black">
+    <main className="light-world relative h-dvh w-full overflow-hidden bg-[#f6f7f5]">
       <BackgroundVideo />
       <div className="absolute inset-0 z-10 bg-transparent">
         {OfficeBuilderApp ? <OfficeBuilderApp /> : <OfficeCanvas />}

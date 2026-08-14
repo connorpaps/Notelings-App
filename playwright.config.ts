@@ -22,6 +22,9 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER: '1',
       NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY: process.env.NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY ?? 'high',
+      // E2E-only motor acceleration keeps physical route assertions fast under
+      // SwiftShader; production and the normal dev server remain at real speed.
+      NEXT_PUBLIC_NOTELINGS_E2E_FAST: '1',
       // Test-only auth bypass. The client and server both guard this with
       // NODE_ENV !== 'production'; it must never be set on a deployment.
       NEXT_PUBLIC_NOTELINGS_E2E_AUTH_BYPASS: '1',

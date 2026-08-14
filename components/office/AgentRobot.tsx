@@ -58,7 +58,9 @@ const NOTE_X = 0.28
 const NOTE_Y = BODY_Y + 0.46
 // Keep the card clearly in front of the LCD/body along the robot's local +Z.
 const NOTE_Z = 0.5
-const WALK_SPEED_WORLD = 2.6
+const E2E_FAST_MODE = process.env.NEXT_PUBLIC_NOTELINGS_E2E_FAST === '1'
+const WALK_SPEED_WORLD = E2E_FAST_MODE ? 4 : 2.6
+const PROCESSING_DELAY_MS = E2E_FAST_MODE ? 250 : 2000
 const TURN_SPEED = 8
 const WAYPOINT_EPSILON = 0.02
 const WANDER_DELAY_MIN = 1500
@@ -241,7 +243,7 @@ const AgentRobot = function AgentRobot({
       // issues leg 2 to the trash instead of filing a completion.
       if (currentTask?.kind === 'archive') completeArchiveStage(agentId)
       else completeTask(agentId)
-    }, 2000)
+    }, PROCESSING_DELAY_MS)
     return () => {
       if (processingTimerRef.current) clearTimeout(processingTimerRef.current)
       processingTimerRef.current = null
@@ -295,22 +297,39 @@ const AgentRobot = function AgentRobot({
         curveRef.current = null
       }
     } else {
-      const [tx, tz] = gridCellToWorld(pathRef.current[0], grid)
-      const dx = tx - group.position.x
-      const dz = tz - group.position.z
-      const distance = Math.hypot(dx, dz)
-      const targetHeading = Math.atan2(dx, dz)
-      let turn = targetHeading - group.rotation.y
-      while (turn > Math.PI) turn -= Math.PI * 2
-      while (turn < -Math.PI) turn += Math.PI * 2
-      group.rotation.y += turn * Math.min(1, TURN_SPEED * Math.min(delta, 0.05))
-      if (distance <= Math.max(step, WAYPOINT_EPSILON)) {
-        group.position.x = tx
-        group.position.z = tz
-        pathRef.current.shift()
-      } else if (distance > 0) {
-        group.position.x += (dx / distance) * step
-        group.position.z += (dz / distance) * step
+      // Consume the full frame budget. The old motor advanced at most one
+      // 0.25m waypoint per frame, so low-FPS SwiftShader runs were capped at
+      // one cell/frame even when the requested speed was much higher.
+      let remainingStep = step
+      while (pathRef.current.length > 0 && remainingStep > 0) {
+        const [tx, tz] = gridCellToWorld(pathRef.current[0], grid)
+        const dx = tx - group.position.x
+        const dz = tz - group.position.z
+        const distance = Math.hypot(dx, dz)
+
+        if (distance <= WAYPOINT_EPSILON) {
+          group.position.x = tx
+          group.position.z = tz
+          pathRef.current.shift()
+          continue
+        }
+
+        const targetHeading = Math.atan2(dx, dz)
+        let turn = targetHeading - group.rotation.y
+        while (turn > Math.PI) turn -= Math.PI * 2
+        while (turn < -Math.PI) turn += Math.PI * 2
+        group.rotation.y += turn * Math.min(1, TURN_SPEED * Math.min(delta, 0.05))
+
+        if (distance <= remainingStep) {
+          group.position.x = tx
+          group.position.z = tz
+          remainingStep -= distance
+          pathRef.current.shift()
+        } else {
+          group.position.x += (dx / distance) * remainingStep
+          group.position.z += (dz / distance) * remainingStep
+          remainingStep = 0
+        }
       }
     }
 

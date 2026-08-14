@@ -234,16 +234,15 @@ test('static office diorama preserves the locked baseline with three robots and 
     expect(parts.noteVisible).toBe(false)
   }
 
-  // Static frame contract: the reference video is not mounted at runtime.
+  // Light paper background contract: no image/video is mounted behind the
+  // transparent office; the neutral ambient glow remains available.
   const backgroundState = await page.evaluate(() => {
-    const background = document.querySelector('[data-background="static-frame"]')
-    const image = background instanceof HTMLImageElement ? background : null
+    const background = document.querySelector('[data-background="light-paper"]')
     const ambientGlow = document.querySelector('.ambient-glow')
     return {
       present: Boolean(background),
-      src: image?.getAttribute('src') ?? null,
-      naturalWidth: image?.naturalWidth ?? 0,
-      naturalHeight: image?.naturalHeight ?? 0,
+      lightWorld: Boolean(document.querySelector('main.light-world')),
+      imageCount: document.querySelectorAll('img').length,
       videoCount: document.querySelectorAll('video').length,
       ambientGlow: ambientGlow ? {
         blendMode: getComputedStyle(ambientGlow).mixBlendMode,
@@ -253,9 +252,8 @@ test('static office diorama preserves the locked baseline with three robots and 
   })
   expect(backgroundState).toEqual({
     present: true,
-    src: '/images/skybridge-background-frame.jpg',
-    naturalWidth: 1920,
-    naturalHeight: 1080,
+    lightWorld: true,
+    imageCount: 0,
     videoCount: 0,
     ambientGlow: { blendMode: 'screen', animation: 'ambient-drift' },
   })
@@ -393,14 +391,24 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
   await submit.click()
   await expect(page.getByText(/Note saved as Admin and agent dispatched!/)).toBeVisible({ timeout: 15_000 })
 
-  await page.waitForFunction(() => {
-    const runtime = (window as unknown as {
-      __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; currentTask?: { destination: string; content: string } | null }> }
-    }).__NOTELINGS_AGENTS__
-    if (!runtime) return false
-    const assigned = Object.values(runtime.agents).filter((agent) => agent.currentTask !== null)
-    return assigned.length === 2 && assigned.every((agent) => agent.status === 'walking' || agent.status === 'processing')
-  }, { timeout: 15_000, polling: 100 })
+  try {
+    await page.waitForFunction(() => {
+      const runtime = (window as unknown as {
+        __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; currentTask?: { destination: string; content: string } | null }> }
+      }).__NOTELINGS_AGENTS__
+      if (!runtime) return false
+      const assigned = Object.values(runtime.agents).filter((agent) => agent.currentTask !== null)
+      return assigned.length === 2 && assigned.every((agent) => agent.status === 'walking' || agent.status === 'processing')
+    }, { timeout: 15_000, polling: 100 })
+  } catch (error) {
+    const diagnostic = page.isClosed()
+      ? 'page unavailable'
+      : JSON.stringify(await page.evaluate(() => {
+        const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: unknown }).__NOTELINGS_AGENTS__
+        return { runtime }
+      }))
+    throw new Error(`${String(error)}\\nM4 assignment diagnostic: ${diagnostic}`)
+  }
 
   const assignments = await page.evaluate(() => {
     const runtime = (window as unknown as {
@@ -468,7 +476,8 @@ test('Milestone 4 dispatches categorized notes to two robots and completes them'
     if (agent.lastCompletedDestination) {
       expect(agent.processingStartedAt).toEqual(expect.any(Number))
       expect(agent.lastCompletedAt).toEqual(expect.any(Number))
-      expect((agent.lastCompletedAt ?? 0) - (agent.processingStartedAt ?? 0)).toBeGreaterThanOrEqual(2000)
+      // E2E fast mode uses a 250ms processing beat; production remains 2s.
+      expect((agent.lastCompletedAt ?? 0) - (agent.processingStartedAt ?? 0)).toBeGreaterThanOrEqual(250)
     }
   }
   const arrivalTargets = await page.evaluate(() => {

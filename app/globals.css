@@ -9,9 +9,9 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #0e0f12;
+  background: #f6f7f5;
   overflow: hidden;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -59,8 +59,8 @@ body {
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.975 0.008 95);
+  --foreground: oklch(0.19 0.015 200);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -145,12 +145,14 @@ body {
   .liquid-glass {
     position: relative;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.01);
-    background-blend-mode: luminosity;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border: none;
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.68);
+    background-blend-mode: normal;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(25, 39, 45, 0.12);
+    box-shadow:
+      0 12px 32px rgba(32, 48, 52, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
   }
   .liquid-glass::before {
     content: '';
@@ -160,12 +162,12 @@ body {
     padding: 1.4px;
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.45) 0%,
-      rgba(255, 255, 255, 0.15) 20%,
-      transparent 40%,
-      transparent 60%,
-      rgba(255, 255, 255, 0.15) 80%,
-      rgba(255, 255, 255, 0.45) 100%
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(255, 255, 255, 0.42) 20%,
+      transparent 42%,
+      transparent 58%,
+      rgba(25, 39, 45, 0.06) 80%,
+      rgba(25, 39, 45, 0.16) 100%
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -178,14 +180,14 @@ body {
   .liquid-glass-strong {
     position: relative;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.01);
-    background-blend-mode: luminosity;
-    backdrop-filter: blur(50px);
-    -webkit-backdrop-filter: blur(50px);
-    border: none;
+    background: rgba(255, 255, 255, 0.84);
+    background-blend-mode: normal;
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(25, 39, 45, 0.14);
     box-shadow:
-      4px 4px 4px rgba(0, 0, 0, 0.05),
-      inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      0 18px 48px rgba(32, 48, 52, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.98);
   }
   .liquid-glass-strong::before {
     content: '';
@@ -195,12 +197,12 @@ body {
     padding: 1.4px;
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.5) 0%,
-      rgba(255, 255, 255, 0.2) 20%,
-      transparent 40%,
-      transparent 60%,
-      rgba(255, 255, 255, 0.2) 80%,
-      rgba(255, 255, 255, 0.5) 100%
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 255, 255, 0.5) 20%,
+      transparent 42%,
+      transparent 58%,
+      rgba(25, 39, 45, 0.08) 80%,
+      rgba(25, 39, 45, 0.2) 100%
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -233,8 +235,8 @@ body {
   .glass-glow-halo {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.07);
-    filter: blur(28px);
+    background: rgba(255, 255, 255, 0.72);
+    filter: blur(32px);
     pointer-events: none;
   }
 }
@@ -289,7 +291,7 @@ body {
 /* ---- Phase 2 control center: thin grayscale scrollbars ---- */
 .terminal-log-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: rgba(25, 39, 45, 0.2) transparent;
 }
 .terminal-log-scroll::-webkit-scrollbar {
   width: 6px;
@@ -299,6 +301,82 @@ body {
   background: transparent;
 }
 .terminal-log-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(25, 39, 45, 0.2);
   border-radius: 999px;
+}
+
+/* ---- Light paper-and-glass world ----
+   The existing component markup intentionally keeps its stable utility
+   classes and accessible contracts. These scoped mappings invert the old
+   white-on-dark utility vocabulary into a dark-on-light hierarchy. */
+.light-world {
+  color: #172027;
+  color-scheme: light;
+}
+
+.light-world [class~="text-white"] { color: #172027 !important; }
+.light-world [class~="text-white/90"] { color: rgb(23 32 39 / 0.92) !important; }
+.light-world [class~="text-white/85"] { color: rgb(23 32 39 / 0.88) !important; }
+.light-world [class~="text-white/80"] { color: rgb(35 47 54 / 0.86) !important; }
+.light-world [class~="text-white/75"] { color: rgb(61 75 82 / 0.9) !important; }
+.light-world [class~="text-white/70"] { color: #536168 !important; }
+.light-world [class~="text-white/65"] { color: #5d6b72 !important; }
+.light-world [class~="text-white/60"] { color: #65737a !important; }
+.light-world [class~="text-white/55"] { color: #6b797f !important; }
+.light-world [class~="text-white/50"] { color: #748188 !important; }
+.light-world [class~="text-white/45"] { color: #7c898f !important; }
+.light-world [class~="text-white/40"] { color: #7f8c92 !important; }
+.light-world [class~="text-white/35"] { color: #869399 !important; }
+.light-world [class~="text-white/30"] { color: #8b979c !important; }
+.light-world [class~="text-white/20"] { color: #9ca8ad !important; }
+.light-world [class~="text-white/15"] { color: #a6b0b5 !important; }
+.light-world [class~="text-white/10"] { color: #b0b9bd !important; }
+
+.light-world [class~="bg-white/5"] { background-color: rgb(255 255 255 / 0.58) !important; }
+.light-world [class~="bg-white/10"] { background-color: rgb(255 255 255 / 0.72) !important; }
+.light-world [class~="bg-white/15"] { background-color: rgb(255 255 255 / 0.8) !important; }
+.light-world [class~="bg-white/20"] { background-color: rgb(255 255 255 / 0.88) !important; }
+.light-world [class~="bg-white/25"] { background-color: rgb(255 255 255 / 0.92) !important; }
+.light-world [class~="bg-white/35"] { background-color: rgb(255 255 255 / 0.96) !important; }
+.light-world [class~="bg-white/[0.03]"] { background-color: rgb(255 255 255 / 0.58) !important; }
+.light-world [class~="bg-white/[0.06]"] { background-color: rgb(255 255 255 / 0.74) !important; }
+
+.light-world [class~="bg-black/20"] { background-color: rgb(24 36 42 / 0.055) !important; }
+.light-world [class~="bg-black/25"] { background-color: rgb(24 36 42 / 0.07) !important; }
+.light-world [class~="bg-black/30"] { background-color: rgb(24 36 42 / 0.085) !important; }
+.light-world [class~="bg-black/40"] { background-color: rgb(24 36 42 / 0.12) !important; }
+
+.light-world [class~="border-white/10"] { border-color: rgb(25 39 45 / 0.12) !important; }
+.light-world [class~="border-white/15"] { border-color: rgb(25 39 45 / 0.16) !important; }
+.light-world [class~="border-white/20"] { border-color: rgb(25 39 45 / 0.2) !important; }
+.light-world [class~="border-white/35"] { border-color: rgb(25 39 45 / 0.3) !important; }
+.light-world [class~="ring-white/15"] { --tw-ring-color: rgb(25 39 45 / 0.16) !important; }
+.light-world [class~="ring-white/50"] { --tw-ring-color: rgb(25 39 45 / 0.42) !important; }
+.light-world [class~="focus:ring-white/15"]:focus-visible,
+.light-world [class~="focus-visible:ring-white/50"]:focus-visible,
+.light-world [class~="focus-visible:ring-white/60"]:focus-visible {
+  --tw-ring-color: rgb(25 39 45 / 0.38) !important;
+}
+.light-world [class~="focus:border-white/40"]:focus { border-color: rgb(25 39 45 / 0.42) !important; }
+
+.light-world [class~="hover:bg-white/10"]:hover { background-color: rgb(255 255 255 / 0.86) !important; }
+.light-world [class~="hover:bg-white/20"]:hover { background-color: rgb(255 255 255 / 0.94) !important; }
+.light-world [class~="hover:bg-white/25"]:hover { background-color: rgb(255 255 255 / 0.98) !important; }
+.light-world [class~="hover:bg-white/90"]:hover { background-color: rgb(248 249 248) !important; }
+.light-world [class~="hover:text-white"]:hover { color: #0e171c !important; }
+
+.light-world [class~="placeholder:text-white/30"]::placeholder,
+.light-world [class~="placeholder:text-white/40"]::placeholder {
+  color: #819096 !important;
+}
+.light-world [class~="text-red-200"] { color: #b42318 !important; }
+.light-world [class~="text-cyan-100"] { color: #0e7490 !important; }
+.light-world [class~="text-cyan-100/90"] { color: #0e7490 !important; }
+.light-world [class~="text-cyan-200/80"] { color: #0e7490 !important; }
+.light-world [class~="bg-cyan-300/15"] { background-color: rgb(14 116 144 / 0.1) !important; }
+
+/* Deliberately dark alert/code surfaces retain white text for contrast. */
+.light-world [class~="bg-black/70"][class~="text-white/70"],
+.light-world [class~="bg-black/40"][class~="text-white/80"] {
+  color: rgb(255 255 255 / 0.84) !important;
 }
