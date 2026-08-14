@@ -167,7 +167,7 @@ Use a tested backup restore or a forward corrective migration. Do not reopen ano
 
 ### Secrets
 
-Rotate only the affected credential: provider key, service-role key, demo password, owner password, or temporary Management PAT. Never record values in this file, `handoff.md`, `knowledge.md`, screenshots, or CI logs.
+Rotate only the affected credential: provider key, service-role key, demo password, owner password, or temporary Management PAT. Never record values in this file, local development memory, screenshots, or CI logs.
 
 ## Release gates
 

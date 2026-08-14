@@ -1,6 +1,25 @@
 # Dependencies
 node_modules/
 
+# Local AI/editor workspace (development memory and editor metadata stay outside the public product surface)
+.agents/
+.cursor/
+.codex/
+docs/superpowers/
+AGENTS.md
+knowledge.md
+handoff.md
+MEMORY_SETUP.md
+.githooks/
+docs/activity-log.md
+docs/lessons-learned.md
+scripts/machine-sync.sh
+scripts/setup-memory-hooks.sh
+scripts/memory-watcher.mjs
+
+# Local screen recordings
+2026-08-08 00-14-26.mp4
+
 # Next.js build output
 .next/
 out/
@@ -24,7 +43,7 @@ yarn-error.log*
 test-results/
 playwright-report/
 
-# Auto-memory local watcher log (raw per-save events; the commit log is tracked)
+# Auto-memory local watcher log
 docs/activity-watch.log
 
 # Local machine marker (hostname of the last machine the repo was used on)

@@ -1,4 +1,4 @@
-import type { GridTransform } from './pathfinding'
+import type { GridTransform } from './navigationGrid'
 
 /** The new office model, loaded via drei useGLTF (clean glTF 2.0, no Draco). */
 export const NEW_OFFICE_MODEL_PATH = '/models/3D_Note_Office_2/3d_note_office.glb'

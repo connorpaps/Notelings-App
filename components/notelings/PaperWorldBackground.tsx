@@ -6,7 +6,7 @@
  * the colorful centerpiece while the background gives the controls a clean,
  * contemporary canvas.
  */
-export default function BackgroundVideo() {
+export default function PaperWorldBackground() {
   return (
     <div data-background="light-paper" className="absolute inset-0 z-0 overflow-hidden bg-[#f6f7f5]" aria-hidden="true">
       <div className="absolute inset-0 bg-[radial-gradient(85%_75%_at_50%_42%,rgba(255,255,255,0.92)_0%,rgba(246,247,245,0.72)_52%,rgba(224,229,226,0.72)_100%)]" />

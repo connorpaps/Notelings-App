@@ -1,10 +1,9 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { ENABLE_OFFICE_BUILDER } from '@/components/office/officeMode'
 import GridEditorPanel from '@/components/office/GridEditorPanel'
 import NotelingsUI from '@/components/notelings/NotelingsUI'
-import BackgroundVideo from '@/components/notelings/BackgroundVideo'
+import PaperWorldBackground from '@/components/notelings/PaperWorldBackground'
 import { useOfficeViewStore } from '@/components/office/officeViewStore'
 
 // WebGL scene must not be SSR'd (three needs browser APIs)
@@ -20,10 +19,6 @@ const OfficeCanvas = dynamic(() => import('@/components/office/OfficeCanvas'), {
   ),
 })
 
-const OfficeBuilderApp = ENABLE_OFFICE_BUILDER
-  ? dynamic(() => import('@/components/office/OfficeBuilderApp'), { ssr: false })
-  : null
-
 // Paper surface (z-0) → transparent WebGL office (z-10) → glass UI overlay
 // (z-20). The office stays the colored centerpiece above the paper world.
 export default function Home() {
@@ -31,13 +26,13 @@ export default function Home() {
 
   return (
     <main className="light-world relative h-dvh w-full overflow-hidden bg-[#f6f7f5]">
-      <BackgroundVideo />
+      <PaperWorldBackground />
       <div className="absolute inset-0 z-10 bg-transparent">
-        {OfficeBuilderApp ? <OfficeBuilderApp /> : <OfficeCanvas />}
+        <OfficeCanvas />
       </div>
-      <NotelingsUI enabled={!ENABLE_OFFICE_BUILDER} />
+      <NotelingsUI />
       {/* Nav Grid Editor — hidden by default, toggled from the header controls. */}
-      {!ENABLE_OFFICE_BUILDER && gridEditorOpen && <GridEditorPanel />}
+      {gridEditorOpen && <GridEditorPanel />}
     </main>
   )
 }

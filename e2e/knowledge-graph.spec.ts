@@ -154,6 +154,7 @@ test('Milestone 5 knowledge graph: bipartite hubs, frozen layout, side-peek edit
   await page.waitForTimeout(700)
   const after = await waitForStableNodePositions(page)
   expect(after).toEqual(before)
+  await page.screenshot({ path: 'docs/.performance-artifacts/portfolio-knowledge-graph-full.png', fullPage: true, animations: 'disabled' })
 
   // Click a note dot → the side-peek slides open (read view).
   const target = await pickNoteNode(page)

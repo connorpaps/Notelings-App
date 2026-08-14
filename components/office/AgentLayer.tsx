@@ -21,8 +21,7 @@ const AGENT_IDS: AgentId[] = ['blue', 'green', 'red']
 
 export default function AgentLayer() {
   useTaskDispatcher()
-  // Active grid: the new GLB office (42×42 @ 0.25 m). The legacy agentGrid is
-  // preserved untouched for the pre-new-office backup (VoxelOffice_Legacy).
+  // Active navigation grid: the GLB office map is 42×42 at 0.25 m per cell.
   const effectiveBlocked = NEW_OFFICE_EFFECTIVE_BLOCKED
   const agents = useAgentStore((state) => state.agents)
   const taskQueueLength = useAgentStore((state) => state.taskQueue.length)

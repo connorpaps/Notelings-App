@@ -1,84 +1,23 @@
 import * as THREE from 'three'
 import {
-  BLOCKED_CELLS,
-  CELL_SIZE,
-  OFFICE_COLS,
-  OFFICE_ROWS,
-  WALL_THICKNESS,
-} from './officeLayout'
+  DEFAULT_GRID_COLS,
+  DEFAULT_GRID_ROWS,
+  type BlockedSet,
+  type GridCell,
+  type GridTransform,
+} from './navigationGrid'
 
-export type GridCell = [number, number]
-export type BlockedSet = ReadonlySet<string>
+export type { BlockedSet, GridCell, GridTransform } from './navigationGrid'
+export { DEFAULT_GRID_TRANSFORM } from './navigationGrid'
 
-/** Physical center clearance used by the fine agent grid and safe movement. */
+/** Physical center clearance used by the legacy fine grid and safe movement. */
 export const ROBOT_NAVIGATION_CLEARANCE = 0.22
-
-/**
- * Expand raw occupied cells by a world-space robot clearance. This is kept
- * separate from footprint rasterization so callers can preserve intentional
- * access pockets without accidentally deleting another item's occupancy, then
- * apply the same physical clearance consistently to every obstacle.
- */
-export function inflateBlockedCells(
-  blocked: BlockedSet,
-  transform: GridTransform,
-  clearanceWorld: number,
-): Set<string> {
-  const cols = transform.cols ?? OFFICE_COLS
-  const rows = transform.rows ?? OFFICE_ROWS
-  const clearance = Math.max(0, clearanceWorld)
-  if (clearance === 0) return new Set(blocked)
-
-  const blockedCenters = [...blocked].map((key) => {
-    const [col, row] = key.split(',').map(Number)
-    const [x, z] = gridCellToWorld([col, row], transform)
-    return { x, z }
-  })
-  const halfX = Math.abs(transform.scale[0]) / 2
-  const halfZ = Math.abs(transform.scale[1]) / 2
-  const expanded = new Set(blocked)
-
-  for (let col = 0; col < cols; col += 1) {
-    for (let row = 0; row < rows; row += 1) {
-      const [x, z] = gridCellToWorld([col, row], transform)
-      if (blockedCenters.some((rect) => {
-        const dx = Math.max(Math.abs(x - rect.x) - halfX, 0)
-        const dz = Math.max(Math.abs(z - rect.z) - halfZ, 0)
-        return Math.hypot(dx, dz) <= clearance
-      })) {
-        expanded.add(`${col},${row}`)
-      }
-    }
-  }
-  return expanded
-}
-
-/**
- * Maps grid cells to world coordinates. The locked office scene is a free-form
- * composition (offset + scaled floor), so the agent grid anchors to the locked
- * floor item's transform: `origin` is the world position of the center cell
- * (OFFICE_COLS/2, OFFICE_ROWS/2) and `scale` is the world size of one cell on
- * x/z (CELL_SIZE × floor scale). `cols`/`rows` can increase the navigation
- * resolution without changing the decorative floor grid or its world extent.
- */
-export type GridTransform = {
-  origin: [number, number]
-  scale: [number, number]
-  cols?: number
-  rows?: number
-}
 
 function gridDimensions(transform: GridTransform): { cols: number; rows: number } {
   return {
-    cols: transform.cols ?? OFFICE_COLS,
-    rows: transform.rows ?? OFFICE_ROWS,
+    cols: transform.cols ?? DEFAULT_GRID_COLS,
+    rows: transform.rows ?? DEFAULT_GRID_ROWS,
   }
-}
-
-/** Identity transform centered at world (0,0) with 1:1 CELL_SIZE cells. */
-export const DEFAULT_GRID_TRANSFORM: GridTransform = {
-  origin: [0, 0],
-  scale: [CELL_SIZE, CELL_SIZE],
 }
 
 export function gridCellToWorld(cell: GridCell, transform: GridTransform): [number, number] {
@@ -113,19 +52,17 @@ function manhattan(a: GridCell, b: GridCell): number {
 }
 
 /**
- * A* over the office grid. Orthogonal (4-directional) movement with a Manhattan
- * heuristic. Returns the ordered path [start, ..., goal] inclusive, or null when
- * unreachable or invalid. The navigation grid is still small enough for a
- * simple open-list minimum scan, which is clearer than a binary heap (ponytail).
+ * A* over the active office grid. Orthogonal (4-directional) movement with a
+ * Manhattan heuristic. Returns [start, ..., goal] or null when unreachable.
  */
 export function findPath(
   start: GridCell,
   goal: GridCell,
   opts: { blocked?: BlockedSet; cols?: number; rows?: number } = {},
 ): GridCell[] | null {
-  const blocked = opts.blocked ?? BLOCKED_CELLS
-  const cols = opts.cols ?? OFFICE_COLS
-  const rows = opts.rows ?? OFFICE_ROWS
+  const blocked = opts.blocked ?? new Set<string>()
+  const cols = opts.cols ?? DEFAULT_GRID_COLS
+  const rows = opts.rows ?? DEFAULT_GRID_ROWS
 
   if (!inBounds(start, cols, rows) || !inBounds(goal, cols, rows)) return null
   if (blocked.has(cellKey(start)) || blocked.has(cellKey(goal))) return null
@@ -181,124 +118,9 @@ export function findPath(
   return null
 }
 
-export type Footprint = { width: number; depth: number }
-
-export type BlockableItem = {
-  kind: string
-  obj?: string
-  transform: { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }
-  wall?: { axis: 'x' | 'z'; lenCells: number; thickness?: number }
-  footprint?: Footprint
-}
-
 /**
- * Merge the grid-contract BLOCKED_CELLS with the locked scene's furniture.
- * Every floor-level model item blocks the grid cells its real OBJ footprint
- * (width/depth at scale 1, optionally rotated around Y and scaled) overlaps;
- * walls block by their wall-segment footprint. Items resolve footprints from
- * `opts.footprints` (keyed by obj path) or an explicit `item.footprint`, and
- * fall back to one cell so no item is ever silently walkable. Elevated decor
- * (y >= 0.5) and the floor itself never block. World→cell conversion uses
- * `opts.transform` so blocking aligns with the visible floor grid.
- */
-export function buildEffectiveBlockedCells(
-  items: ReadonlyArray<BlockableItem>,
-  opts: {
-    base?: BlockedSet
-    cols?: number
-    rows?: number
-    transform?: GridTransform
-    footprints?: Record<string, Footprint>
-    clearanceWorld?: number
-  } = {},
-): Set<string> {
-  const transform = opts.transform ?? DEFAULT_GRID_TRANSFORM
-  const cols = opts.cols ?? transform.cols ?? OFFICE_COLS
-  const rows = opts.rows ?? transform.rows ?? OFFICE_ROWS
-  const blocked = new Set(opts.base ?? BLOCKED_CELLS)
-
-  const clampCell = (cell: GridCell): GridCell => [
-    Math.min(cols - 1, Math.max(0, cell[0])),
-    Math.min(rows - 1, Math.max(0, cell[1])),
-  ]
-
-  for (const item of items) {
-    const isWall = item.kind === 'wall'
-    const onFloor = item.kind === 'model' && item.transform.position[1] < 0.5
-    if (!isWall && !onFloor) continue
-
-    let footprint: Footprint
-    if (isWall && item.wall) {
-      // Wall definitions use the decorative office cell unit, and the locked
-      // scene renders them directly from `lenCells * CELL_SIZE` inside the
-      // wall item's own transform. Do not derive wall length from the floor's
-      // scaled agent grid: the floor transform is not applied to wall groups.
-      const len = item.wall.lenCells * CELL_SIZE
-      const thick = item.wall.thickness ?? WALL_THICKNESS
-      footprint = item.wall.axis === 'x' ? { width: len, depth: thick } : { width: thick, depth: len }
-    } else if (item.obj && opts.footprints?.[item.obj]) {
-      footprint = opts.footprints[item.obj]
-    } else {
-      footprint = item.footprint ?? { width: transform.scale[0], depth: transform.scale[1] }
-    }
-
-    const [cx, , cz] = item.transform.position
-    const [sx, , sz] = item.transform.scale
-    const rotationY = item.transform.rotation[1] ?? 0
-    const clearance = Math.max(0, opts.clearanceWorld ?? 0)
-    const halfW = (footprint.width * Math.abs(sx)) / 2 + clearance
-    const halfD = (footprint.depth * Math.abs(sz)) / 2 + clearance
-    const cos = Math.cos(rotationY)
-    const sin = Math.sin(rotationY)
-
-    // Rotated box corners around Y, then axis-aligned world AABB. The AABB
-    // deliberately INFLATES diagonally-placed footprints (a rotated box's
-    // AABB is larger than the box itself) — conservative over-blocking: the
-    // robot refuses borderline gaps instead of clipping furniture.
-    let minX = Infinity
-    let maxX = -Infinity
-    let minZ = Infinity
-    let maxZ = -Infinity
-    for (const [lx, lz] of [[halfW, halfD], [halfW, -halfD], [-halfW, halfD], [-halfW, -halfD]] as Array<[number, number]>) {
-      const wx = cx + lx * cos + lz * sin
-      const wz = cz - lx * sin + lz * cos
-      minX = Math.min(minX, wx)
-      maxX = Math.max(maxX, wx)
-      minZ = Math.min(minZ, wz)
-      maxZ = Math.max(maxZ, wz)
-    }
-
-    // Mark cells whose finite area overlaps the footprint AABB. Using cell
-    // boundaries instead of only rounded centers keeps narrow furniture from
-    // disappearing between the finer navigation cells.
-    const EPSILON = 1e-9
-    // A footprint blocks a cell when its world AABB overlaps the cell area.
-    // Exact boundary contact alone does not block the neighboring cell.
-    const minCol = Math.ceil((minX - transform.origin[0]) / transform.scale[0] + cols / 2 - 0.5 + EPSILON)
-    const maxCol = Math.floor((maxX - transform.origin[0]) / transform.scale[0] + cols / 2 + 0.5 - EPSILON)
-    const minRow = Math.ceil((minZ - transform.origin[1]) / transform.scale[1] + rows / 2 - 0.5 + EPSILON)
-    const maxRow = Math.floor((maxZ - transform.origin[1]) / transform.scale[1] + rows / 2 + 0.5 - EPSILON)
-    const minCell: GridCell = clampCell([minCol, minRow])
-    const maxCell: GridCell = clampCell([maxCol, maxRow])
-    for (let col = minCell[0]; col <= maxCell[0]; col += 1) {
-      for (let row = minCell[1]; row <= maxCell[1]; row += 1) {
-        blocked.add(`${col},${row}`)
-      }
-    }
-  }
-  return blocked
-}
-
-/**
- * Build a Catmull–Rom curve through the A* cell centers. The sampled curve is
- * rejected when it enters a blocked cell, so visual corner smoothing never
- * trades obstacle safety for appearance. A null result tells the caller to
- * retain the exact orthogonal path as a safe fallback.
- *
- * `clearanceWorld` treats each blocked cell as an occupied world-space square
- * and rejects curve samples that enter the robot's clearance radius. Sampling
- * is based on arc length at no more than one quarter of the smallest cell
- * dimension, so a short spline excursion cannot hide between samples.
+ * Reject an orthogonal path when any segment enters a blocked cell's occupied
+ * rectangle or the configured robot clearance envelope.
  */
 export function isPathSafe(
   path: ReadonlyArray<GridCell>,
@@ -334,6 +156,11 @@ export function isPathSafe(
   return true
 }
 
+/**
+ * Build a collision-safe Catmull–Rom curve for an orthogonal A* path. Returns
+ * null so the caller can use the exact orthogonal path when a curve samples a
+ * blocked cell or leaves the configured grid.
+ */
 export function createSafePathCurve(
   path: ReadonlyArray<GridCell>,
   transform: GridTransform,
@@ -350,8 +177,8 @@ export function createSafePathCurve(
   const curveLength = curve.getLength()
   const minCellSize = Math.min(Math.abs(transform.scale[0]), Math.abs(transform.scale[1]))
   const samples = Math.max(32, Math.ceil(curveLength / Math.max(minCellSize * 0.25, 0.01)))
-  const cols = transform.cols ?? OFFICE_COLS
-  const rows = transform.rows ?? OFFICE_ROWS
+  const cols = transform.cols ?? DEFAULT_GRID_COLS
+  const rows = transform.rows ?? DEFAULT_GRID_ROWS
   const clearance = Math.max(0, opts.clearanceWorld ?? 0)
   const blockedRects = [...blocked].map((key) => {
     const [col, row] = key.split(',').map(Number)
@@ -372,17 +199,14 @@ export function createSafePathCurve(
   return curve
 }
 
-/**
- * First free in-bounds cell scanning outward from `anchor` ring by ring
- * (Chebyshev radius). Useful for picking a free target near an anchor.
- */
+/** First free in-bounds cell scanning outward from an anchor ring by ring. */
 export function findFreeCell(
   anchor: GridCell,
   blocked: BlockedSet,
   opts: { cols?: number; rows?: number } = {},
 ): GridCell | null {
-  const cols = opts.cols ?? OFFICE_COLS
-  const rows = opts.rows ?? OFFICE_ROWS
+  const cols = opts.cols ?? DEFAULT_GRID_COLS
+  const rows = opts.rows ?? DEFAULT_GRID_ROWS
   for (let radius = 0; radius <= Math.max(cols, rows); radius += 1) {
     for (let dc = -radius; dc <= radius; dc += 1) {
       for (let dr = -radius; dr <= radius; dr += 1) {
@@ -398,18 +222,17 @@ export function findFreeCell(
 }
 
 /**
- * Free cell nearest `anchor` inside the LARGEST connected free region.
- * Dense footprint blocking can split the floor into isolated pockets; the
- * robot start must live in the dominant region so it can actually reach the
- * office's main walkable hallways.
+ * Find the nearest cell in the largest connected free region. Robot starts use
+ * this instead of a merely local free-cell search so every destination remains
+ * reachable in the dense GLB map.
  */
 export function findOpenStartCell(
   anchor: GridCell,
   blocked: BlockedSet,
   opts: { cols?: number; rows?: number } = {},
 ): GridCell | null {
-  const cols = opts.cols ?? OFFICE_COLS
-  const rows = opts.rows ?? OFFICE_ROWS
+  const cols = opts.cols ?? DEFAULT_GRID_COLS
+  const rows = opts.rows ?? DEFAULT_GRID_ROWS
   const free: GridCell[] = []
   for (let c = 0; c < cols; c += 1) {
     for (let r = 0; r < rows; r += 1) {
@@ -418,7 +241,6 @@ export function findOpenStartCell(
   }
   if (free.length === 0) return null
 
-  // Flood-fill the free cells into connected orthogonal regions.
   const unvisited = new Set(free.map(cellKey))
   let best: GridCell[] = []
   while (unvisited.size > 0) {
@@ -442,7 +264,6 @@ export function findOpenStartCell(
   }
   if (best.length === 0) return null
 
-  // Nearest cell of the largest region to the anchor (deterministic ring order).
   for (let radius = 0; radius <= Math.max(cols, rows); radius += 1) {
     for (let dc = -radius; dc <= radius; dc += 1) {
       for (let dr = -radius; dr <= radius; dr += 1) {
