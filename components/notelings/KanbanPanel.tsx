@@ -30,6 +30,7 @@ export default function KanbanPanel({ className = '' }: KanbanPanelProps) {
   )
   const [editingNote, setEditingNote] = useState<NoteRecord | null>(null)
   const [archivedOpen, setArchivedOpen] = useState(false)
+  const isAtInitialLoadLimit = Object.keys(notes).length >= 500
 
   const handleArchive = (note: NoteRecord) => {
     markNoteArchiving(note.id)
@@ -61,6 +62,12 @@ export default function KanbanPanel({ className = '' }: KanbanPanelProps) {
             <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-white/70">{Object.keys(notes).length} notes</span>
           </div>
         </div>
+
+        {isAtInitialLoadLimit && !archivedOpen && (
+          <p className="rounded-xl bg-white/[0.06] px-3 py-2 text-[11px] leading-relaxed text-white/50" role="status">
+            Showing the newest 500 notes. Older notes will be added through history pagination.
+          </p>
+        )}
 
         {archivedOpen ? (
           <ArchivedView notes={archivedNotes} onBack={() => setArchivedOpen(false)} />

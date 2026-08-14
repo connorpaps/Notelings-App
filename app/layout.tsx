@@ -3,7 +3,7 @@ import './globals.css'
 import { Poppins, Source_Serif_4 } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-// Bloom reskin typography (reference: motionsites.ai bloom-ai-hero):
+// Current light paper-and-glass typography (retained from the Bloom reskin):
 // Poppins is the shadcn `--font-sans` token (Display/Body, weight 500 headings);
 // Source Serif 4 powers `--font-serif` italic accents inside headings.
 const poppins = Poppins({
@@ -22,10 +22,10 @@ const serif = Source_Serif_4({
 // page body. A body string beginning with `<!--` is ordinary visible text in
 // React; metadata is the correct non-visual home for this internal contract.
 const DIRECTION_CONTRACT =
-  'THESIS: the office is the stage; a grayscale liquid-glass control surface floats over a static Skybridge world. '
+  'THESIS: the office is the stage; a light paper-and-glass control surface floats over a calm paper world. '
   'OWN-WORLD: Bloom liquid glass with Poppins, Source Serif 4 italic accents, strict grayscale hierarchy, subtle monochrome glow rings, and tiny robot-color identity cues. ' +
-  'STORY: a visitor sees a still Skybridge world with the office at its center; typing a note sends a robot across the floor and a toast confirms delivery. '
-  'FIRST VIEWPORT: static Skybridge frame, transparent WebGL office, slim brand bar, three glass agent cards, right-side task queue, bottom command dock, and centered welcome panel. '
+  'STORY: a visitor sees a calm paper world with the office at its center; typing a note sends a robot across the floor and a toast confirms delivery. '
+  'FIRST VIEWPORT: paper surface, transparent WebGL office, slim brand bar, three glass agent cards, right-side task queue, bottom command dock, and centered welcome panel. '
   'FORM: brief-pinned Bloom liquid-glass from bloom-ai-hero. ' +
   'FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md.'
 

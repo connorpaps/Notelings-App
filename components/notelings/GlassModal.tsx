@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, type ReactNode } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useFocusTrap } from './useFocusTrap'
 
@@ -17,6 +17,7 @@ type GlassModalProps = {
 /** Bloom liquid-glass modal: backdrop fade + scale-in, ESC/backdrop close. */
 export default function GlassModal({ open, onClose, title, children, size = 'default' }: GlassModalProps) {
   const titleId = useId()
+  const reduceMotion = useReducedMotion() ?? false
   const dialogRef = useFocusTrap<HTMLDivElement>({ enabled: open })
 
   useEffect(() => {
@@ -32,25 +33,25 @@ export default function GlassModal({ open, onClose, title, children, size = 'def
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0 }}
           className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) onClose()
           }}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 12 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            exit={reduceMotion ? undefined : { opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ duration: reduceMotion ? 0 : 0.18, ease: 'easeOut' }}
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
             tabIndex={-1}
-            className={`liquid-glass-strong ${size === 'wide' ? 'w-[min(92vw,880px)]' : 'w-[min(92vw,540px)]'} rounded-[2rem] p-7`}
+            className={`liquid-glass-strong max-h-[calc(100dvh-2rem)] overflow-y-auto ${size === 'wide' ? 'w-[min(92vw,880px)]' : 'w-[min(92vw,540px)]'} rounded-[2rem] p-7`}
           >
             <div className="flex items-center justify-between gap-4">
               <h3 id={titleId} className="text-lg font-medium tracking-tight text-white">{title}</h3>
@@ -58,7 +59,7 @@ export default function GlassModal({ open, onClose, title, children, size = 'def
                 type="button"
                 aria-label="Close dialog"
                 onClick={onClose}
-                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
               >
                 <X size={15} />
               </button>

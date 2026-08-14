@@ -15,5 +15,5 @@ Type → LLM categorize (10s timeout) → Supabase save → Zustand queue dispat
 - Unit tests, E2E scene/render/toast contracts, accessible names (`Initialize Agents`, `Type a new note`, `Submit note`), toast copy, overlay pointer-events contract.
 - Commands/constraints recorded in `knowledge.md`; the Master Spec is `MASTER_SPEC_FINAL.md`.
 
-## Visual direction (brief-pinned 2026-08-09)
-Bloom liquid-glass world (motionsites.ai `bloom-ai-hero` / supplied `skybridge-404` frame): a static video frame behind the office, Poppins (display/body) + Source Serif 4 (italic accents), strict grayscale text hierarchy, `.liquid-glass` / `.liquid-glass-strong` glass tiers, and a subtle monochrome glow ring rotating around the glass edges (glow-features DNA from `UI_PROMPTS.md`, deliberately not multicolor). Small robot-color cues (blue/green/red) are allowed for agent identity. The colored 3D office remains the centerpiece.
+## Visual direction (current 2026-08-14)
+Light paper-and-glass world: a calm off-white paper surface behind the office, Poppins (display/body) + Source Serif 4 (italic accents), charcoal/slate text hierarchy, `.liquid-glass` / `.liquid-glass-strong` white glass tiers, and a restrained monochrome glow ring around glass edges. Small robot-color cues (blue/green/red) remain agent identity signals. The colored 3D office remains the centerpiece. The retired dark Skybridge frame is historical context only and must not be restored by new work.

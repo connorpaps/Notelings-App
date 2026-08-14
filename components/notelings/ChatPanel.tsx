@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
 import type { UIMessage } from 'ai'
 import { useAgentStore } from '@/components/office/agentStore'
@@ -64,13 +64,14 @@ function CitationText({
  */
 export default function ChatPanel({ chat }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion() ?? false
   const notesMap = useAgentStore((state) => state.notes)
   const citationIndex = useMemo(() => buildCitationIndex(Object.values(notesMap)), [notesMap])
   const [openCitation, setOpenCitation] = useState<{ messageId: string; n: number } | null>(null)
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [chat.messages, chat.status])
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [chat.messages, chat.status, reduceMotion])
 
   const hasConversation = chat.messages.length > 0 || chat.status === 'submitted'
   const lastAssistant = chat.messages[chat.messages.length - 1]
@@ -78,13 +79,13 @@ export default function ChatPanel({ chat }: ChatPanelProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 16 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: 16 }}
+      transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
       // Clears the taller M4 dock (toggle row + input row ≈ 140px) so the
       // panel never covers the New Note / Ask AI toggle.
-      className="pointer-events-none absolute inset-x-0 bottom-[150px] z-20 flex justify-center p-4 md:bottom-[170px]"
+      className="pointer-events-none absolute inset-x-0 bottom-[calc(150px+env(safe-area-inset-bottom))] z-20 flex max-h-[calc(100dvh-9rem)] justify-center overflow-y-auto p-4 md:bottom-[calc(170px+env(safe-area-inset-bottom))]"
     >
       <GlassPanel strong className="pointer-events-auto w-[min(760px,calc(100vw-2rem))] rounded-[2rem]">
         <div className="flex flex-col gap-3 p-5">
@@ -104,7 +105,7 @@ export default function ChatPanel({ chat }: ChatPanelProps) {
                     setOpenCitation(null)
                     chat.setMessages([])
                   }}
-                  className="flex size-7 items-center justify-center rounded-full bg-white/10 text-white/50 transition-transform duration-200 hover:scale-110 hover:text-white/80 active:scale-95"
+                  className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/50 transition-transform duration-200 hover:scale-110 hover:text-white/80 active:scale-95"
                 >
                   <Trash2 size={12} />
                 </button>

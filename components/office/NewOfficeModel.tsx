@@ -32,3 +32,8 @@ export default function NewOfficeModel() {
 
   return <primitive object={model} position={[NEW_OFFICE_RECENTER[0], 0, NEW_OFFICE_RECENTER[2]]} />
 }
+
+// Start downloading the office while the client shell and auth gate hydrate.
+// The cache is shared with useGLTF inside the scene, so this does not duplicate
+// the asset or change the rendered model.
+useGLTF.preload(NEW_OFFICE_MODEL_PATH)

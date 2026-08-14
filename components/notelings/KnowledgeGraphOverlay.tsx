@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useAgentStore } from '@/components/office/agentStore'
 import { useOfficeViewStore } from '@/components/office/officeViewStore'
@@ -17,6 +17,7 @@ import { useFocusTrap } from './useFocusTrap'
  */
 export default function KnowledgeGraphOverlay() {
   const graphOpen = useOfficeViewStore((state) => state.graphOpen)
+  const reduceMotion = useReducedMotion() ?? false
   const closeGraph = useOfficeViewStore((state) => state.closeGraph)
 
   // Stable map selector + useMemo derivation (store gotcha).
@@ -76,10 +77,10 @@ export default function KnowledgeGraphOverlay() {
     <AnimatePresence>
       {graphOpen && (
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          exit={reduceMotion ? undefined : { opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
           ref={dialogRef}
           className="pointer-events-auto fixed inset-0 z-40 isolate"
           role="dialog"
@@ -104,7 +105,7 @@ export default function KnowledgeGraphOverlay() {
                     type="button"
                     aria-label="Clear tag focus"
                     onClick={() => setFocusedTag(null)}
-                    className="flex size-5 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-110 active:scale-95"
+                    className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-110 active:scale-95"
                   >
                     <X size={11} />
                   </button>
@@ -115,7 +116,7 @@ export default function KnowledgeGraphOverlay() {
               type="button"
               aria-label="Close knowledge graph"
               onClick={handleClose}
-              className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-105 active:scale-95"
+              className="flex size-10 min-h-10 min-w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-105 active:scale-95"
             >
               <X size={16} />
             </button>

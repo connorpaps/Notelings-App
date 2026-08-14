@@ -83,6 +83,17 @@ body {
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 1rem;
+  /* Notelings light-world semantic tokens. Components may consume these
+     instead of inheriting the retired white-on-dark utility vocabulary. */
+  --world-paper: #f6f7f5;
+  --world-ink: #172027;
+  --world-muted: #65737a;
+  --world-faint: #7f8c92;
+  --world-glass: rgb(255 255 255 / 0.68);
+  --world-glass-strong: rgb(255 255 255 / 0.84);
+  --world-border: rgb(25 39 45 / 0.14);
+  --world-control: rgb(255 255 255 / 0.72);
+  --world-focus: rgb(25 39 45 / 0.38);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -145,11 +156,11 @@ body {
   .liquid-glass {
     position: relative;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.68);
+    background: var(--world-glass);
     background-blend-mode: normal;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(25, 39, 45, 0.12);
+    border: 1px solid var(--world-border);
     box-shadow:
       0 12px 32px rgba(32, 48, 52, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.92);
@@ -180,11 +191,11 @@ body {
   .liquid-glass-strong {
     position: relative;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.84);
+    background: var(--world-glass-strong);
     background-blend-mode: normal;
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(25, 39, 45, 0.14);
+    border: 1px solid var(--world-border);
     box-shadow:
       0 18px 48px rgba(32, 48, 52, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.98);
@@ -306,11 +317,18 @@ body {
 }
 
 /* ---- Light paper-and-glass world ----
-   The existing component markup intentionally keeps its stable utility
-   classes and accessible contracts. These scoped mappings invert the old
-   white-on-dark utility vocabulary into a dark-on-light hierarchy. */
+   Semantic tokens above are the durable contract. The scoped mappings below
+   remain a compatibility bridge for legacy overlay utilities while surfaces
+   migrate in focused batches; new UI should use the semantic tokens/classes. */
+@layer utilities {
+  .world-text-primary { color: var(--world-ink); }
+  .world-text-muted { color: var(--world-muted); }
+  .world-text-faint { color: var(--world-faint); }
+  .world-control { background: var(--world-control); border: 1px solid var(--world-border); }
+  .world-focus:focus-visible { outline: 2px solid var(--world-focus); outline-offset: 2px; }
+}
 .light-world {
-  color: #172027;
+  color: var(--world-ink);
   color-scheme: light;
 }
 

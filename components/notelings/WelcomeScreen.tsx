@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Archive, BookMarked, Compass, Library } from 'lucide-react'
 import GlassPanel from './GlassPanel'
 import AuthControls from './AuthControls'
@@ -22,14 +22,16 @@ type WelcomeScreenProps = {
  * workspace (auto sign-in to the demo account).
  */
 export default function WelcomeScreen({ onInitialize, onBrowseDemo }: WelcomeScreenProps) {
+  const reduceMotion = useReducedMotion() ?? false
+
   return (
     // Above the bottom dock (z-30) so the card's lower actions (demo entry,
     // sign-in) are never covered by the command dock's submit pill.
     <div className="absolute inset-0 z-[35] pointer-events-none flex items-center justify-center overflow-y-auto p-4 md:p-8">
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
+        transition={{ duration: reduceMotion ? 0 : 0.8, ease: 'easeOut' }}
         className="pointer-events-auto my-auto w-full max-w-[620px]"
       >
         <GlassPanel strong glow className="rounded-[2rem] md:rounded-[2.5rem]">

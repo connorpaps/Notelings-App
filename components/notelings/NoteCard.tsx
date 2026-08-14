@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Archive, Pencil } from 'lucide-react'
 import { timeAgo } from '@/lib/notes/kanban'
 import { noteCategoryLabel, type NoteRecord } from '@/lib/notes/types'
@@ -23,9 +23,10 @@ const STATUS_DOT: Record<NoteRecord['status'], string> = {
 /** A single note on the Spatial Board (PHASE_2_SPEC M1 + M2 actions). */
 export default function NoteCard({ note, archiving = false, onEdit, onArchive }: NoteCardProps) {
   const canManage = note.status !== 'archived'
+  const reduceMotion = useReducedMotion() ?? false
   return (
     <motion.article
-      whileHover={{ scale: 1.02 }}
+      whileHover={reduceMotion ? undefined : { scale: 1.02 }}
       className="liquid-glass cursor-default rounded-2xl p-3.5 transition-transform duration-200"
     >
       <div className="flex items-start justify-between gap-2">
@@ -46,8 +47,8 @@ export default function NoteCard({ note, archiving = false, onEdit, onArchive }:
           <span className="flex items-center gap-1.5 text-[10px] text-white/60">
             <motion.span
               aria-hidden
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+              animate={reduceMotion ? undefined : { opacity: [0.4, 1, 0.4] }}
+              transition={reduceMotion ? { duration: 0 } : { duration: 1, repeat: Infinity, ease: 'easeInOut' }}
               className="size-1 rounded-full bg-white/70"
             />
             Archiving…
@@ -60,7 +61,7 @@ export default function NoteCard({ note, archiving = false, onEdit, onArchive }:
                   type="button"
                   aria-label="Edit note"
                   onClick={onEdit}
-                  className="flex size-6 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-110 active:scale-95"
+                  className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-110 active:scale-95"
                 >
                   <Pencil size={11} />
                 </button>
@@ -70,7 +71,7 @@ export default function NoteCard({ note, archiving = false, onEdit, onArchive }:
                   type="button"
                   aria-label="Archive note"
                   onClick={onArchive}
-                  className="flex size-6 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-110 active:scale-95"
+                  className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-110 active:scale-95"
                 >
                   <Archive size={11} />
                 </button>

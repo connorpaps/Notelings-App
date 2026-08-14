@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Archive, BookOpen, ShieldAlert } from 'lucide-react'
 import { useAgentStore } from '@/components/office/agentStore'
 import type { AgentId } from '@/components/office/agentDestinations'
@@ -33,6 +33,7 @@ export default function AgentStatusCard({ id }: { id: AgentId }) {
   const meta = AGENT_META[id]
   const Icon = meta.icon
   const isError = status === 'error'
+  const reduceMotion = useReducedMotion() ?? false
 
   const card = (
     <GlassPanel
@@ -59,7 +60,7 @@ export default function AgentStatusCard({ id }: { id: AgentId }) {
     </GlassPanel>
   )
 
-  if (isError) {
+  if (isError && !reduceMotion) {
     return (
       <motion.div
         animate={{ opacity: [0.55, 1, 0.55] }}

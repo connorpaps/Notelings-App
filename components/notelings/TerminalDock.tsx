@@ -30,7 +30,7 @@ export default function TerminalDock() {
   const chat = useLibrarianChat()
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center p-4 md:p-6">
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6 md:pt-6 md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <AnimatePresence>{mode === 'chat' && <ChatPanel chat={chat} />}</AnimatePresence>
       <GlassPanel strong glow className="w-[min(960px,calc(100vw-2rem))] rounded-[2rem]">
         <div className="flex flex-col gap-3 p-3 md:p-4">
@@ -80,7 +80,7 @@ export default function TerminalDock() {
               aria-label="Explore tags"
               disabled={!authenticated}
               onClick={() => setTagExplorerOpen(true)}
-              className="pointer-events-auto flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
+              className="pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
             >
               <Search size={14} />
             </button>
@@ -89,7 +89,7 @@ export default function TerminalDock() {
               aria-label="Open knowledge graph"
               title="Open knowledge graph"
               onClick={() => useOfficeViewStore.getState().toggleGraph()}
-              className="pointer-events-auto flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
+              className="pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
             >
               <Network size={14} />
             </button>
@@ -102,7 +102,7 @@ export default function TerminalDock() {
               aria-label={logOpen ? 'Hide event log' : 'Show event log'}
               aria-expanded={logOpen}
               onClick={() => setLogOpen((open) => !open)}
-              className="pointer-events-auto flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95 md:hidden"
+              className="pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95 md:hidden"
             >
               <Terminal size={15} />
             </button>

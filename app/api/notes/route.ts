@@ -9,6 +9,11 @@ import { observeApiRoute } from '@/lib/observability'
 export const runtime = 'nodejs'
 export const maxDuration = 30
 
+// Deliberate MVP safety bound. The response is newest-first; the board shows
+// an explicit boundary instead of silently presenting a partial history as
+// complete. Cursor pagination is the next data-scale milestone.
+export const NOTES_RESULT_LIMIT = 500
+
 /** Authenticated owner's notes, newest first. The client fetches once on
  * mount and then follows the owner-scoped Realtime channel. */
 export async function GET(request: Request) {
@@ -23,7 +28,7 @@ export async function GET(request: Request) {
     .from('notes')
     .select('id, content, category, tags, status, created_at, updated_at')
     .order('created_at', { ascending: false })
-    .limit(500)
+    .limit(NOTES_RESULT_LIMIT)
 
   if (error) {
     return NextResponse.json({ error: 'Could not load notes' }, { status: 500 })

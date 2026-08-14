@@ -258,7 +258,7 @@ export default function AuthControls({ placement = 'header', onContinue }: AuthC
           aria-label="Sign out"
           title="Sign out"
           onClick={() => void signOut()}
-          className="flex size-7 items-center justify-center rounded-full bg-white/15 text-white/75 transition hover:bg-white/25 hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+          className="flex size-10 items-center justify-center rounded-full bg-white/15 text-white/75 transition hover:bg-white/25 hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
         >
           <LogOut size={13} />
         </button>
@@ -293,7 +293,7 @@ export default function AuthControls({ placement = 'header', onContinue }: AuthC
                 {mode === 'signin' ? 'Sign in with your username or email.' : 'Create your workspace account.'}
               </p>
             </div>
-            <button type="button" aria-label="Close sign-in" onClick={() => setOpen(false)} className="text-white/55 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+            <button type="button" aria-label="Close sign-in" onClick={() => setOpen(false)} className="flex size-10 items-center justify-center rounded-full text-white/55 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
               <X size={14} />
             </button>
           </div>

@@ -35,7 +35,7 @@ export function useNotesRealtime() {
         if (!parsed.success) throw new Error('Invalid notes payload')
         if (disposed) return
         useAgentStore.getState().setNotes(parsed.data)
-        useAgentStore.getState().logTerminal(`Loaded ${parsed.data.length} notes.`)
+        useAgentStore.getState().logTerminal(`Loaded ${parsed.data.length} newest notes (server limit: 500).`)
       })
       .catch(() => {
         if (!disposed) {

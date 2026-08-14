@@ -25,7 +25,7 @@ export default function OfficeViewControls() {
         aria-pressed={graphOpen}
         aria-label={graphOpen ? 'Close knowledge graph' : 'Show knowledge graph'}
         title={graphOpen ? 'Close knowledge graph' : 'Show knowledge graph'}
-        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-white/10 active:scale-95 ${
+        className={`flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-white/10 active:scale-95 sm:min-w-0 ${
           graphOpen ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white'
         }`}
       >
@@ -38,7 +38,7 @@ export default function OfficeViewControls() {
         aria-pressed={gridEditorOpen}
         aria-label={gridEditorOpen ? 'Hide nav grid editor' : 'Show nav grid editor'}
         title={gridEditorOpen ? 'Hide nav grid editor' : 'Show nav grid editor'}
-        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-white/10 active:scale-95 ${
+        className={`flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-white/10 active:scale-95 sm:min-w-0 ${
           gridEditorOpen ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white'
         }`}
       >
@@ -51,7 +51,7 @@ export default function OfficeViewControls() {
         aria-pressed={uiHidden}
         aria-label={uiHidden ? 'Show app UI' : 'Hide app UI'}
         title={uiHidden ? 'Show app UI' : 'Hide app UI'}
-        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-white/10 active:scale-95 ${
+        className={`flex min-h-10 min-w-10 items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition hover:bg-white/10 active:scale-95 sm:min-w-0 ${
           uiHidden ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white'
         }`}
       >

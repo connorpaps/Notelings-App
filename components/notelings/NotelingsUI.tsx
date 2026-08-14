@@ -101,7 +101,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
                 aria-label="Open task board"
                 aria-expanded={kanbanOpen}
                 onClick={() => setKanbanOpen((open) => !open)}
-                className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-105 active:scale-95 lg:hidden"
+                className="pointer-events-auto flex size-10 min-h-10 min-w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-transform duration-200 hover:scale-105 active:scale-95 lg:hidden"
               >
                 <LayoutGrid size={16} />
               </button>
@@ -143,7 +143,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
       {!hidden && <TerminalDock />}
       {/* Mobile: the board opens as a bottom sheet above the terminal. */}
       {!hidden && kanbanOpen && (
-        <div className="absolute inset-x-3 bottom-44 z-40 lg:hidden">
+        <div className="absolute inset-x-3 bottom-[calc(11rem+env(safe-area-inset-bottom))] z-40 lg:hidden">
           <KanbanPanel className="w-full" />
         </div>
       )}

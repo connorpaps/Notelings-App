@@ -12,10 +12,10 @@ const OfficeCanvas = dynamic(() => import('@/components/office/OfficeCanvas'), {
   ssr: false,
   loading: () => (
     <div
-      className="flex h-full w-full items-center justify-center bg-transparent text-white/50"
+      className="flex h-full w-full items-center justify-center bg-transparent px-6 text-center text-sm text-slate-500"
       style={{ fontFamily: 'var(--font-sans)' }}
     >
-      loading 3D office…
+      <span role="status">Preparing your office…</span>
     </div>
   ),
 })
@@ -24,8 +24,8 @@ const OfficeBuilderApp = ENABLE_OFFICE_BUILDER
   ? dynamic(() => import('@/components/office/OfficeBuilderApp'), { ssr: false })
   : null
 
-// Static Skybridge frame (z-0) → transparent WebGL office (z-10) → glass
-// UI overlay (z-20). The office stays the colored centerpiece above the frame.
+// Paper surface (z-0) → transparent WebGL office (z-10) → glass UI overlay
+// (z-20). The office stays the colored centerpiece above the paper world.
 export default function Home() {
   const gridEditorOpen = useOfficeViewStore((state) => state.gridEditorOpen)
 

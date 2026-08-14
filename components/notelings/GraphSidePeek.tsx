@@ -57,7 +57,7 @@ export default function GraphSidePeek({ noteId, onClose }: GraphSidePeekProps) {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '105%', opacity: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.2, 0, 0, 1] }}
-          className="liquid-glass-strong pointer-events-auto fixed inset-y-0 right-0 z-50 w-[min(92vw,400px)]"
+          className="liquid-glass-strong pointer-events-auto fixed inset-y-0 right-0 z-50 w-[min(92vw,400px)] overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))]"
           role="dialog"
           aria-modal="false"
           aria-labelledby={`graph-note-title-${note.id}`}
@@ -155,7 +155,7 @@ function SidePeekBody({ note, onClose }: SidePeekBodyProps) {
           type="button"
           aria-label="Close note side panel"
           onClick={onClose}
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/60 transition-transform duration-200 hover:scale-105 active:scale-95"
         >
           <X size={14} />
         </button>

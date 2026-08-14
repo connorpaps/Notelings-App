@@ -17,6 +17,7 @@ Written from the light visual pass on 2026-08-14. The previous Bloom liquid-glas
 - Poppins (`--font-sans`, weights 400/500/600) — display/body; headings weight 500.
 - Source Serif 4 (`--font-serif`, normal + italic) — italic accents inside headings only.
 - Radius token: `--radius: 1rem`.
+- Semantic shell tokens: `--world-paper`, `--world-ink`, `--world-muted`, `--world-faint`, `--world-glass`, `--world-glass-strong`, `--world-border`, and `--world-focus` in `app/globals.css`. The legacy utility remap is migration-only; new UI should use `.world-text-*`, `.world-control`, and `.world-focus`.
 
 ## Glass tiers (`app/globals.css`)
 - `.liquid-glass` — white translucent cards, 14px blur, visible neutral border, soft shadow, and inset highlight.
@@ -33,13 +34,13 @@ Light paper background → transparent WebGL office (`z-10`) → light glass UI 
 - **Spatial Board:** light glass right rail with readable charcoal headings, slate metadata, and layered note cards.
 - **Command dock:** strong white glass panel with dark input text, visible borders, and dark-on-light controls.
 - **Welcome hero:** strong white glass panel with charcoal headline, slate copy, destination pills, and high-contrast dark CTA text.
-- **Toasts/modals:** light glass by default; deliberately dark alert/code surfaces retain white text.
+- **Toasts/modals:** light glass by default; deliberately dark alert/code surfaces retain white text. Modals and side-peeks scroll within the viewport and include safe-area padding where they can reach the screen edge.
 
 ## Motion
-Keep the existing hover scale, glow ring, error pulse, queue transitions, focus traps, and reduced-motion behavior. No scene or movement changes are part of this visual pass.
+Keep the existing hover scale, glow ring, error pulse, queue transitions, focus traps, and reduced-motion behavior. Framer Motion surfaces explicitly collapse positional/scale/looping animation when `prefers-reduced-motion` is enabled; state changes remain visible. No scene or movement changes are part of this visual pass.
 
 ## Responsive
-Preserve the current right-rail/mobile bottom-sheet breakpoints, dock sizing, and hidden UI/nav controls.
+Preserve the current right-rail/mobile bottom-sheet breakpoints, dock sizing, and hidden UI/nav controls. Bottom surfaces include safe-area padding and short-height scroll bounds; action buttons preserve compact icon visuals while exposing roughly 40px touch targets. The board currently loads the newest 500 notes and states that boundary explicitly until cursor history pagination is added.
 
 ## Preserved boundary
 R3F scene content, robots, pathfinding, Zustand, Supabase, unit/E2E contracts, accessible names, toast copy, pointer-events layering, and the transparent canvas contract remain unchanged.
