@@ -59,13 +59,16 @@ export function useAuthSession() {
   }, [setStoreUser])
 
   /** Re-read the session from cookies after a server-side sign-in/sign-out. */
-  const refresh = useCallback(async () => {
-    if (E2E_AUTH_BYPASS) return
+  const refresh = useCallback(async (): Promise<boolean> => {
+    if (E2E_AUTH_BYPASS) return true
     try {
       const { data } = await createBrowserSupabase().auth.getUser()
-      setStoreUser(data.user ?? null)
+      const nextUser = data.user ?? null
+      setStoreUser(nextUser)
+      return Boolean(nextUser)
     } catch {
       setStoreUser(null)
+      return false
     } finally {
       setLoading(false)
     }

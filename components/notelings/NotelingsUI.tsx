@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
@@ -35,6 +35,7 @@ type NotelingsUIProps = { enabled?: boolean }
 export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const [gateDismissed, setGateDismissed] = useState(false)
   const [kanbanOpen, setKanbanOpen] = useState(false)
+  const demoEntryAttempted = useRef(false)
   const router = useRouter()
   const { authenticated, loading, user, refresh } = useAuthSession()
   // The gate is the signed-out entry surface AND the signed-in "ready" card:
@@ -46,7 +47,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const enterWorkspace = () => setGateDismissed(true)
   // The root link navigates into the trusted demo path first. Only once the
   // browser is on /demo does this request establish a demo Supabase session.
-  const enterDemo = async () => {
+  const enterDemo = useCallback(async () => {
     if (browserMode() !== 'demo') {
       router.push('/demo')
       return
@@ -54,12 +55,22 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
     try {
       const res = await fetch(browserApiPath('/auth/demo'), { method: 'POST' })
       if (!res.ok) throw new Error('demo unavailable')
-      await refresh()
+      const signedIn = await refresh()
+      if (!signedIn) throw new Error('demo session unavailable')
       setGateDismissed(true)
     } catch {
       toast.error('Demo workspace is unavailable right now.')
     }
-  }
+  }, [refresh, router])
+
+  // The root welcome card navigates to the trusted demo path first. Finish the
+  // entry automatically after that navigation so the user never has to click
+  // the demo button twice.
+  useEffect(() => {
+    if (browserMode() !== 'demo' || loading || authenticated || demoEntryAttempted.current) return
+    demoEntryAttempted.current = true
+    void enterDemo()
+  }, [authenticated, enterDemo, loading])
   // The header's "Hide UI" collapses the chrome to just the view controls so
   // the office can be viewed (or the nav grid painted) on its own.
   const hidden = useOfficeViewStore((state) => state.uiHidden)
