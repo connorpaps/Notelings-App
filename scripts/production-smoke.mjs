@@ -31,6 +31,10 @@ if (missingHeaders.length > 0) {
   throw new Error(`Missing required security headers: ${missingHeaders.join(', ')}`)
 }
 
+const contentSecurityPolicy = pageResponse.headers.get('content-security-policy') ?? ''
+const wasmUnsafeEvalPresent = contentSecurityPolicy.includes("'wasm-unsafe-eval'")
+if (!wasmUnsafeEvalPresent) throw new Error('Content-Security-Policy is missing wasm-unsafe-eval required by the GLB Meshopt decoder')
+
 const isHttps = new URL(origin).protocol === 'https:'
 const hstsPresent = pageResponse.headers.has('strict-transport-security')
 if (isHttps && !hstsPresent) throw new Error('HTTPS deployment is missing Strict-Transport-Security')
@@ -40,6 +44,7 @@ console.log(JSON.stringify({
   health: { status: healthBody.status, service: healthBody.service },
   healthCacheControl: healthResponse.headers.get('cache-control'),
   securityHeadersPresent: headerPresence,
+  wasmUnsafeEvalPresent,
   hstsPresent,
   pageStatus: pageResponse.status,
 }, null, 2))
