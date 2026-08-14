@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { APP_MODE_HEADER, DEMO_PATH_PREFIX, modeFromPathname } from '@/lib/deployment/mode'
+import { APP_MODE_HEADER, modeFromPathname } from '@/lib/deployment/mode'
 import { authCookieName, getSupabaseConfig } from '@/lib/deployment/serverConfig'
 
 /**
@@ -19,20 +19,12 @@ export async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(APP_MODE_HEADER, mode)
-  const isDemoApi = request.nextUrl.pathname === `${DEMO_PATH_PREFIX}/api`
-    || request.nextUrl.pathname.startsWith(`${DEMO_PATH_PREFIX}/api/`)
-  const isDemoCallback = request.nextUrl.pathname === `${DEMO_PATH_PREFIX}/auth/callback`
-  const rewriteTarget = isDemoApi
-    ? `/api${request.nextUrl.pathname.slice(`${DEMO_PATH_PREFIX}/api`.length) || '/'}`
-    : isDemoCallback
-      ? `/auth/callback${request.nextUrl.search}`
-      : null
-  const responseFor = () => {
-    const init = { request: { headers: requestHeaders } }
-    return rewriteTarget === null
-      ? NextResponse.next(init)
-      : NextResponse.rewrite(new URL(rewriteTarget, request.url), init)
-  }
+  // Demo API and callback routes have explicit filesystem adapters under
+  // /demo, so the path itself remains the trusted mode boundary. Avoid an
+  // internal rewrite: Next does not reliably forward custom request headers
+  // through a rewrite, which could silently turn demo requests into private
+  // requests.
+  const responseFor = () => NextResponse.next({ request: { headers: requestHeaders } })
 
   let response = responseFor()
   const supabase = createServerClient(config.url, config.anonKey, {

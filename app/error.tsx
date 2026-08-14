@@ -9,19 +9,19 @@ export default function Error({ reset }: { error: Error & { digest?: string }; r
   }, [])
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black/20 px-6 text-white">
-      <section className="liquid-glass-strong w-full max-w-md rounded-[2rem] p-8 text-center">
-        <p className="text-xs uppercase tracking-[0.22em] text-white/40">Office interruption</p>
-        <h1 className="mt-3 text-2xl font-medium tracking-tight">
-          The <em className="font-serif font-normal italic text-white/75">Librarians</em> need a reset.
+    <main className="flex min-h-screen items-center justify-center bg-[#f6f7f5] px-6 text-slate-900">
+      <section className="w-full max-w-md rounded-[2rem] border border-slate-900/10 bg-white/90 p-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.14)] backdrop-blur-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Office interruption</p>
+        <h1 className="mt-3 text-2xl font-medium tracking-tight text-slate-950">
+          The <em className="font-serif font-normal italic text-slate-700">Librarians</em> need a reset.
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-white/55">
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">
           The workspace hit an unexpected problem. Your note content was not included in this message.
         </p>
         <button
           type="button"
           onClick={() => reset()}
-          className="mt-6 rounded-full bg-white/15 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/20 active:scale-[.98]"
+          className="mt-6 rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950/30"
         >
           Try again
         </button>

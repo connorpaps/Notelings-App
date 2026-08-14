@@ -15,14 +15,34 @@ export function useAuthSession() {
 
   useEffect(() => {
     if (E2E_AUTH_BYPASS) return
-    const supabase = createBrowserSupabase()
     let disposed = false
+    let supabase: ReturnType<typeof createBrowserSupabase>
 
-    void supabase.auth.getUser().then(({ data }) => {
-      if (disposed) return
-      setStoreUser(data.user ?? null)
-      setLoading(false)
-    })
+    try {
+      supabase = createBrowserSupabase()
+    } catch {
+      // A deployment with incomplete public Supabase config should leave the
+      // access card usable instead of throwing through the app error boundary.
+      queueMicrotask(() => {
+        if (disposed) return
+        setStoreUser(null)
+        setLoading(false)
+      })
+      return undefined
+    }
+
+    void supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        if (disposed) return
+        setStoreUser(data.user ?? null)
+        setLoading(false)
+      })
+      .catch(() => {
+        if (disposed) return
+        setStoreUser(null)
+        setLoading(false)
+      })
 
     const {
       data: { subscription },
@@ -41,9 +61,14 @@ export function useAuthSession() {
   /** Re-read the session from cookies after a server-side sign-in/sign-out. */
   const refresh = useCallback(async () => {
     if (E2E_AUTH_BYPASS) return
-    const { data } = await createBrowserSupabase().auth.getUser()
-    setStoreUser(data.user ?? null)
-    setLoading(false)
+    try {
+      const { data } = await createBrowserSupabase().auth.getUser()
+      setStoreUser(data.user ?? null)
+    } catch {
+      setStoreUser(null)
+    } finally {
+      setLoading(false)
+    }
   }, [setStoreUser])
 
   return {

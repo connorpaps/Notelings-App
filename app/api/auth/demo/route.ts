@@ -33,11 +33,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Demo workspace is not configured on this deployment.' }, { status: 503 })
     }
 
-    const supabase = await createUserSupabase(mode)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
+    try {
+      const supabase = await createUserSupabase(mode)
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        return NextResponse.json({ error: 'Demo workspace is unavailable right now.' }, { status: 503 })
+      }
+      return NextResponse.json({ ok: true, demo: true })
+    } catch {
       return NextResponse.json({ error: 'Demo workspace is unavailable right now.' }, { status: 503 })
     }
-    return NextResponse.json({ ok: true, demo: true })
   })
 }

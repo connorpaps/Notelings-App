@@ -59,6 +59,13 @@ describe('POST /api/auth/demo', () => {
     expect(response.status).toBe(503)
   })
 
+  it('returns 503 when the demo Supabase configuration is unavailable', async () => {
+    process.env.NOTELINGS_DEMO_PASSWORD = 'demo-password'
+    mockedCreateUserSupabase.mockRejectedValue(new Error('missing demo config'))
+    const response = await POST(request())
+    expect(response.status).toBe(503)
+  })
+
   it('signs into the demo account', async () => {
     process.env.NOTELINGS_DEMO_PASSWORD = 'demo-password'
     const supabaseStub = { auth: { signInWithPassword: vi.fn().mockResolvedValue({ error: null }) } }
