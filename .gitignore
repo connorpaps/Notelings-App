@@ -5,6 +5,7 @@ node_modules/
 .agents/
 .cursor/
 .codex/
+.freebuff/
 docs/superpowers/
 AGENTS.md
 knowledge.md

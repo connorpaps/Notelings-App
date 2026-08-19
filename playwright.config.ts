@@ -20,6 +20,10 @@ export default defineConfig({
     // readPixels), which needs preserveDrawingBuffer. Normal runs leave it
     // off for GPU memory; only the Playwright server turns it on.
     env: {
+      // Pin the port: `baseURL` and `url` above are hard-coded to :3000, and an
+      // ambient PORT (e.g. PORT=0 in some shells) would make `next dev` bind a
+      // random port and hang the webServer health check.
+      PORT: '3000',
       NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER: '1',
       NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY: process.env.NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY ?? 'high',
       // E2E-only motor acceleration keeps physical route assertions fast under
