@@ -14,13 +14,14 @@ import { browserApiPath } from '@/lib/deployment/mode'
 export function useLibrarianChat() {
   const chat = useChat({ transport: new DefaultChatTransport({ api: browserApiPath('/chat') }) })
   const logTerminal = useAgentStore((state) => state.logTerminal)
+  const sendChatMessage = chat.sendMessage
 
   const sendMessage = useCallback(
     (content: string) => {
       logTerminal(`Asking the Librarian: "${content.slice(0, 48)}"`)
-      void chat.sendMessage({ text: content })
+      void sendChatMessage({ text: content })
     },
-    [chat.sendMessage, logTerminal],
+    [logTerminal, sendChatMessage],
   )
 
   return { ...chat, sendMessage }

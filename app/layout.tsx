@@ -21,13 +21,12 @@ const serif = Source_Serif_4({
 // Keep the visual direction contract auditable without rendering it into the
 // page body. A body string beginning with `<!--` is ordinary visible text in
 // React; metadata is the correct non-visual home for this internal contract.
-const DIRECTION_CONTRACT =
-  'THESIS: the office is the stage; a light paper-and-glass control surface floats over a calm paper world. '
-  'OWN-WORLD: Bloom liquid glass with Poppins, Source Serif 4 italic accents, strict grayscale hierarchy, subtle monochrome glow rings, and tiny robot-color identity cues. ' +
-  'STORY: a visitor sees a calm paper world with the office at its center; typing a note sends a robot across the floor and a toast confirms delivery. '
-  'FIRST VIEWPORT: paper surface, transparent WebGL office, slim brand bar, three glass agent cards, right-side task queue, bottom command dock, and centered welcome panel. '
-  'FORM: brief-pinned Bloom liquid-glass from bloom-ai-hero. ' +
-  'FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md.'
+const DIRECTION_CONTRACT = `THESIS: the office is the stage; a light paper-and-glass control surface floats over a calm paper world.
+OWN-WORLD: Bloom liquid glass with Poppins, Source Serif 4 italic accents, strict grayscale hierarchy, subtle monochrome glow rings, and tiny robot-color identity cues.
+STORY: a visitor sees a calm paper world with the office at its center; typing a note sends a robot across the floor and a toast confirms delivery.
+FIRST VIEWPORT: paper surface, transparent WebGL office, slim brand bar, three glass agent cards, right-side task queue, bottom command dock, and centered welcome panel.
+FORM: brief-pinned Bloom liquid-glass from bloom-ai-hero.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md.`
 
 export const metadata: Metadata = {
   title: 'Notelings — Second Brain Office',
