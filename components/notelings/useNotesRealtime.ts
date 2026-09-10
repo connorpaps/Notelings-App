@@ -8,6 +8,9 @@ import { browserApiPath } from '@/lib/deployment/mode'
 import { NoteRecordSchema, NotesListSchema } from '@/lib/notes/notesApi'
 import { useAuthSession } from './useAuthSession'
 
+const DISABLE_REALTIME_FOR_E2E =
+  process.env.NODE_ENV !== 'production' && process.env.NEXT_PUBLIC_NOTELINGS_DISABLE_REALTIME === '1'
+
 /**
  * Phase 2 M1: mirrors the Supabase `notes` table into the store.
  * 1. One-time fetch via the authenticated owner-scoped server route.
@@ -42,6 +45,12 @@ export function useNotesRealtime() {
           useAgentStore.getState().logTerminal('Could not load notes from server.', 'error')
         }
       })
+
+    if (DISABLE_REALTIME_FOR_E2E) {
+      return () => {
+        disposed = true
+      }
+    }
 
     let supabase: SupabaseClient | null = null
     let channel: RealtimeChannel | null = null

@@ -44,7 +44,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const showGate = !loading && (!authenticated || !gateDismissed)
   const isDemo = Boolean(user?.user_metadata?.is_demo)
 
-  const enterWorkspace = () => setGateDismissed(true)
+  const enterWorkspace = useCallback(() => setGateDismissed(true), [])
   // The root link navigates into the trusted demo path first. Only once the
   // browser is on /demo does this request establish a demo Supabase session.
   const enterDemo = useCallback(async () => {

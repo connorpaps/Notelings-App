@@ -38,6 +38,12 @@ test('static office diorama preserves the locked baseline with three robots and 
 
   await page.goto('/')
   await expect(page.locator('canvas')).toBeVisible({ timeout: 30_000 })
+  const welcome = page.getByRole('dialog', { name: 'Spatial Second Brain' })
+  await expect(welcome).toBeVisible()
+  await expect(welcome).toHaveAttribute('aria-modal', 'true')
+  const demoEntry = welcome.getByRole('button', { name: 'Enter demo workspace' })
+  await expect(demoEntry).toBeVisible()
+  await expect(demoEntry).toBeFocused()
   await expect(page.locator('body')).not.toContainText('THESIS: the office is the stage')
   await expect(page.locator('meta[name="notelings-direction-contract"]')).toHaveAttribute('content', /THESIS: the office is the stage/)
   // M4 UI replaces the M3 task console entirely.

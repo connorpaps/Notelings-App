@@ -14,7 +14,9 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    // Always own the server for E2E. Reusing a normal dev server would omit
+    // the test-only auth and Realtime isolation environment variables.
+    reuseExistingServer: false,
     timeout: 120_000,
     // The e2e baseline samples pixels from the WebGL canvas (corner-alpha +
     // readPixels), which needs preserveDrawingBuffer. Normal runs leave it
@@ -32,6 +34,10 @@ export default defineConfig({
       // Test-only auth bypass. The client and server both guard this with
       // NODE_ENV !== 'production'; it must never be set on a deployment.
       NEXT_PUBLIC_NOTELINGS_E2E_AUTH_BYPASS: '1',
+      // Keep workflow and visual tests hermetic; Realtime has its own
+      // integration contract and must not turn unrelated tests red when the
+      // external Supabase socket is unavailable.
+      NEXT_PUBLIC_NOTELINGS_DISABLE_REALTIME: '1',
     },
   },
   projects: [
