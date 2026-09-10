@@ -27,7 +27,7 @@ export default defineConfig({
       // random port and hang the webServer health check.
       PORT: '3000',
       NEXT_PUBLIC_PRESERVE_DRAWING_BUFFER: '1',
-      NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY: process.env.NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY ?? 'high',
+      NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY: process.env.NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY ?? 'auto',
       // E2E-only motor acceleration keeps physical route assertions fast under
       // SwiftShader; production and the normal dev server remain at real speed.
       NEXT_PUBLIC_NOTELINGS_E2E_FAST: '1',

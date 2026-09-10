@@ -117,11 +117,13 @@ export default function OfficeCanvas({ onPointerMissed }: OfficeCanvasProps) {
       />
       <hemisphereLight name="office-fill" args={['#d8eeee', '#34504f', 0.32]} />
       <NewOfficeScene />
-      <EffectComposer enableNormalPass>
-        <SSAO {...renderProfile.ssao} />
-        <Bloom {...renderProfile.bloom} />
-        <ToneMapping />
-      </EffectComposer>
+      {renderProfile.postprocessing && (
+        <EffectComposer enableNormalPass>
+          <SSAO {...renderProfile.ssao} />
+          <Bloom {...renderProfile.bloom} />
+          <ToneMapping />
+        </EffectComposer>
+      )}
     </Canvas>
   )
 }

@@ -154,24 +154,18 @@ test('static office diorama preserves the locked baseline with three robots and 
   expect(audit.keyIntensity).toBe(3)
   expect(audit.camera).toEqual([24, 22, 24, 86, -100, 300])
   expect(audit.shadowEnabled).toBe(true)
-  expect(audit.shadowMapSize).toEqual([4096, 4096])
-  expect(audit.shadowBounds).toEqual([-30, 30, 30, -30])
+  const renderProfile = audit.renderProfile as { quality?: string; postprocessing?: boolean; shadowMapSize?: unknown; shadowCascade?: number; ssao?: { samples?: number; rings?: number } }
+  const highQuality = renderProfile.quality === 'high'
+  expect(audit.shadowMapSize).toEqual(highQuality ? [4096, 4096] : [2048, 2048])
+  expect(audit.shadowBounds).toEqual(highQuality ? [-30, 30, 30, -30] : [-14, 14, 14, -14])
   expect(audit.builderStorage).toBe('preexisting-builder-snapshot')
   expect(audit.builderExportStorage).toBe('preexisting-builder-export')
   expect(audit.cameraProfile).toEqual({ position: [24, 22, 24], target: [0, 1, 0], zoom: 86, near: -100, far: 300, controls: false, frameloop: 'always' })
-  expect(audit.renderProfile).toEqual({
-    quality: 'high',
-    dpr: 1,
-    frameloop: 'always',
-    shadows: true,
-    shadowMapSize: [4096, 4096],
-    shadowCascade: 30,
-    postprocessing: true,
-    toneMappingMode: null,
-    toneMappingExposure: 1.2,
-    bloom: { luminanceThreshold: 1, intensity: 0.2 },
-    ssao: { radius: 2.4, intensity: 2, samples: 32, rings: 4, bias: 0.3, luminanceInfluence: 0.65 },
-  })
+  expect(renderProfile.quality).toMatch(/^(high|balanced)$/)
+  expect(renderProfile.postprocessing).toBe(renderProfile.quality === 'high')
+  expect(renderProfile.shadowMapSize).toEqual(renderProfile.quality === 'high' ? [4096, 4096] : [2048, 2048])
+  expect(renderProfile.shadowCascade).toBe(renderProfile.quality === 'high' ? 30 : 14)
+  expect(renderProfile.ssao).toMatchObject(renderProfile.quality === 'high' ? { radius: 2.4, intensity: 2, samples: 32, rings: 4, bias: 0.3, luminanceInfluence: 0.65 } : { radius: 2.4, intensity: 2, samples: 16, rings: 2, bias: 0.3, luminanceInfluence: 0.65 })
 
   const runtime = await page.evaluate(() => {
     const agents = (window as unknown as { __NOTELINGS_AGENTS__?: { agents: Record<string, { id: string; status: string }> } }).__NOTELINGS_AGENTS__

@@ -520,8 +520,8 @@ body {
   }
 
   .notelings-agent-card {
-    min-width: min(15rem, calc(100vw - 2rem));
-    width: min(15rem, calc(100vw - 2rem)) !important;
+    min-width: calc(100vw - 2rem);
+    width: calc(100vw - 2rem) !important;
     border-radius: 1.5rem;
   }
 

@@ -28,7 +28,7 @@ export type OfficeRenderProfile = {
   shadows: true
   shadowMapSize: readonly [number, number]
   shadowCascade: number
-  postprocessing: true
+  postprocessing: boolean
   toneMappingMode: null
   toneMappingExposure: number
   bloom: BloomProfile
@@ -76,7 +76,7 @@ export const OFFICE_RENDER_PROFILES = {
     shadows: true,
     shadowMapSize: [2048, 2048],
     shadowCascade: 14,
-    postprocessing: true,
+    postprocessing: false,
     toneMappingMode: null,
     toneMappingExposure: 1.2,
     bloom: HIGH_BLOOM,

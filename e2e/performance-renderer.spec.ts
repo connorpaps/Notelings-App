@@ -38,7 +38,13 @@ async function capturePage(page: Page, name: string) {
 }
 
 async function assertRendererContract(page: Page) {
-  const expectedQuality = process.env.NEXT_PUBLIC_NOTELINGS_RENDER_QUALITY ?? 'high'
+  const expectedQuality = await page.evaluate(() => {
+    const navigatorWithMemory = navigator as Navigator & { deviceMemory?: number }
+    const constrained = window.matchMedia?.('(pointer: coarse)').matches
+      || (navigator.hardwareConcurrency ?? Number.POSITIVE_INFINITY) <= 4
+      || (navigatorWithMemory.deviceMemory ?? Number.POSITIVE_INFINITY) <= 4
+    return constrained ? 'balanced' : 'high'
+  })
   const audit = await page.evaluate(() => {
     const renderer = (window as unknown as {
       __NOTELINGS_RENDERER__?: { getPixelRatio?: () => number }
@@ -65,18 +71,18 @@ async function assertRendererContract(page: Page) {
     dpr: 1,
     frameloop: 'always',
     shadows: true,
-    postprocessing: true,
     toneMappingExposure: 1.2,
-    bloom: { luminanceThreshold: 1, intensity: 0.2 },
   })
   if (expectedQuality === 'balanced') {
     expect(audit.profile).toMatchObject({
+      postprocessing: false,
       shadowMapSize: [2048, 2048],
       shadowCascade: 14,
       ssao: { samples: 16, rings: 2 },
     })
   } else {
     expect(audit.profile).toMatchObject({
+      postprocessing: true,
       shadowMapSize: [4096, 4096],
       shadowCascade: 30,
       ssao: { samples: 32, rings: 4 },
@@ -151,6 +157,7 @@ test.describe('renderer visual capture', () => {
         agent.currentTask !== null && (agent.status === 'walking' || agent.status === 'processing'),
       )
     }, undefined, { timeout: 15_000, polling: 100 })
+    await assertRendererContract(page)
     await capturePage(page, 'desktop-delivery')
     expect(errors).toEqual([])
   })

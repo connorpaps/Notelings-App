@@ -34,14 +34,14 @@ describe('office render profiles', () => {
     })
   })
 
-  it('keeps Bloom and exposure while reducing balanced shadow and SSAO cost', () => {
+  it('keeps exposure while removing balanced postprocessing cost', () => {
     expect(OFFICE_RENDER_PROFILES.balanced).toMatchObject({
       quality: 'balanced',
       dpr: 1,
       shadows: true,
       shadowMapSize: [2048, 2048],
       shadowCascade: 14,
-      postprocessing: true,
+      postprocessing: false,
       toneMappingExposure: 1.2,
       bloom: OFFICE_RENDER_PROFILES.high.bloom,
       ssao: {
