@@ -83,7 +83,7 @@ export default function WelcomeScreen({ onInitialize, onBrowseDemo }: WelcomeScr
         transition={{ duration: reduceMotion ? 0 : 0.8, ease: 'easeOut' }}
         className="pointer-events-auto my-auto w-full max-w-[620px]"
       >
-        <GlassPanel strong glow className="rounded-[2rem] md:rounded-[2.5rem]">
+        <GlassPanel strong glow className="welcome-panel rounded-[2rem] md:rounded-[2.5rem]">
           <div className="flex max-h-[calc(100dvh-2rem)] w-full flex-col gap-6 overflow-y-auto px-5 py-7 sm:px-8 sm:py-9 md:max-h-[calc(100dvh-4rem)] md:px-12 md:py-11">
             <div className="text-center">
               <h1 id="welcome-title" className="text-[38px] font-medium leading-[1.05] tracking-[-0.04em] text-white sm:text-[48px] md:text-[58px]">
