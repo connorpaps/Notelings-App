@@ -14,6 +14,8 @@ export type GraphNode = {
   type: 'note' | 'tag'
   /** note nodes only */
   noteId?: string
+  /** note nodes only — short readable preview for the canvas */
+  label?: string
   category?: NoteCategory
   /** tag nodes only — display name (first casing wins) */
   name?: string
@@ -67,6 +69,7 @@ export function buildGraphData(notes: readonly NoteRecord[]): GraphData {
       id: `note:${note.id}`,
       type: 'note' as const,
       noteId: note.id,
+      label: note.content.trim().replace(/\s+/g, ' ').slice(0, 42),
       category: note.category,
       degree: degree.get(`note:${note.id}`) ?? 0,
     })),

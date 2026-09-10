@@ -11,8 +11,8 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false 
 const HUB_FONT = '"Poppins", sans-serif'
 /** Opacity of everything NOT connected to an explicitly focused tag (10%). */
 const DIMMED_ALPHA = 0.1
-const EDGE_COLOR = 'rgba(255,255,255,0.1)'
-const EDGE_DIMMED = 'rgba(255,255,255,0.012)'
+const EDGE_COLOR = 'rgba(196,224,224,0.28)'
+const EDGE_DIMMED = 'rgba(196,224,224,0.035)'
 const MAX_LABEL = 18
 const NOTE_RADIUS = 4.5
 const NOTE_HOVER_RADIUS = 7
@@ -149,6 +149,14 @@ export default function KnowledgeGraphCanvas({
     ctx.beginPath()
     ctx.arc(node.x, node.y, hovered ? NOTE_HOVER_RADIUS : NOTE_RADIUS, 0, 2 * Math.PI)
     ctx.fill()
+    if (hovered && n.label) {
+      const label = truncateLabel(n.label, 28)
+      ctx.font = `500 11px ${HUB_FONT}`
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = 'rgba(236, 248, 247, 0.96)'
+      ctx.fillText(label, node.x + NOTE_HOVER_RADIUS + 9, node.y)
+    }
     ctx.restore()
   }
 

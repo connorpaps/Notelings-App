@@ -82,7 +82,7 @@ export default function KnowledgeGraphOverlay() {
           exit={reduceMotion ? undefined : { opacity: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
           ref={dialogRef}
-          className="pointer-events-auto fixed inset-0 z-40 isolate"
+          className="knowledge-graph-overlay pointer-events-auto fixed inset-0 z-40 isolate"
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
@@ -96,6 +96,9 @@ export default function KnowledgeGraphOverlay() {
                 </p>
                 <span className="hidden text-[11px] text-white/50 sm:inline">
                   {tagCount} tags · {noteCount} notes
+                </span>
+                <span className="hidden border-l border-white/20 pl-3 text-[11px] text-white/50 lg:inline">
+                  click a tag to focus · click a note to inspect
                 </span>
               </div>
               {focusedName && (
@@ -124,7 +127,7 @@ export default function KnowledgeGraphOverlay() {
 
           <div
             data-knowledge-graph-surface
-            className="absolute inset-x-4 bottom-4 top-[4.75rem] z-10 overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-md md:bottom-8 md:left-[22rem] md:right-[22rem] md:top-24"
+            className="knowledge-graph-surface absolute inset-x-4 bottom-4 top-[4.75rem] z-10 overflow-hidden rounded-[2rem] border border-white/15 shadow-[0_24px_80px_rgba(0,0,0,0.45)] md:bottom-8 md:left-[22rem] md:right-[22rem] md:top-24"
           >
             {graphData.nodes.length === 0 ? (
               <div className="flex h-full items-center justify-center">
