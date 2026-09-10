@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "optimize:office": "node scripts/optimize-office-asset.mjs",
+    "check:office-asset": "node scripts/check-office-asset.mjs",
+    "check:env": "node scripts/check-env.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.39",
@@ -41,6 +44,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.5.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

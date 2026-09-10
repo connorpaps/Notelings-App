@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import { NEW_OFFICE_FLOOR, NEW_OFFICE_MODEL_PATH, NEW_OFFICE_RECENTER } from './newOfficeLayout'
 
 // Node shims so GLTFLoader can parse the GLB without a browser (same as
@@ -27,9 +28,15 @@ class FakeImage {
 
 const PUBLIC_MODEL_PATH = NEW_OFFICE_MODEL_PATH.replace(/^\//, 'public/')
 
+function createLoader() {
+  const loader = new GLTFLoader()
+  loader.setMeshoptDecoder(MeshoptDecoder)
+  return loader
+}
+
 function measureFloor(): Promise<{ topY: number; minX: number; maxX: number; minZ: number; maxZ: number }> {
   return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader()
+    const loader = createLoader()
     loader.parse(
       readFileSync(PUBLIC_MODEL_PATH).buffer as ArrayBuffer,
       '',
@@ -62,7 +69,7 @@ function measureFloor(): Promise<{ topY: number; minX: number; maxX: number; min
 
 function measureCenter(): Promise<THREE.Vector3> {
   return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader()
+    const loader = createLoader()
     loader.parse(
       readFileSync(PUBLIC_MODEL_PATH).buffer as ArrayBuffer,
       '',
