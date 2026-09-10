@@ -48,6 +48,8 @@ The UI is designed as a control surface over the office rather than a dashboard 
 - **Terminal log** for lifecycle events and delivery feedback.
 - **Responsive mobile surfaces** with safe-area padding, short-viewport bounds, and larger touch targets.
 
+Mobile is a supported control surface, while desktop is the primary 3D showcase. The office remains fully visible on narrow screens, with capability-aware rendering that preserves readable agents and shadows while removing only the most expensive postprocessing on constrained devices. The active office asset is Meshopt/WebP optimized: its raw size is approximately 3.05 MB, down from 18.22 MB.
+
 ### Physical delivery
 
 ![Notelings active delivery — a capsule agent carries a note card through the office toward its category destination.](docs/images/notelings-delivery-flow.png)
@@ -77,6 +79,7 @@ The graph visualizes relationships without creating an unreadable note-to-note h
 - Light paper-and-glass visual language documented in [`DESIGN.md`](DESIGN.md).
 - Reduced-motion handling across UI transitions, panels, cards, graph, and modal surfaces.
 - High/balanced renderer profiles with DPR capped at 1 and measured shadow/SSAO trade-offs.
+- Mobile-aware asset delivery and rendering: the GLB uses standard Meshopt geometry compression and WebP textures, with browser transfer measured at approximately 1.93 MB.
 
 ### Intelligent note operations
 
@@ -221,6 +224,7 @@ The GLB/WebGL suite is intentionally serial on SwiftShader-heavy machines. `CI=1
 - Service-role Supabase keys stay on the server and are never imported by browser code.
 - Gemini processing is disclosed and can be bypassed with manual capture.
 - The demo uses a separate Supabase project, fictional seed data, resettable writes, and daily AI ceilings.
+- Gemini, Supabase, and Vercel allowances depend on current provider plans and can change; the demo has application-level ceilings and deterministic fallback, but is not advertised as permanently or unconditionally free.
 - Request observability redacts note content, prompts, provider responses, tokens, cookies, and embeddings.
 - This repository intentionally contains no license. **All rights reserved.** It is public for portfolio and reference purposes; reuse, redistribution, or commercialization requires written permission.
 
