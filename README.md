@@ -30,6 +30,8 @@ Most note apps hide their operational state behind lists and status labels. Note
 
 AI is optional. AI-off capture saves a manually created note without calling Gemini and routes it to **Needs sorting**.
 
+The engineering thesis is simple: make asynchronous system state legible by connecting backend contracts, client state, and physical scene behavior in one observable loop.
+
 ## One-minute recruiter walkthrough
 
 1. Open the live app and select **Enter demo workspace**. No account is required.
