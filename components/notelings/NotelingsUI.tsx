@@ -19,6 +19,7 @@ import { useNotesRealtime } from './useNotesRealtime'
 import { useNoteSync } from './useNoteSync'
 import { useAgentStore } from '@/components/office/agentStore'
 import { useOfficeViewStore } from '@/components/office/officeViewStore'
+import { useAuthSessionStore } from '@/lib/auth/sessionStore'
 import { browserApiPath, browserMode } from '@/lib/deployment/mode'
 
 type NotelingsUIProps = { enabled?: boolean }
@@ -38,7 +39,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const [demoEntryPending, setDemoEntryPending] = useState(() => browserMode() === 'demo')
   const demoEntryAttempted = useRef(false)
   const router = useRouter()
-  const { authenticated, loading, user, refresh } = useAuthSession()
+  const { authenticated, loading, user } = useAuthSession()
   // The gate is the signed-out entry surface AND the signed-in "ready" card:
   // it always shows with no session, and stays until dismissed for signed-in
   // users (who land on "Private workspace ready → Initialize Agents").
@@ -58,13 +59,14 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
     try {
       const res = await fetch(browserApiPath('/auth/demo'), { method: 'POST' })
       if (!res.ok) throw new Error('demo unavailable')
-      const signedIn = await refresh()
-      if (!signedIn) throw new Error('demo session unavailable')
+      const payload = (await res.json()) as { user?: ReturnType<typeof useAuthSessionStore.getState>['user'] }
+      if (!payload.user) throw new Error('demo session unavailable')
+      useAuthSessionStore.getState().setUser(payload.user)
       setGateDismissed(true)
     } catch {
       toast.error('Demo workspace is unavailable right now.')
     }
-  }, [refresh, router])
+  }, [router])
 
   // The root welcome card navigates to the trusted demo path first. Finish the
   // entry automatically after that navigation so the user never has to click

@@ -35,11 +35,11 @@ export async function POST(request: Request) {
 
     try {
       const supabase = await createUserSupabase(mode)
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         return NextResponse.json({ error: 'Demo workspace is unavailable right now.' }, { status: 503 })
       }
-      return NextResponse.json({ ok: true, demo: true })
+      return NextResponse.json({ ok: true, demo: true, user: data.user })
     } catch {
       return NextResponse.json({ error: 'Demo workspace is unavailable right now.' }, { status: 503 })
     }
