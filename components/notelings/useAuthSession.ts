@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createBrowserSupabase } from '@/lib/supabase/client'
 import { browserApiPath } from '@/lib/deployment/mode'
 import { useAuthSessionStore } from '@/lib/auth/sessionStore'
@@ -13,6 +13,7 @@ export function useAuthSession() {
   const user = useAuthSessionStore((state) => state.user)
   const setStoreUser = useAuthSessionStore((state) => state.setUser)
   const [loading, setLoading] = useState(!E2E_AUTH_BYPASS)
+  const sessionReadVersion = useRef(0)
 
   useEffect(() => {
     if (E2E_AUTH_BYPASS) return
@@ -32,15 +33,17 @@ export function useAuthSession() {
       return undefined
     }
 
+    const initialReadVersion = sessionReadVersion.current
     void supabase.auth
       .getUser()
       .then(({ data }) => {
         if (disposed) return
+        if (initialReadVersion !== sessionReadVersion.current) return
         setStoreUser(data.user ?? null)
         setLoading(false)
       })
       .catch(() => {
-        if (disposed) return
+        if (disposed || initialReadVersion !== sessionReadVersion.current) return
         setStoreUser(null)
         setLoading(false)
       })
@@ -62,6 +65,7 @@ export function useAuthSession() {
   /** Re-read the session from cookies after a server-side sign-in/sign-out. */
   const refresh = useCallback(async (): Promise<boolean> => {
     if (E2E_AUTH_BYPASS) return true
+    sessionReadVersion.current += 1
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const response = await fetch(browserApiPath('/auth/session'), { cache: 'no-store' })
