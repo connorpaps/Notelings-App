@@ -68,11 +68,12 @@ describe('POST /api/auth/demo', () => {
 
   it('signs into the demo account', async () => {
     process.env.NOTELINGS_DEMO_PASSWORD = 'demo-password'
-    const supabaseStub = { auth: { signInWithPassword: vi.fn().mockResolvedValue({ error: null }) } }
+    const user = { id: 'demo-user', email: 'demo@notelings.local' }
+    const supabaseStub = { auth: { signInWithPassword: vi.fn().mockResolvedValue({ data: { user }, error: null }) } }
     mockedCreateUserSupabase.mockResolvedValue(supabaseStub as never)
     const response = await POST(request())
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ ok: true, demo: true })
+    expect(await response.json()).toEqual({ ok: true, demo: true, user })
     expect(supabaseStub.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'demo@notelings.local', password: 'demo-password' })
   })
 })

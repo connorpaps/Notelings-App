@@ -48,7 +48,7 @@ The UI is designed as a control surface over the office rather than a dashboard 
 - **Terminal log** for lifecycle events and delivery feedback.
 - **Responsive mobile surfaces** with safe-area padding, short-viewport bounds, and larger touch targets.
 
-Mobile is a supported control surface, while desktop is the primary 3D showcase. The office remains fully visible on narrow screens, with capability-aware rendering that preserves readable agents and shadows while removing only the most expensive postprocessing on constrained devices. The active office asset is Meshopt/WebP optimized: its raw size is approximately 3.05 MB, down from 18.22 MB.
+Mobile is a supported control surface, while desktop is the primary 3D showcase. The office remains fully visible on narrow screens, with capability-aware rendering that preserves readable agents and shadows while removing only the most expensive postprocessing on constrained devices. The active office asset is Meshopt/WebP optimized: its raw size is approximately 2.90 MB, down from 18.22 MB.
 
 ### Physical delivery
 
