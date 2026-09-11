@@ -56,3 +56,6 @@ docs/.performance-artifacts/
 # Dev-server launcher state (scripts/dev-server.sh)
 docs/.dev-server.log
 docs/.dev-server.pid
+
+.vercel
+.env*
