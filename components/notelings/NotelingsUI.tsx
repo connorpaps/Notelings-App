@@ -105,6 +105,11 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
 
   const workspaceReady = authenticated && gateDismissed && officeReady
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('notelings-board-lane', workspaceReady)
+    return () => document.documentElement.classList.remove('notelings-board-lane')
+  }, [workspaceReady])
+
   if (!enabled) return null
 
   return (
