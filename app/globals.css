@@ -23,7 +23,7 @@
 
 @media (min-width: 1280px) {
   .notelings-office-stage {
-    width: calc(100% - min(48vw, 44rem) - 2rem);
+    width: calc(100% - min(48vw, 44rem) - 2.5rem);
   }
 }
 
