@@ -514,6 +514,8 @@ test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and stil
   const input = page.getByRole('textbox', { name: 'Type a new note' })
   await input.fill('a note that cannot be categorized')
   await page.getByRole('button', { name: 'Submit note' }).click()
+  const completionToast = page.getByText(/Success: (Blue|Green) Agent filed your note in Uncategorized\./)
+  const completionToastVisible = completionToast.waitFor({ state: 'visible', timeout: 90_000 })
 
   await expect(page.getByText(/Could not reach the categorizer/)).toBeVisible({ timeout: 15_000 })
 
@@ -555,7 +557,6 @@ test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and stil
     return runtime?.agents?.red?.status === 'idle'
   }, { timeout: 15_000, polling: 100 })
 
-  const completionToast = page.getByText(/Success: (Blue|Green) Agent filed your note in Uncategorized\./)
   await Promise.all([
     page.waitForFunction(() => {
       const runtime = (window as unknown as { __NOTELINGS_AGENTS__?: { taskQueueLength: number; agents: Record<string, { status: string; lastArrivedTarget?: [number, number] | null }> } }).__NOTELINGS_AGENTS__
@@ -563,9 +564,9 @@ test('Milestone 4 degraded path: LLM failure saves, flags red sentinel, and stil
         // New-office staging: corkboard → Hallway Bookshelf (3,21).
         && Object.values(runtime.agents).some((agent) => (agent.lastArrivedTarget?.[0] ?? -1) === 3 && (agent.lastArrivedTarget?.[1] ?? -1) === 21))
     }, { timeout: 60_000, polling: 100 }),
-    // Start waiting before delivery completes so the short-lived toast cannot
-    // auto-dismiss before the precise visible-locator assertion runs.
-    completionToast.waitFor({ state: 'visible', timeout: 90_000 }),
+    // The precise toast wait starts immediately after submission so it cannot
+    // miss the short-lived notification during sentinel recovery.
+    completionToastVisible,
   ])
   // The mocked 500 is deliberate in this test; any OTHER console/page error fails.
   expect(errors.filter((error) => !error.includes('status of 500'))).toEqual([])
