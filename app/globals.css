@@ -12,8 +12,19 @@
   transition: opacity 420ms ease;
 }
 
+.notelings-office-stage {
+  width: 100%;
+  transition: width 520ms ease;
+}
+
 .notelings-workspace-layer[data-workspace-ready='true'] {
   opacity: 1;
+}
+
+@media (min-width: 1280px) {
+  .notelings-office-stage {
+    width: calc(100% - min(48vw, 44rem) - 2rem);
+  }
 }
 
 .notelings-entry-curtain {
@@ -38,6 +49,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .notelings-workspace-layer { transition: none; }
+  .notelings-office-stage { transition: none; }
   .notelings-entry-dots { animation: none; width: 1.25rem; }
 }
 

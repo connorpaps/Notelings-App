@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <main className="light-world relative h-dvh w-full overflow-hidden bg-[#f6f7f5]">
       <PaperWorldBackground />
-      <div className="absolute inset-0 z-10 bg-transparent">
+      <div className="notelings-office-stage absolute inset-y-0 left-0 z-10 bg-transparent">
         <OfficeCanvas />
       </div>
       <NotelingsUI />
