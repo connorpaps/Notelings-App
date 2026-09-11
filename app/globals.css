@@ -21,12 +21,6 @@
   opacity: 1;
 }
 
-@media (min-width: 1280px) {
-  .notelings-board-lane .notelings-office-stage {
-    width: calc(100% - min(48vw, 44rem) - 3rem);
-  }
-}
-
 .notelings-entry-curtain {
   background: rgb(246 247 245 / 0.28);
   backdrop-filter: blur(8px);
