@@ -101,15 +101,9 @@ For the private project and demo project separately:
 
 ## Automated production deployment
 
-Pushes to `main` run the full validation job first. If it passes, `.github/workflows/ci.yml` deploys the prebuilt artifact to Vercel automatically. Configure these one-time GitHub repository secrets; never commit their values:
+Pushes to `main` run the full validation job in GitHub Actions. Production deployment is owned by Vercel's native GitHub integration for `connorpaps/Notelings-App`; once Vercel receives the `main` push, it builds and promotes the deployment to `https://notelings-portfolio.vercel.app/`.
 
-```text
-VERCEL_TOKEN
-VERCEL_ORG_ID
-VERCEL_PROJECT_ID
-```
-
-`VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` come from the linked Vercel project metadata. The workflow pulls the Production environment from Vercel, builds once, and deploys with `--prebuilt`, preventing a second unmanaged build. If Vercel Git integration remains enabled, disable duplicate Production deployments or choose one deployment owner.
+This repository intentionally does not duplicate that deployment in GitHub Actions. Vercel already owns the linked project and its environment configuration, so a second CLI build would add another credential boundary and build the same commit twice. Use the Vercel project dashboard to inspect deployment logs or redeploy a verified commit.
 
 ## Demo write policy
 
