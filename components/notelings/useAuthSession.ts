@@ -62,22 +62,26 @@ export function useAuthSession() {
   /** Re-read the session from cookies after a server-side sign-in/sign-out. */
   const refresh = useCallback(async (): Promise<boolean> => {
     if (E2E_AUTH_BYPASS) return true
-    try {
-      const response = await fetch(browserApiPath('/auth/session'), { cache: 'no-store' })
-      if (!response.ok) {
-        setStoreUser(null)
-        return false
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const response = await fetch(browserApiPath('/auth/session'), { cache: 'no-store' })
+        if (response.ok) {
+          const payload = (await response.json()) as { user?: ReturnType<typeof useAuthSessionStore.getState>['user'] }
+          const nextUser = payload.user ?? null
+          if (nextUser) {
+            setStoreUser(nextUser)
+            setLoading(false)
+            return true
+          }
+        }
+      } catch {
+        // Retry once the server-side auth cookie has propagated to the route.
       }
-      const payload = (await response.json()) as { user?: ReturnType<typeof useAuthSessionStore.getState>['user'] }
-      const nextUser = payload.user ?? null
-      setStoreUser(nextUser)
-      return Boolean(nextUser)
-    } catch {
-      setStoreUser(null)
-      return false
-    } finally {
-      setLoading(false)
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 180))
     }
+    setStoreUser(null)
+    setLoading(false)
+    return false
   }, [setStoreUser])
 
   return {
