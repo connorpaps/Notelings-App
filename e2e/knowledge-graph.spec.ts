@@ -107,11 +107,9 @@ test('Milestone 5 knowledge graph: bipartite hubs, frozen layout, side-peek edit
   await expect(overlay).toBeVisible({ timeout: 15_000 })
   const surface = page.locator('[data-knowledge-graph-surface]')
   await expect(surface).toBeVisible()
-  await expect(surface).toHaveClass(/bg-black\/25/)
-  await expect(surface).toHaveClass(/backdrop-blur-md/)
   await expect
-    .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('[data-knowledge-graph-surface]')!).backdropFilter))
-    .toMatch(/blur/)
+    .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('[data-knowledge-graph-surface]')!).backgroundColor))
+    .toBe('rgba(8, 20, 23, 0.94)')
   await expect
     .poll(() => page.evaluate(() => getComputedStyle(document.querySelector('[role="dialog"][aria-labelledby]')!).backdropFilter))
     .toBe('none')
@@ -123,8 +121,7 @@ test('Milestone 5 knowledge graph: bipartite hubs, frozen layout, side-peek edit
   await page.getByRole('button', { name: 'Open knowledge graph' }).click()
   await expect(overlay).toBeVisible({ timeout: 10_000 })
   await expect(surface).toBeVisible()
-  await expect(surface).toHaveClass(/bg-black\/25/)
-  await expect(surface).toHaveClass(/backdrop-blur-md/)
+  await expect(surface).not.toHaveClass(/backdrop-blur-md/)
 
   // Bipartite counts: archived note excluded; 4 hubs + 4 satellites; 5 edges.
   await expect
