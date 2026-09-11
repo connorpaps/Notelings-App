@@ -30,7 +30,7 @@ export default function NoteCard({ note, archiving = false, onEdit, onArchive }:
       className="liquid-glass cursor-default rounded-2xl p-3.5 transition-transform duration-200"
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="line-clamp-2 text-[13px] leading-[1.5] text-white/85">{note.content}</p>
+        <p className="line-clamp-3 text-sm leading-[1.5] text-white/85">{note.content}</p>
         <span aria-hidden className={`mt-1 size-1.5 shrink-0 rounded-full ${STATUS_DOT[note.status]}`} />
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">

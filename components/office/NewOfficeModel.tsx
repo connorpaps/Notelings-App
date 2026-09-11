@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { NEW_OFFICE_MODEL_PATH, NEW_OFFICE_RECENTER } from './newOfficeLayout'
@@ -29,6 +29,11 @@ export default function NewOfficeModel() {
     })
     return clone
   }, [scene])
+
+  useEffect(() => {
+    ;(window as typeof window & { __NOTELINGS_OFFICE_READY__?: boolean }).__NOTELINGS_OFFICE_READY__ = true
+    window.dispatchEvent(new Event('notelings-office-ready'))
+  }, [])
 
   return <primitive object={model} position={[NEW_OFFICE_RECENTER[0], 0, NEW_OFFICE_RECENTER[2]]} />
 }

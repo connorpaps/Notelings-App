@@ -28,8 +28,8 @@ export default function NewOfficeScene() {
       <OfficeLoadStatus />
       <Suspense fallback={null}>
         <NewOfficeModel />
+        <AgentLayer />
       </Suspense>
-      <AgentLayer />
     </group>
   )
 }

@@ -37,9 +37,18 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const [gateDismissed, setGateDismissed] = useState(false)
   const [kanbanOpen, setKanbanOpen] = useState(false)
   const [demoEntryPending, setDemoEntryPending] = useState(() => browserMode() === 'demo')
+  const [officeReady, setOfficeReady] = useState(false)
   const demoEntryAttempted = useRef(false)
   const router = useRouter()
   const { authenticated, loading, user } = useAuthSession()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const markReady = () => setOfficeReady(true)
+    if ((window as typeof window & { __NOTELINGS_OFFICE_READY__?: boolean }).__NOTELINGS_OFFICE_READY__) markReady()
+    window.addEventListener('notelings-office-ready', markReady)
+    return () => window.removeEventListener('notelings-office-ready', markReady)
+  }, [])
   // The gate is the signed-out entry surface AND the signed-in "ready" card:
   // it always shows with no session, and stays until dismissed for signed-in
   // users (who land on "Private workspace ready → Initialize Agents").
@@ -94,7 +103,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
     (state) => Object.values(state.agents).filter((agent) => agent.status !== 'error').length,
   )
 
-  const workspaceReady = authenticated && gateDismissed
+  const workspaceReady = authenticated && gateDismissed && officeReady
 
   if (!enabled) return null
 
