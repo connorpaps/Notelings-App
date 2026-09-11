@@ -82,6 +82,9 @@ export default function KnowledgeGraphOverlay() {
           exit={reduceMotion ? undefined : { opacity: 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
           ref={dialogRef}
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) handleClose()
+          }}
           className="knowledge-graph-overlay pointer-events-auto fixed inset-0 z-40 isolate"
           role="dialog"
           aria-modal="true"

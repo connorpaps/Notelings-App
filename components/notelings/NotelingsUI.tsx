@@ -35,13 +35,14 @@ type NotelingsUIProps = { enabled?: boolean }
 export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   const [gateDismissed, setGateDismissed] = useState(false)
   const [kanbanOpen, setKanbanOpen] = useState(false)
+  const [demoEntryPending, setDemoEntryPending] = useState(() => browserMode() === 'demo')
   const demoEntryAttempted = useRef(false)
   const router = useRouter()
   const { authenticated, loading, user, refresh } = useAuthSession()
   // The gate is the signed-out entry surface AND the signed-in "ready" card:
   // it always shows with no session, and stays until dismissed for signed-in
   // users (who land on "Private workspace ready → Initialize Agents").
-  const showGate = !loading && (!authenticated || !gateDismissed)
+  const showGate = !loading && !demoEntryPending && (!authenticated || !gateDismissed)
   const isDemo = Boolean(user?.user_metadata?.is_demo)
 
   const enterWorkspace = useCallback(() => setGateDismissed(true), [])
@@ -52,6 +53,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
       router.push('/demo')
       return
     }
+    setDemoEntryPending(true)
     try {
       const res = await fetch(browserApiPath('/auth/demo'), { method: 'POST' })
       if (!res.ok) throw new Error('demo unavailable')
@@ -67,9 +69,12 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   // entry automatically after that navigation so the user never has to click
   // the demo button twice.
   useEffect(() => {
-    if (browserMode() !== 'demo' || loading || authenticated || demoEntryAttempted.current) return
+    if (browserMode() !== 'demo' || loading) return
+    if (authenticated) return
+    if (demoEntryAttempted.current) return
     demoEntryAttempted.current = true
-    void enterDemo()
+    setDemoEntryPending(true)
+    void enterDemo().finally(() => setDemoEntryPending(false))
   }, [authenticated, enterDemo, loading])
   // The header's "Hide UI" collapses the chrome to just the view controls so
   // the office can be viewed (or the nav grid painted) on its own.

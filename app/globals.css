@@ -447,6 +447,14 @@ body {
 }
 
 @media (min-width: 1280px) {
+  .notelings-board-panel {
+    width: clamp(30rem, 38vw, 36rem) !important;
+  }
+
+  .notelings-board-column {
+    min-width: 10rem;
+  }
+
   .notelings-ui-content {
     gap: clamp(1rem, 2vw, 2rem);
   }
@@ -593,7 +601,7 @@ body {
   }
 
   .notelings-board-panel {
-    width: clamp(20rem, 30vw, 26rem) !important;
+    width: clamp(28rem, 38vw, 34rem) !important;
     max-height: calc(100dvh - 8rem);
   }
 
