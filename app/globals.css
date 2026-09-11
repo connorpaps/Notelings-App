@@ -7,6 +7,40 @@
   pointer-events: none;
 }
 
+.notelings-workspace-layer {
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.notelings-workspace-layer[data-workspace-ready='true'] {
+  opacity: 1;
+}
+
+.notelings-entry-curtain {
+  background: rgb(246 247 245 / 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.notelings-entry-dots {
+  display: inline-block;
+  width: 1.25rem;
+  overflow: hidden;
+  vertical-align: bottom;
+  animation: notelings-entry-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes notelings-entry-dots {
+  0%, 20% { width: 0; }
+  50%, 70% { width: 0.65rem; }
+  100% { width: 1.25rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notelings-workspace-layer { transition: none; }
+  .notelings-entry-dots { animation: none; width: 1.25rem; }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 html,

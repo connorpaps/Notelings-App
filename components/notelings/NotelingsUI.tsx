@@ -42,7 +42,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   // The gate is the signed-out entry surface AND the signed-in "ready" card:
   // it always shows with no session, and stays until dismissed for signed-in
   // users (who land on "Private workspace ready → Initialize Agents").
-  const showGate = !loading && !demoEntryPending && (!authenticated || !gateDismissed)
+  const showGate = !loading && (authenticated || !demoEntryPending) && (!authenticated || !gateDismissed)
   const isDemo = Boolean(user?.user_metadata?.is_demo)
 
   const enterWorkspace = useCallback(() => setGateDismissed(true), [])
@@ -50,6 +50,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
   // browser is on /demo does this request establish a demo Supabase session.
   const enterDemo = useCallback(async () => {
     if (browserMode() !== 'demo') {
+      setDemoEntryPending(true)
       router.push('/demo')
       return
     }
@@ -91,13 +92,23 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
     (state) => Object.values(state.agents).filter((agent) => agent.status !== 'error').length,
   )
 
+  const workspaceReady = authenticated && gateDismissed
+
   if (!enabled) return null
 
   return (
     <>
+      {demoEntryPending && !authenticated && (
+        <div className="notelings-entry-curtain absolute inset-0 z-50 flex items-center justify-center" role="status" aria-live="polite">
+          <div className="liquid-glass rounded-full px-5 py-3 text-sm text-white/75">
+            Opening workspace<span className="notelings-entry-dots" aria-hidden="true">...</span>
+          </div>
+        </div>
+      )}
       {!hidden && showGate && (
         <WelcomeScreen onInitialize={enterWorkspace} onBrowseDemo={() => void enterDemo()} />
       )}
+      <div className="notelings-workspace-layer" data-workspace-ready={workspaceReady ? 'true' : 'false'}>
       <div className="notelings-ui-shell absolute inset-0 z-20 pointer-events-none flex flex-col p-6 md:p-10">
         <header className="notelings-header flex items-center justify-between gap-4">
           {hidden ? (
@@ -166,6 +177,7 @@ export default function NotelingsUI({ enabled = true }: NotelingsUIProps) {
       {/* M5: knowledge graph overlay (works even in Hide-UI mode). */}
       <KnowledgeGraphOverlay />
       {!hidden && <Toaster position="bottom-right" />}
+      </div>
     </>
   )
 }
