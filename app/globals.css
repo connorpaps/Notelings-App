@@ -482,7 +482,7 @@ body {
 
 @media (min-width: 1280px) {
   .notelings-board-panel {
-    width: clamp(34rem, 42vw, 40rem) !important;
+    width: clamp(36rem, 48vw, 44rem) !important;
   }
 
   .notelings-board-column {
