@@ -25,6 +25,12 @@
   .notelings-office-stage {
     width: calc(100% - min(48vw, 44rem) - 3rem);
   }
+
+  /* Keep the recruiter entry composition centered. The board lane is only
+     useful after the welcome dialog is dismissed. */
+  .light-world:has([role='dialog']) .notelings-office-stage {
+    width: 100%;
+  }
 }
 
 .notelings-entry-curtain {
