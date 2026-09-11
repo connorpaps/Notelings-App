@@ -1,204 +1,193 @@
 # Notelings
 
-### A living 3D office for your second brain.
+## Spatial Second Brain Office
 
-Notelings turns note capture into a calm, watchable workflow: type a thought, let Gemini classify it, and watch a capsule-shaped Librarian robot physically carry it across an isometric office to the right destination.
+**Notelings turns a captured thought into a visible workflow.** Type a note, optionally let Gemini categorize it, and watch a capsule-shaped Librarian agent carry it through a navigable 3D office to a physical destination.
 
 [![CI](https://github.com/connorpaps/Notelings-App/actions/workflows/ci.yml/badge.svg)](https://github.com/connorpaps/Notelings-App/actions/workflows/ci.yml)
-[![Next.js](https://img.shields.io/badge/Next.js-16.3-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.3.4-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-20232A?logo=react&logoColor=61DAFB)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React Three Fiber](https://img.shields.io/badge/React%20Three%20Fiber-9.7-20232A?logo=three.js&logoColor=white)](https://r3f.docs.pmnd.rs/)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Auth%20%2B%20Realtime-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 
-**[Open the live app](https://notelings-portfolio.vercel.app/)** · **[Explore the repository](https://github.com/connorpaps/Notelings-App)**
+**[Open the live demo](https://notelings-portfolio.vercel.app/)** · **[View the source](https://github.com/connorpaps/Notelings-App)**
 
-> Notelings is a portfolio project and private-workspace prototype. The public demo uses an isolated Supabase project, fictional seed data, resettable visitor writes, and a capped AI budget.
+> Portfolio demo, not an unrestricted SaaS product. The public workspace uses fictional seed data, resettable visitor writes, application-level AI ceilings, and deterministic degraded behavior when AI is unavailable.
 
----
+![Current Notelings landing view showing the centered 3D office and recruiter-first demo entry.](docs/images/notelings-desktop-overview.png)
 
-## The experience
+## Why this project exists
 
-![Notelings desktop overview — a light paper-and-glass interface surrounding a colorful 3D office with three capsule agents.](docs/images/notelings-desktop-overview.png)
+Most note apps hide their operational state behind lists and status labels. Notelings makes that state observable:
 
-Notelings makes the invisible parts of note organization visible:
+- A note is captured through a glass control surface.
+- A strict categorization contract returns `Work`, `Admin`, or `Uncategorized` plus bounded tags.
+- The authenticated server route persists the note to owner-scoped Supabase data.
+- A Zustand queue dispatches the work to an idle agent.
+- The agent follows a validated A* path across the active GLB office.
+- The destination, board column, terminal log, toast, Realtime mirror, and agent face update together.
 
-1. **Capture** — type a thought in the Command Dock.
-2. **Classify** — Gemini returns a strict `Work`, `Admin`, or `Uncategorized` result with tags.
-3. **Persist** — the authenticated server route saves the note to owner-scoped Supabase Postgres.
-4. **Enqueue** — a Zustand task dispatcher assigns work to the first idle Librarian.
-5. **Navigate** — the robot follows a collision-safe A* route across the GLB office.
-6. **File** — the note reaches a physical bookshelf, cabinet, or corkboard destination.
-7. **Observe** — the Kanban board, terminal, Realtime updates, toast, and agent face all reflect the lifecycle.
+AI is optional. AI-off capture saves a manually created note without calling Gemini and routes it to **Needs sorting**.
 
-AI is optional. AI-off capture saves a manually tagged note without calling Gemini and routes it to a visible **Needs sorting** destination.
+## One-minute recruiter walkthrough
 
----
+1. Open the live app and select **Enter demo workspace**. No account is required.
+2. Review the centered office, three agent cards, Spatial Board, and Command Dock.
+3. Capture a note with AI on, or switch AI off to demonstrate the deterministic manual path.
+4. Watch the Librarian pick up the note, navigate the office, and file it at a category destination.
+5. Open **Graph** to inspect the current tag-to-note Knowledge Graph, or use **Ask AI** for grounded answers with citations.
 
-## Product tour
+The demo is deliberately resettable, so the workflow can be shown repeatedly without using personal data.
 
-### A responsive control center
+## Current product surface
 
-![Notelings mobile overview — the office remains the visual centerpiece while the glass controls adapt to a narrow viewport.](docs/images/notelings-mobile-overview.png)
+### The office is the interface
 
-The UI is designed as a control surface over the office rather than a dashboard that hides it. The light paper world keeps the colorful GLB readable, while frosted glass panels provide the operational layer:
+![Current populated Notelings workspace with the centered office, translucent Spatial Board overlay, agent cards, and Command Dock.](docs/images/notelings-delivery-flow.png)
 
-- **Command Dock** for note capture, AI/manual mode, tags, and Ask the Librarian.
-- **Spatial Board** with Pending, In Transit, and Filed columns.
-- **Agent cards** for the Blue Librarian, Green Archivist, and Red Error Sentinel.
-- **Terminal log** for lifecycle events and delivery feedback.
-- **Responsive mobile surfaces** with safe-area padding, short-viewport bounds, and larger touch targets.
+The active office is a detailed GLB scene. It is not a decorative background or a screenshot behind a dashboard. The interface stays layered over it so the physical delivery is the primary feedback loop.
 
-Mobile is a supported control surface, while desktop is the primary 3D showcase. The office remains fully visible on narrow screens, with capability-aware rendering that preserves readable agents and shadows while removing only the most expensive postprocessing on constrained devices. The active office asset is Meshopt/WebP optimized: its raw size is approximately 2.90 MB, down from 18.22 MB.
+Three code-generated capsule agents have distinct roles:
 
-### Physical delivery
+- **Blue Agent, Librarian:** dispatches and files notes.
+- **Green Agent, Archivist:** available for delivery work and archive operations.
+- **Red Agent, Security / Error:** visible sentinel for failures and recovery states.
 
-![Notelings active delivery — a capsule agent carries a note card through the office toward its category destination.](docs/images/notelings-delivery-flow.png)
-
-The office is not decorative background art. It is the product's stage and state visualization. Delivery tasks are represented by real agent movement, destination-specific routes, processing beats, completion toasts, and a carried note card.
+The current desktop composition keeps the office directly centered. The Spatial Board remains a readable translucent overlay rather than moving the office into a separate lane.
 
 ### Knowledge Graph
 
-![Notelings Knowledge Graph — a frozen bipartite network of tag hubs and note satellites over the office.](docs/images/notelings-knowledge-graph.png)
+![Current Notelings Knowledge Graph overlay showing tag hubs and note satellites over the office.](docs/images/notelings-knowledge-graph.png)
 
-The graph visualizes relationships without creating an unreadable note-to-note hairball:
+The graph is a bounded, readable bipartite view:
 
-- Tag hubs connect to note satellites.
+- Tag hubs connect to note satellites, rather than producing a note-to-note hairball.
 - Archived notes are excluded.
-- The force layout is warmed once and frozen to avoid a permanent physics loop beside WebGL.
-- Selecting a note opens a side-peek editor without losing graph context.
-- Editing tags recomputes the graph; archive remains an agentic office action.
+- The force layout is warmed once and then frozen, avoiding a permanent physics loop beside WebGL.
+- Selecting a note opens a side peek for grounded inspection and editing.
 
----
+### Responsive control surface
 
-## Highlights
+![Current Notelings mobile control surface with the office still visible behind the glass agent card and note composer.](docs/images/notelings-mobile-overview.png)
 
-### Visual systems
+Desktop is the primary 3D showcase. Mobile is a supported control surface with safe-area padding, larger touch targets, compact controls, and capability-aware rendering. The office remains visible instead of being replaced by a static mobile dashboard.
 
-- A transparent, orthographic React Three Fiber canvas with a detailed GLB office.
-- Code-generated capsule robots with LCD-style faces: `^ ^`, `- -`, `O O`, and `X X`.
-- Light paper-and-glass visual language documented in [`DESIGN.md`](DESIGN.md).
-- Reduced-motion handling across UI transitions, panels, cards, graph, and modal surfaces.
-- High/balanced renderer profiles with DPR capped at 1 and measured shadow/SSAO trade-offs.
-- Mobile-aware asset delivery and rendering: the GLB uses standard Meshopt geometry compression and WebP textures, with browser transfer measured at approximately 1.93 MB.
+## Technical highlights
 
-### Intelligent note operations
+- **3D runtime:** React Three Fiber, Three.js, Drei, and a transparent orthographic canvas.
+- **Active asset:** `public/models/3D_Note_Office_2/3d_note_office.glb`.
+- **Navigation:** baked 42×42 grid, four-direction A*, reachable destination checks, and runtime path-safety validation.
+- **State:** Zustand owns the note mirror, agent state, task queue, completion events, and view controls.
+- **Persistence:** Next.js route handlers backed by Supabase Postgres, Auth, and Realtime.
+- **AI:** Vercel AI SDK with Google Gemini for bounded categorization, grounded Librarian chat, and embeddings retrieval.
+- **Validation:** Zod contracts, server-side session checks, origin guards, rate limits, redacted observability, and focused Playwright contracts.
+- **Accessibility:** keyboard-friendly dialogs, focus trapping and restoration, Escape handling, reduced-motion support, and responsive touch targets.
 
-- Gemini categorization with strict Zod output contracts and a 10-second failure boundary.
-- Deterministic degraded behavior when the provider is unavailable.
-- AI-off manual capture that never calls the categorizer.
-- Grounded “Ask the Librarian” chat with clickable citations, deterministic count answers, and embedding retrieval for larger vaults.
-- Tag Explorer, edit modal, soft archive/restore, hard delete, and agentic trash delivery.
+### Performance work
 
-### Engineering boundaries
+The office asset was optimized with standard Meshopt geometry compression and WebP textures:
 
-- Next.js App Router route handlers with origin checks, authenticated session verification, bounded input, rate limits, and redacted observability.
-- Supabase owner-scoped RLS and Realtime note synchronization.
-- Mode-aware private root and isolated `/demo` routing on one Vercel project.
-- A* navigation over a baked 42×42 GLB grid with runtime path-safety checks.
-- Playwright contracts for scene composition, renderer profiles, physical delivery, degraded capture, graph behavior, mobile layout, and private/demo API namespaces.
+| Measurement | Result |
+| --- | ---: |
+| Original GLB | approximately 18.22 MB |
+| Optimized GLB | approximately 2.90 MB |
+| Repository asset budget | 4 MB |
+| Browser transfer observed locally | approximately 1.93 MB |
+| Measured desktop renderer improvement at device scale 2 | approximately 35.6 → 80.9 FPS |
+| Measured mobile backbuffer | reduced from 780×1688 to 390×844 |
 
----
+These are local, device- and browser-dependent measurements, not a universal FPS guarantee. The renderer uses high and balanced capability profiles, capped DPR, and reduced postprocessing on constrained devices while preserving the full office scene.
 
-## How it works
-
-```mermaid
-flowchart LR
-  A[Command Dock] --> B{Capture mode}
-  B -->|AI on| C[POST /api/categorize]
-  B -->|AI off| D[POST /api/notes]
-  C --> E[Gemini + Zod contract]
-  E --> F[Owner-scoped Supabase]
-  D --> F
-  F --> G[Zustand task queue]
-  G --> H[Idle Blue/Green agent]
-  H --> I[42×42 A* GLB grid]
-  I --> J[Physical destination]
-  J --> K[Kanban + Realtime + toast]
-  F --> L[Grounded Librarian chat]
-```
-
-### Active scene architecture
+## Architecture
 
 ```text
-app/page.tsx
-├── PaperWorldBackground
-├── OfficeCanvas
-│   └── NewOfficeScene
-│       ├── NewOfficeModel (3d_note_office.glb)
-│       └── AgentLayer
-├── NotelingsUI
-└── GridEditorPanel (hidden by default)
+Command Dock
+    │
+    ├── AI on  ──> /api/categorize ──> Gemini + Zod contract ──┐
+    └── AI off ──> /api/notes ─────────────────────────────────┤
+                                                               ▼
+                                                   Supabase persistence
+                                                               │
+                                                   Zustand task queue
+                                                               │
+                                                   Blue/Green agent
+                                                               │
+                                                    42×42 A* grid
+                                                               │
+                                                    Physical destination
+                                                               │
+                                      Board + Realtime + terminal + toast
 ```
 
-The active runtime no longer imports the original OBJ office. That historical implementation and its assets are retained under [`archive/legacy-office/`](archive/legacy-office/README.md) for reference, outside the shipped application path.
+The active scene is composed in `components/office/NewOfficeScene.tsx`:
 
----
+```text
+OfficeCanvas
+└── NewOfficeScene
+    ├── NewOfficeModel        active GLB office
+    └── AgentLayer             capsule robots and delivery state
+
+NotelingsUI
+├── WelcomeScreen             demo/private entry
+├── AgentStatusCard           live agent state
+├── Spatial Board             pending, in transit, filed
+├── Command Dock              capture and Librarian chat
+├── Terminal Dock             lifecycle log and tools
+└── Knowledge Graph            frozen tag-to-note visualization
+```
+
+The retired OBJ/builder implementation remains under [`archive/legacy-office/`](archive/legacy-office/README.md) for historical reference only. It is outside the shipped runtime.
 
 ## Technology stack
 
-| Area | Technology | Why it is used |
-| --- | --- | --- |
-| Application | Next.js 16.3 App Router | Server/client composition, route handlers, deployment on Vercel |
-| UI | React 19 + TypeScript 5 | Typed component architecture and browser interaction |
-| Styling | Tailwind CSS v4 + shadcn/base-nova + `class-variance-authority` | Consistent, composable light paper-and-glass surfaces |
-| 3D | React Three Fiber 9.7 + Three.js 0.185 + Drei 10.7 | Declarative scene graph, GLB loading, animation, and scene utilities |
-| Effects | `@react-three/postprocessing` | SSAO, Bloom, and tone mapping for diorama depth |
-| State | Zustand 5 | Agent state, task queue, note mirror, terminal events, UI view state |
-| Data | Supabase Postgres + Auth + Realtime | Owner-scoped persistence, sessions, and live note status updates |
-| AI | Vercel AI SDK 7 + Google Gemini | Categorization, grounded chat, embeddings, and UI-message streaming |
-| Validation | Zod 4 + React Hook Form | Input limits, route contracts, and form validation |
-| Motion | Framer Motion 13 | Accessible UI transitions and state feedback |
-| Testing | Vitest 4 + Playwright 1.62 | Pure domain tests, route boundaries, scene contracts, and browser flows |
-| Delivery | GitHub Actions + Vercel | CI validation and unified private/demo deployment |
+| Area | Current implementation |
+| --- | --- |
+| App | Next.js 16.3.4 App Router, React 19.2, TypeScript 5 |
+| UI | Tailwind CSS v4, Base UI, shadcn components, Framer Motion |
+| 3D | React Three Fiber 9.7, Three.js 0.185, Drei 10.7 |
+| Graph | `react-force-graph-2d` with a frozen layout |
+| State | Zustand 5 |
+| Data | Supabase Postgres, Auth, Realtime |
+| AI | Vercel AI SDK 7, Google Gemini, Zod 4 |
+| Testing | Vitest 4, Playwright 1.62, serial WebGL smoke coverage |
+| Delivery | GitHub Actions and Vercel |
 
----
+## Run locally
 
-## Local setup
-
-### Prerequisites
+### Requirements
 
 - Node.js 22.x
-- npm
-- Git
-- Git Bash on Windows for the committed POSIX helper scripts
-- A Supabase project and Gemini API key for real authenticated note submission and chat
-
-### Install and configure
+- npm and Git
+- Git Bash on Windows for the repository helper scripts
+- Supabase and Gemini environment values for authenticated/provider-backed flows
 
 ```bash
 npm ci
 npx playwright install chromium
 cp .env.example .env.local
-```
-
-Fill `.env.local` from `.env.example`. Never commit `.env.local` or any provider/database credentials.
-
-The office and UI render without credentials. Real capture, Auth, Realtime, and provider-backed AI require the appropriate local environment. AI-off capture remains available without a Gemini call once a session is configured.
-
-### Run the app
-
-```bash
 npm run dev
 ```
 
 Open <http://localhost:3000>.
 
-On Windows Git Bash, the detached helper is useful when you want the app to survive the terminal session:
+The app shell and office can render without provider credentials. Real authentication, persistence, Realtime, categorization, and chat require the environment described by `.env.example`. Never commit `.env.local` or any credentials.
 
-```bash
-bash scripts/dev-server.sh start
-bash scripts/dev-server.sh status
-bash scripts/dev-server.sh logs
-bash scripts/dev-server.sh stop
-```
+## Verification
 
-The current deployment uses `/` for the private workspace and `/demo` for the isolated portfolio workspace. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the environment matrix and release runbook.
+The current release pass has verified:
 
----
+- 228/228 unit tests
+- TypeScript typecheck
+- ESLint
+- Production build
+- `npm audit --omit=dev --audit-level=high`, zero production vulnerabilities
+- Optimized office asset under the 4 MB budget
+- `git diff --check`
+- Serial Playwright browser coverage, with WebGL tests run using `--workers=1`
+- Live health, first-click demo entry, seeded workspace, Realtime connection, note capture, board, graph, chat surface, and mobile composition
 
-## Validation
-
-Run the fast gates locally:
+Run the gates locally:
 
 ```bash
 npx tsc --noEmit
@@ -206,73 +195,40 @@ npm test
 npm run lint
 npm run build
 npm audit --omit=dev --audit-level=high
-```
-
-Run browser coverage against a fresh test server:
-
-```bash
 CI=1 npm run test:e2e -- --workers=1
 ```
 
-The GLB/WebGL suite is intentionally serial on SwiftShader-heavy machines. `CI=1` ensures Playwright starts a fresh server with test-only auth, renderer, and screenshot settings; do not interpret a reused signed-out server as a product failure.
+WebGL tests are intentionally serial on constrained SwiftShader environments. Use a fresh `CI=1` test server rather than diagnosing a reused signed-out development server.
 
----
+## Security and product boundaries
 
-## Privacy and security notes
+- Private notes are owner-scoped through Supabase Auth and RLS.
+- Service-role keys remain server-only.
+- AI processing is disclosed and can be bypassed with manual capture.
+- Request logging redacts note content, prompts, provider responses, tokens, cookies, and embeddings.
+- Gemini, Supabase, and Vercel allowances depend on provider plans and can change. The demo uses application-level ceilings and deterministic fallback; it is not advertised as permanently free.
+- Physics/colliders, rigged robot animation, multi-user sync, and unrestricted public SaaS behavior are intentionally out of scope.
+- This public repository has no license. **All rights reserved.**
 
-- Private notes are owner-scoped through Supabase Auth/RLS.
-- Service-role Supabase keys stay on the server and are never imported by browser code.
-- Gemini processing is disclosed and can be bypassed with manual capture.
-- The demo uses a separate Supabase project, fictional seed data, resettable writes, and daily AI ceilings.
-- Gemini, Supabase, and Vercel allowances depend on current provider plans and can change; the demo has application-level ceilings and deterministic fallback, but is not advertised as permanently or unconditionally free.
-- Request observability redacts note content, prompts, provider responses, tokens, cookies, and embeddings.
-- This repository intentionally contains no license. **All rights reserved.** It is public for portfolio and reference purposes; reuse, redistribution, or commercialization requires written permission.
-
-More detail: [`docs/architecture/data-and-security.md`](docs/architecture/data-and-security.md).
-
----
+More detail is available in [`PRODUCT.md`](PRODUCT.md), [`DESIGN.md`](DESIGN.md), [`docs/architecture/runtime.md`](docs/architecture/runtime.md), and [`docs/architecture/data-and-security.md`](docs/architecture/data-and-security.md).
 
 ## Repository map
 
 ```text
-app/                    Next.js pages, layout, API routes, auth callbacks
-components/notelings/   Paper/glass UI, board, dock, graph, chat, note controls
-components/office/      Active GLB scene, agents, A*, grid editor, render profiles
-lib/                    Pure note/domain logic, AI helpers, auth, Supabase clients
-supabase/               Fresh schema and reviewed migrations
-e2e/                    Playwright scene, delivery, graph, mobile, and deployment tests
-docs/architecture/      Current runtime and data/security documentation
-docs/images/            Sanitized README screenshots
-docs/archive/           Historical specs, audits, plans, and references
-archive/legacy-office/  Retained inactive OBJ office implementation and assets
-scripts/                Development, demo, grid, performance, and smoke tooling
+app/                  pages, layouts, route handlers, auth callbacks
+components/notelings/ glass UI, board, dock, graph, chat, note controls
+components/office/    active GLB scene, agents, A*, grid, render profiles
+lib/                  note/domain logic, AI helpers, auth, Supabase clients
+supabase/             schema and reviewed migrations
+e2e/                  browser contracts and recruiter-flow smoke tests
+docs/architecture/    current runtime and security documentation
+docs/images/          curated, sanitized README captures
+scripts/               development, asset, performance, and smoke tooling
+archive/legacy-office/ historical inactive OBJ implementation
 ```
 
-Internal AI memory, hooks, editor metadata, and vendored skills remain local-only and are intentionally excluded from the portfolio repository. The public project surface is documented by this README, [`PRODUCT.md`](PRODUCT.md), [`DESIGN.md`](DESIGN.md), and [`docs/architecture/`](docs/architecture/). [`skills-lock.json`](skills-lock.json) records development-skill provenance without shipping the vendored implementations.
+## Links
 
----
-
-## Roadmap and boundaries
-
-Already shipped:
-
-- 3D office, capsule agents, A* delivery, task queue, Gemini categorization, and degraded capture.
-- Kanban control center, terminal lifecycle log, Realtime sync, edit/archive flows, Tag Explorer, grounded RAG chat, citations, embeddings, and Knowledge Graph.
-- Authenticated private/demo routing, owner-scoped RLS, AI budgets, loading/degraded states, renderer profiles, responsive/safe-area hardening, and browser validation.
-
-Intentionally out of scope:
-
-- Physics/colliders, rigged/skeletal robot animation, multi-user sync, and automatic Obsidian vault sync.
-- Treating the portfolio demo as an unrestricted public SaaS boundary.
-
----
-
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for focused change guidance and the supported validation commands.
-
----
-
-## License
-
-**All rights reserved.** No license is granted to copy, modify, distribute, sublicense, or commercialize this code without written permission from the author.
+- **Live demo:** https://notelings-portfolio.vercel.app/
+- **GitHub repository:** https://github.com/connorpaps/Notelings-App
+- **CI workflow:** https://github.com/connorpaps/Notelings-App/actions/workflows/ci.yml
