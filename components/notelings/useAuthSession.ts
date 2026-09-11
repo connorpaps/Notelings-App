@@ -39,12 +39,12 @@ export function useAuthSession() {
       .then(({ data }) => {
         if (disposed) return
         if (initialReadVersion !== sessionReadVersion.current) return
-        setStoreUser(data.user ?? null)
+        if (data.user || !useAuthSessionStore.getState().user) setStoreUser(data.user ?? null)
         setLoading(false)
       })
       .catch(() => {
         if (disposed || initialReadVersion !== sessionReadVersion.current) return
-        setStoreUser(null)
+        if (!useAuthSessionStore.getState().user) setStoreUser(null)
         setLoading(false)
       })
 
@@ -52,7 +52,7 @@ export function useAuthSession() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (disposed) return
-      setStoreUser(session?.user ?? null)
+      if (session?.user || !useAuthSessionStore.getState().user) setStoreUser(session?.user ?? null)
       setLoading(false)
     })
 
